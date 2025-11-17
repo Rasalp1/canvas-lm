@@ -79,7 +79,15 @@ async function checkCurrentPage() {
     // Try to get course info from content script
     try {
       console.log('Trying to get course info from content script...');
-      const response = await chrome.tabs.sendMessage(tab.id, { action: 'getCourseInfo' });
+      
+      // Add timeout to prevent hanging
+      const response = await Promise.race([
+        chrome.tabs.sendMessage(tab.id, { action: 'getCourseInfo' }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Content script timeout')), 2000)
+        )
+      ]);
+      
       console.log('Content script response:', response);
       
       if (response && response.courseId) {
@@ -106,7 +114,7 @@ async function checkCurrentPage() {
       
       if (isCanvas && courseId) {
         console.log('Canvas course detected via fallback!');
-        if (status) status.textContent = '✅ Canvas course detected! (content script loading...)';
+        if (status) status.textContent = '✅ Canvas course detected!';
         showCourseInfo({
           courseId,
           courseName: CanvasDetector.extractCourseName(tab.title),
@@ -475,5 +483,3 @@ async function downloadFoundPDFs() {
   
   resetScanButton();
 }
-      console.log('Fetching course modules...');
-      const modules = await this.makeRequest(`/courses/${courseId}/modules?include[]=items&per_page=100`);

@@ -1,10 +1,15 @@
 // content-script.js - Runs on Canvas pages to detect and extract content
 
+console.log('Canvas RAG Assistant: Content script file loaded');
+
 // Canvas course information detector and PDF scraper
 class CanvasContentScript {
   constructor() {
     this.courseId = this.extractCourseId();
     this.courseName = this.extractCourseName();
+    if (this.courseId) {
+      console.log('Canvas RAG Assistant: Course detected:', this.courseId, this.courseName);
+    }
     this.lastUrl = location.href;
     this.init();
   }
@@ -126,16 +131,16 @@ class CanvasContentScript {
   }
 
   handleMessage(request, sender, sendResponse) {
-    console.log('Content script received message:', request);
-    
-    switch (request.action) {
-      case 'getCourseInfo':
-        sendResponse({
-          courseId: this.courseId,
-          courseName: this.courseName,
-          url: window.location.href
-        });
-        break;
+    try {
+      switch (request.action) {
+        case 'getCourseInfo':
+          const response = {
+            courseId: this.courseId,
+            courseName: this.courseName,
+            url: window.location.href
+          };
+          sendResponse(response);
+          break;
 
       case 'scanPDFs':
         if (!this.courseId) {
@@ -169,6 +174,10 @@ class CanvasContentScript {
       default:
         console.log('Unknown action:', request.action);
         sendResponse({ error: 'Unknown action' });
+    }
+    } catch (error) {
+      console.error('Canvas RAG Assistant: Error in handleMessage:', error);
+      sendResponse({ error: error.message });
     }
   }
 
@@ -665,25 +674,10 @@ class CanvasContentScript {
         // Try to get a better title than just "Ladda ner" or "Download"
         let betterTitle = this.extractBetterTitle(a, href);
         
-        // Don't use generic download text as title
-        const isGenericText = text.toLowerCase() === 'ladda ner' || 
-                            text.toLowerCase() === 'download' ||
-                            text.toLowerCase() === 'ladda ned';
-        
-        const finalTitle = betterTitle || 
-                          (!isGenericText ? text : null) || 
-                          this.extractFilenameFromUrl(href) ||
-                          'Canvas File';
-        
-        console.log(`Canvas file link: ${href}`);
-        console.log(`  Original text: "${text}"`);
-        console.log(`  Better title: "${betterTitle}"`);
-        console.log(`  Final title: "${finalTitle}"`);
-        
         links.add(href);
         pdfData.push({
           url: href,
-          title: finalTitle,
+          title: betterTitle || text || 'Canvas File',
           filename: this.extractFilename(href),
           context: this.findContext(a),
           type: isProbablyPDF ? 'canvas_pdf' : 'canvas_file',
@@ -957,58 +951,16 @@ class CanvasContentScript {
     return context;
   }
 
-  extractFilenameFromUrl(url) {
-    try {
-      // Last resort: try to extract any meaningful filename from the URL
-      const urlObj = new URL(url);
-      
-      // Check the full URL for encoded filenames
-      const fullUrl = decodeURIComponent(url);
-      const filenameMatch = fullUrl.match(/([^/]+\.pdf)/i);
-      if (filenameMatch) {
-        return filenameMatch[1].replace(/\.pdf$/i, '');
-      }
-      
-      // Check path segments
-      const pathParts = urlObj.pathname.split('/');
-      for (let i = pathParts.length - 1; i >= 0; i--) {
-        const part = decodeURIComponent(pathParts[i]);
-        if (part && part.length > 1 && !/^\d+$/.test(part) && part !== 'download' && part !== 'files') {
-          return part.replace(/\.pdf$/i, '');
-        }
-      }
-      
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
   extractBetterTitle(linkElement, url) {
     try {
       // First, check if the URL itself contains the filename (for redirected Canvas URLs)
-      const decodedUrl = decodeURIComponent(url);
-      
-      // Handle canvas-user-content URLs
-      if (url.includes('canvas-user-content.com')) {
-        const filenameMatch = decodedUrl.match(/course files\/(.+?)(?:\?|$)/);
+      if (url.includes('canvas-user-content.com') && url.includes('course%20files/')) {
+        const filenameMatch = url.match(/course%20files\/(.+?)(?:\?|$)/);
         if (filenameMatch) {
-          const filename = filenameMatch[1].trim();
-          if (filename && filename.length > 1) {
-            console.log(`Extracted from canvas-user-content URL: "${filename}"`);
-            return filename.replace(/\.pdf$/i, '');
-          }
-        }
-      }
-      
-      // Handle regular Canvas file URLs with course files in path
-      if (decodedUrl.includes('course files/')) {
-        const filenameMatch = decodedUrl.match(/course files\/(.+?)(?:\?|$|#)/);
-        if (filenameMatch) {
-          const filename = filenameMatch[1].trim();
-          if (filename && filename.length > 1) {
-            console.log(`Extracted from course files path: "${filename}"`);
-            return filename.replace(/\.pdf$/i, '');
+          const encodedFilename = filenameMatch[1];
+          const decodedFilename = decodeURIComponent(encodedFilename);
+          if (decodedFilename && decodedFilename.length > 1) {
+            return decodedFilename.replace(/\.pdf$/i, '');
           }
         }
       }
@@ -1220,10 +1172,14 @@ class CanvasContentScript {
 }
 
 // Initialize the content script when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      new CanvasContentScript();
+    });
+  } else {
     new CanvasContentScript();
-  });
-} else {
-  new CanvasContentScript();
+  }
+} catch (error) {
+  console.error('Canvas RAG Assistant: Error during initialization:', error);
 }

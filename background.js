@@ -136,24 +136,16 @@ async function downloadPDFsWithAuth(pdfs, courseId) {
       
       // Check if the extracted filename is generic/meaningless
       const isGenericFilename = !filename || 
-                               /^\d+\.pdf$/.test(filename) ||  // Just numbers like \"1.pdf\"
+                               /^\d+\.pdf$/.test(filename) ||  // Just numbers like "1.pdf"
                                /^file_\d+\.pdf$/.test(filename) || // Canvas file IDs
                                filename === 'download.pdf' ||
-                               filename === 'preview.pdf';\n      
-      // Check if title is meaningful (not generic download text)
-      const titleLower = pdf.title.toLowerCase();
-      const isMeaningfulTitle = pdf.title && 
-                               pdf.title.length > 2 &&
-                               titleLower !== 'ladda ner' &&
-                               titleLower !== 'ladda ned' &&
-                               titleLower !== 'download' &&
-                               titleLower !== 'canvas file';
+                               filename === 'preview.pdf';
       
-      // Prefer meaningful title over generic filename, or use title if no filename
-      if (isGenericFilename || (isMeaningfulTitle && (!filename || filename.length < pdf.title.length))) {
+      // If filename is generic or missing, use the title instead
+      if (isGenericFilename || !filename.toLowerCase().endsWith('.pdf')) {
         const cleanTitle = pdf.title.replace(/[^a-z0-9._åäöÅÄÖ-]/gi, '_').replace(/_+/g, '_');
         filename = `${cleanTitle}.pdf`;
-      }"
+      }
       
       // Ensure filename doesn't start with dots or have invalid characters
       filename = filename.replace(/^[._]+/, '').replace(/[<>:"/\\|?*]/g, '_');
