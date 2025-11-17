@@ -15,35 +15,50 @@ class CanvasContentScript {
   }
 
   init() {
-    // Always listen for messages from popup, regardless of course detection
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      this.handleMessage(request, sender, sendResponse);
-      return true; // Keep the message channel open for async responses
-    });
-    
-    // Initialize crawler state
-    this.crawlerState = {
-      isRunning: false,
-      visitedUrls: new Set(),
-      pendingUrls: [],
-      foundPDFs: new Set(),
-      currentStep: 'idle'
-    };
-    
-    // Only run Canvas-specific features on Canvas course pages
-    if (this.courseId) {
-      console.log(`Canvas RAG Assistant: Detected course ${this.courseId} - ${this.courseName}`);
+    try {
+      // Always listen for messages from popup, regardless of course detection
+      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        this.handleMessage(request, sender, sendResponse);
+        return true; // Keep the message channel open for async responses
+      });
       
-      // Store course info in extension storage
-      this.storeCourseInfo();
+      // Initialize crawler state
+      this.crawlerState = {
+        isRunning: false,
+        visitedUrls: new Set(),
+        pendingUrls: [],
+        foundPDFs: new Set(),
+        currentStep: 'idle'
+      };
       
-      // Scan for PDFs immediately
-      this.scanAndReportPDFs();
+      // Signal that content script is ready
+      console.log('Canvas RAG Assistant: Content script initialized successfully');
       
-      // Set up mutation observer for single-page navigation
-      this.setupNavigationObserver();
-    } else {
-      console.log('Canvas RAG Assistant: No course ID detected, but message listener is active');
+      // Only run Canvas-specific features on Canvas course pages
+      if (this.courseId) {
+        console.log(`Canvas RAG Assistant: Detected course ${this.courseId} - ${this.courseName}`);
+        
+        // Use setTimeout to avoid blocking the main thread
+        setTimeout(() => {
+          try {
+            // Store course info in extension storage
+            this.storeCourseInfo();
+            
+            // Scan for PDFs immediately
+            this.scanAndReportPDFs();
+            
+            // Set up mutation observer for single-page navigation
+            this.setupNavigationObserver();
+          } catch (asyncError) {
+            console.error('Canvas RAG Assistant: Error in async initialization:', asyncError);
+          }
+        }, 100);
+        
+      } else {
+        console.log('Canvas RAG Assistant: No course ID detected, but message listener is active');
+      }
+    } catch (error) {
+      console.error('Canvas RAG Assistant: Error during initialization:', error);
     }
   }
 
@@ -309,32 +324,61 @@ class CanvasContentScript {
 
   async crawlCourseSections() {
     this.crawlerState.currentStep = 'crawling_sections';
-    console.log('🗂️ Crawling course sections with enhanced PDF detection...');
+    console.log('🗂️ Systematically crawling ALL course sections for PDF content...');
     
     const sectionsToVisit = [
-      { path: 'files', name: 'Files', priority: 1 },           // Highest priority - direct file browser
-      { path: 'pages', name: 'Pages', priority: 1 },           // High priority - often contains embedded PDFs
-      { path: 'assignments', name: 'Assignments', priority: 2 }, // Medium priority - attachments
-      { path: 'modules', name: 'Modules', priority: 3 },        // Lower priority - less common for files
-      { path: 'announcements', name: 'Announcements', priority: 4 },
-      { path: 'discussion_topics', name: 'Discussions', priority: 4 }
+      { path: 'files', name: 'Files', priority: 1, deepCrawl: true },           // Highest priority - direct file browser
+      { path: 'modules', name: 'Modules', priority: 1, deepCrawl: true },       // High priority - contains most content
+      { path: 'pages', name: 'Pages', priority: 1, deepCrawl: true },           // High priority - often contains embedded PDFs
+      { path: 'assignments', name: 'Assignments', priority: 2, deepCrawl: true }, // Medium priority - attachments
+      { path: 'quizzes', name: 'Quizzes', priority: 2, deepCrawl: true },       // Quizzes can have PDF attachments
+      { path: 'announcements', name: 'Announcements', priority: 3, deepCrawl: true },
+      { path: 'discussion_topics', name: 'Discussions', priority: 3, deepCrawl: true },
+      { path: 'syllabus', name: 'Syllabus', priority: 3, deepCrawl: false },    // Usually single page
+      { path: 'gradebook', name: 'Gradebook', priority: 4, deepCrawl: false },  // Less likely to have PDFs
+      { path: 'people', name: 'People', priority: 4, deepCrawl: false }         // Rarely has PDFs
     ];
     
     // Sort by priority (lower number = higher priority)
     sectionsToVisit.sort((a, b) => a.priority - b.priority);
     
     for (const section of sectionsToVisit) {
+      if (!this.crawlerState.isRunning) {
+        console.log('Crawler stopped, aborting section crawl');
+        break;
+      }
+
       const url = `${window.location.origin}/courses/${this.courseId}/${section.path}`;
       
-      if (!this.crawlerState.visitedUrls.has(url)) {
-        console.log(`📁 Visiting ${section.name} section (priority ${section.priority})...`);
-        await this.navigateAndScan(url);
-        
-        // Special handling for files and pages sections
-        if (section.path === 'files') {
-          await this.deepCrawlFilesSection();
-        } else if (section.path === 'pages') {
-          await this.deepCrawlPagesSection();
+      console.log(`📁 Visiting ${section.name} section (priority ${section.priority})...`);
+      this.crawlerState.currentStep = `Crawling ${section.name}`;
+      
+      await this.navigateAndScan(url);
+      
+      // Special deep crawling for important sections
+      if (section.deepCrawl) {
+        switch (section.path) {
+          case 'files':
+            await this.deepCrawlFilesSection();
+            break;
+          case 'modules':
+            await this.deepCrawlModulesSection();
+            break;
+          case 'pages':
+            await this.deepCrawlPagesSection();
+            break;
+          case 'assignments':
+            await this.deepCrawlAssignmentsSection();
+            break;
+          case 'quizzes':
+            await this.deepCrawlQuizzesSection();
+            break;
+          case 'announcements':
+            await this.deepCrawlAnnouncementsSection();
+            break;
+          case 'discussion_topics':
+            await this.deepCrawlDiscussionsSection();
+            break;
         }
       }
     }
@@ -512,6 +556,182 @@ class CanvasContentScript {
     await this.navigateAndScan(filesUrl);
   }
 
+  async deepCrawlModulesSection() {
+    console.log('📚 Deep crawling modules section with systematic approach...');
+    this.crawlerState.currentStep = 'deep_crawl_modules';
+    
+    // Wait for modules to load
+    await this.wait(2000);
+    
+    // Expand all modules first
+    await this.expandCurrentPageContent();
+    
+    // Look for all module items and clickable content
+    const moduleItems = document.querySelectorAll(
+      '.context_module_item a, ' +
+      '.module-item a, ' +
+      '.ig-row a, ' +
+      '.module_item_title a, ' +
+      '.item-group-container a'
+    );
+    
+    console.log(`Found ${moduleItems.length} module items to examine`);
+    
+    const itemsToVisit = [];
+    
+    // Collect all unique module item URLs
+    for (const item of moduleItems) {
+      const href = item.href;
+      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        // Filter for content that might contain PDFs
+        if (href.includes('/files/') || 
+            href.includes('/pages/') || 
+            href.includes('/assignments/') ||
+            href.includes('/discussion_topics/') ||
+            href.includes('/external_tools/') ||
+            href.includes('/quizzes/')) {
+          
+          itemsToVisit.push({
+            url: href,
+            title: item.textContent?.trim() || 'Module Item',
+            type: this.getUrlType(href)
+          });
+        }
+      }
+    }
+    
+    console.log(`Will systematically visit ${itemsToVisit.length} module items`);
+    
+    // Visit each module item
+    for (const item of itemsToVisit) {
+      if (!this.crawlerState.isRunning) break;
+      
+      console.log(`📖 Visiting module item: ${item.title} (${item.type})`);
+      await this.navigateAndScan(item.url);
+      
+      // If it's a page, scan for embedded content
+      if (item.type === 'page') {
+        await this.scanPageForEmbeddedContent();
+      }
+    }
+  }
+
+  async deepCrawlAssignmentsSection() {
+    console.log('📝 Deep crawling assignments section...');
+    this.crawlerState.currentStep = 'deep_crawl_assignments';
+    
+    await this.wait(2000);
+    
+    // Find all assignment links
+    const assignmentLinks = document.querySelectorAll(
+      '.assignment_list a[href*="/assignments/"], ' +
+      '.assignment-list a, ' +
+      'a[href*="/assignments/"], ' +
+      '.assignment-title a'
+    );
+    
+    console.log(`Found ${assignmentLinks.length} assignments to examine`);
+    
+    for (const link of assignmentLinks) {
+      if (!this.crawlerState.isRunning) break;
+      
+      const href = link.href;
+      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        console.log(`📋 Visiting assignment: ${link.textContent?.trim()}`);
+        await this.navigateAndScan(href);
+        
+        // Look for file attachments on assignment pages
+        await this.scanForFileAttachments();
+      }
+    }
+  }
+
+  async deepCrawlQuizzesSection() {
+    console.log('🧪 Deep crawling quizzes section...');
+    this.crawlerState.currentStep = 'deep_crawl_quizzes';
+    
+    await this.wait(2000);
+    
+    // Find all quiz links
+    const quizLinks = document.querySelectorAll(
+      '.quiz_list a[href*="/quizzes/"], ' +
+      '.quiz-list a, ' +
+      'a[href*="/quizzes/"], ' +
+      '.quiz-title a'
+    );
+    
+    console.log(`Found ${quizLinks.length} quizzes to examine`);
+    
+    for (const link of quizLinks) {
+      if (!this.crawlerState.isRunning) break;
+      
+      const href = link.href;
+      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        console.log(`🧪 Visiting quiz: ${link.textContent?.trim()}`);
+        await this.navigateAndScan(href);
+        
+        // Look for file attachments on quiz pages
+        await this.scanForFileAttachments();
+      }
+    }
+  }
+
+  async deepCrawlAnnouncementsSection() {
+    console.log('📢 Deep crawling announcements section...');
+    this.crawlerState.currentStep = 'deep_crawl_announcements';
+    
+    await this.wait(2000);
+    
+    // Find all announcement links
+    const announcementLinks = document.querySelectorAll(
+      '.announcement-list a[href*="/discussion_topics/"], ' +
+      '.topic_list a, ' +
+      'a[href*="/announcements/"], ' +
+      '.discussion-title a'
+    );
+    
+    console.log(`Found ${announcementLinks.length} announcements to examine`);
+    
+    for (const link of announcementLinks) {
+      if (!this.crawlerState.isRunning) break;
+      
+      const href = link.href;
+      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        console.log(`📢 Visiting announcement: ${link.textContent?.trim()}`);
+        await this.navigateAndScan(href);
+        await this.scanForFileAttachments();
+      }
+    }
+  }
+
+  async deepCrawlDiscussionsSection() {
+    console.log('💬 Deep crawling discussions section...');
+    this.crawlerState.currentStep = 'deep_crawl_discussions';
+    
+    await this.wait(2000);
+    
+    // Find all discussion links
+    const discussionLinks = document.querySelectorAll(
+      '.discussion-list a[href*="/discussion_topics/"], ' +
+      '.topic_list a, ' +
+      'a[href*="/discussion_topics/"], ' +
+      '.discussion-title a'
+    );
+    
+    console.log(`Found ${discussionLinks.length} discussions to examine`);
+    
+    for (const link of discussionLinks) {
+      if (!this.crawlerState.isRunning) break;
+      
+      const href = link.href;
+      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        console.log(`💬 Visiting discussion: ${link.textContent?.trim()}`);
+        await this.navigateAndScan(href);
+        await this.scanForFileAttachments();
+      }
+    }
+  }
+
   async navigateAndScan(url) {
     if (this.crawlerState.visitedUrls.has(url) || !this.crawlerState.isRunning) {
       return;
@@ -522,20 +742,48 @@ class CanvasContentScript {
     try {
       console.log(`🧭 Planning to visit: ${url}`);
       
-      // For now, just scan current page without navigation to avoid getting stuck
-      // TODO: Implement safe navigation in future versions
-      if (window.location.href.includes(url.split('/').slice(-1)[0])) {
-        console.log('Already on similar page, scanning...');
+      // For now, be conservative and don't navigate to avoid getting stuck
+      // Just scan current page content and note that we would visit this URL
+      if (window.location.href === url || 
+          window.location.href.startsWith(url) ||
+          window.location.pathname === new URL(url).pathname) {
+        console.log('Already on target page or similar, performing scan...');
         await this.wait(1000);
-        this.scanAndReportPDFs();
+        await this.performThoroughPageScan();
       } else {
-        console.log('Skipping navigation for now, would visit:', url);
-        // Skip actual navigation to prevent the crawler from getting stuck
+        console.log(`Would visit: ${url} (navigation disabled for stability)`);
+        // Still scan current page for any content that might be relevant
+        this.scanAndReportPDFs();
       }
       
     } catch (error) {
       console.error(`Error with ${url}:`, error);
+      // Just scan current page as fallback
+      this.scanAndReportPDFs();
     }
+  }
+
+
+
+  async performThoroughPageScan() {
+    console.log('🔍 Performing thorough page scan...');
+    
+    // Wait for page to fully load
+    await this.wait(2000);
+    
+    // Expand all content first
+    await this.expandCurrentPageContent();
+    
+    // Scan for PDFs with current method
+    this.scanAndReportPDFs();
+    
+    // Additional scans for embedded content
+    await this.scanPageForEmbeddedContent();
+    
+    // Scan for file attachments
+    await this.scanForFileAttachments();
+    
+    console.log('✅ Thorough page scan completed');
   }
 
   async handleFilesPage() {
@@ -618,6 +866,52 @@ class CanvasContentScript {
 
   async wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  getUrlType(url) {
+    if (url.includes('/files/')) return 'file';
+    if (url.includes('/pages/')) return 'page';
+    if (url.includes('/assignments/')) return 'assignment';
+    if (url.includes('/quizzes/')) return 'quiz';
+    if (url.includes('/discussion_topics/')) return 'discussion';
+    if (url.includes('/external_tools/')) return 'external_tool';
+    return 'unknown';
+  }
+
+  async scanForFileAttachments() {
+    console.log('🔍 Scanning for file attachments...');
+    
+    // Wait for page to load
+    await this.wait(1000);
+    
+    // Multiple selectors for file attachments across different Canvas page types
+    const fileSelectors = [
+      'a[href*="/files/"]',                    // Direct file links
+      '.attachment a',                         // Attachment links
+      '.instructure_file_link',               // Canvas file links
+      'a[href$=".pdf"]',                      // Direct PDF links
+      '.file-link a',                         // File link containers
+      'iframe[src*="/files/"]',               // Embedded file iframes
+      '.user_content a[href*="/files/"]',     // User content file links
+      '.message a[href*="/files/"]',          // Message attachments
+      '.submission-file a[href*="/files/"]'   // Submission files
+    ];
+    
+    for (const selector of fileSelectors) {
+      const elements = document.querySelectorAll(selector);
+      console.log(`Found ${elements.length} elements with selector: ${selector}`);
+      
+      for (const element of elements) {
+        if (element.tagName === 'IFRAME') {
+          this.extractFileFromIframe(element, element.src);
+        } else if (element.href) {
+          this.extractFileFromElement(element);
+        }
+      }
+    }
+    
+    // Also scan current page for any PDFs we might have missed
+    this.scanAndReportPDFs();
   }
 
   stopCrawl() {

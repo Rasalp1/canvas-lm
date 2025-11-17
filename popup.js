@@ -22,14 +22,22 @@ class CanvasDetector {
 
 // This DOMContentLoaded listener is removed - we use the comprehensive one below
 
-// Auto-detect Canvas page on popup open
+// Auto-detect Canvas page on popup open  
 async function checkCurrentPage() {
   console.log('checkCurrentPage called');
   console.log('Status element:', status);
   
+  // Add timeout protection to prevent getting stuck
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('checkCurrentPage timeout')), 10000);
+  });
+  
   try {
     console.log('Starting chrome.tabs.query...');
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabs = await Promise.race([
+      chrome.tabs.query({ active: true, currentWindow: true }),
+      timeoutPromise
+    ]);
     console.log('chrome.tabs.query result:', tabs);
     
     if (!tabs || tabs.length === 0) {
@@ -76,18 +84,17 @@ async function checkCurrentPage() {
       return;
     }
 
-    // Try to get course info from content script
+    // Try to get course info from content script with timeout
     try {
       console.log('Trying to get course info from content script...');
+      const messageTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Content script timeout')), 3000);
+      });
       
-      // Add timeout to prevent hanging
       const response = await Promise.race([
         chrome.tabs.sendMessage(tab.id, { action: 'getCourseInfo' }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Content script timeout')), 2000)
-        )
+        messageTimeout
       ]);
-      
       console.log('Content script response:', response);
       
       if (response && response.courseId) {
@@ -114,7 +121,7 @@ async function checkCurrentPage() {
       
       if (isCanvas && courseId) {
         console.log('Canvas course detected via fallback!');
-        if (status) status.textContent = '✅ Canvas course detected!';
+        if (status) status.textContent = '✅ Canvas course detected! (content script loading...)';
         showCourseInfo({
           courseId,
           courseName: CanvasDetector.extractCourseName(tab.title),
@@ -123,13 +130,36 @@ async function checkCurrentPage() {
         
         // Try to inject content script for future use
         try {
-          await chrome.scripting.executeScript({
+          const injectionPromise = chrome.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['content-script.js']
           });
+          
+          const injectionTimeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Content script injection timeout')), 5000);
+          });
+          
+          await Promise.race([injectionPromise, injectionTimeout]);
           console.log('Content script injected successfully');
+          if (status) status.textContent = '✅ Canvas course detected!';
+          
+          // Wait a moment and try to verify the content script is responding
+          setTimeout(async () => {
+            try {
+              const testResponse = await chrome.tabs.sendMessage(tab.id, { action: 'getCourseInfo' });
+              if (testResponse && testResponse.courseId) {
+                console.log('Content script is responding properly');
+                if (status) status.textContent = '✅ Canvas course detected!';
+              }
+            } catch (testError) {
+              console.log('Content script not responding after injection:', testError.message);
+              if (status) status.textContent = '✅ Canvas course detected! (basic mode)';
+            }
+          }, 2000);
+          
         } catch (injectionError) {
           console.log('Could not inject content script:', injectionError.message);
+          if (status) status.textContent = '✅ Canvas course detected! (basic mode)';
         }
         
       } else if (isCanvas) {
