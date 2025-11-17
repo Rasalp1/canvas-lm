@@ -663,7 +663,7 @@ class CanvasContentScript {
         });
       }
 
-      // Canvas file viewer links (enhanced patterns)
+      // Canvas file viewer links (enhanced patterns) - only include if likely to be PDF
       if (href.includes('/files/') && !href.includes('folder')) {
         // Additional checks to see if this might be a PDF based on context
         const isProbablyPDF = text.toLowerCase().includes('pdf') || 
@@ -671,31 +671,44 @@ class CanvasContentScript {
                              a.querySelector('.icon-pdf, .file-icon[class*="pdf"]') ||
                              a.closest('.attachment')?.textContent?.toLowerCase().includes('pdf');
         
-        // Try to get a better title than just "Ladda ner" or "Download"
-        let betterTitle = this.extractBetterTitle(a, href);
-        
-        links.add(href);
-        pdfData.push({
-          url: href,
-          title: betterTitle || text || 'Canvas File',
-          filename: this.extractFilename(href),
-          context: this.findContext(a),
-          type: isProbablyPDF ? 'canvas_pdf' : 'canvas_file',
-          isProbablyPDF: isProbablyPDF
-        });
+        // Only process if it's probably a PDF or if it's a download link
+        if (isProbablyPDF || href.includes('/download')) {
+          // Try to get a better title than just "Ladda ner" or "Download"
+          let betterTitle = this.extractBetterTitle(a, href);
+          
+          // Don't use generic download text as title
+          const isGenericText = text.toLowerCase() === 'ladda ner' || 
+                              text.toLowerCase() === 'download' ||
+                              text.toLowerCase() === 'ladda ned';
+          
+          const finalTitle = betterTitle || 
+                            (!isGenericText ? text : null) ||
+                            this.extractFilename(href) ||
+                            'Canvas File';
+          
+          // Convert to download URL if it's not already
+          let downloadUrl = href;
+          if (!href.includes('/download') && href.includes('/files/')) {
+            const fileIdMatch = href.match(/\/files\/(\d+)/);
+            if (fileIdMatch) {
+              downloadUrl = `${window.location.origin}/courses/${this.courseId}/files/${fileIdMatch[1]}/download`;
+            }
+          }
+          
+          links.add(downloadUrl);
+          pdfData.push({
+            url: downloadUrl,
+            title: finalTitle,
+            filename: this.extractFilename(downloadUrl),
+            context: this.findContext(a),
+            type: 'canvas_pdf',
+            isProbablyPDF: isProbablyPDF
+          });
+        }
       }
 
-      // Canvas file redirection links
-      if (href.includes('file_contents') || href.includes('verifier=')) {
-        links.add(href);
-        pdfData.push({
-          url: href,
-          title: text || 'File Content',
-          filename: this.extractFilename(href),
-          context: this.findContext(a),
-          type: 'file_content'
-        });
-      }
+      // Skip Canvas file redirection links as they often redirect to HTML previews
+      // These URLs with 'file_contents' or 'verifier=' are often preview links, not download links
 
       // Canvas course files URLs
       if (href.includes(`/courses/${this.courseId}/files/`) && href.includes('/download')) {
@@ -726,12 +739,22 @@ class CanvasContentScript {
         });
       }
 
-      if (src.includes('/files/')) {
-        links.add(src);
+      // Only process iframe Canvas files if they're clearly PDF files
+      if (src.includes('/files/') && (src.includes('.pdf') || src.includes('/download'))) {
+        // Convert to download URL if it's not already
+        let downloadUrl = src;
+        if (!src.includes('/download') && src.includes('/files/')) {
+          const fileIdMatch = src.match(/\/files\/(\d+)/);
+          if (fileIdMatch) {
+            downloadUrl = `${window.location.origin}/courses/${this.courseId}/files/${fileIdMatch[1]}/download`;
+          }
+        }
+        
+        links.add(downloadUrl);
         pdfData.push({
-          url: src,
-          title: 'Embedded Canvas File',
-          filename: this.extractFilename(src),
+          url: downloadUrl,
+          title: 'Embedded PDF File',
+          filename: this.extractFilename(downloadUrl),
           context: this.findContext(frame),
           type: 'iframe_canvas'
         });
@@ -808,13 +831,15 @@ class CanvasContentScript {
         if (seenFiles.has(fileId)) {
           const existing = seenFiles.get(fileId);
           
-          // Prefer download URLs over wrap URLs, and better titles
-          const preferThis = pdf.url.includes('/download') || 
-                            (pdf.title.length > existing.title.length && pdf.title !== 'Ladda ner');
+          // Prefer download URLs over other URLs, and better titles
+          const preferThis = (pdf.url.includes('/download') && !existing.url.includes('/download')) || 
+                            (pdf.title.length > existing.title.length && pdf.title !== 'Ladda ner' && !pdf.title.toLowerCase().includes('download'));
           
           if (preferThis) {
-            console.log(`Replacing file entry for ID ${fileId}: "${existing.title}" -> "${pdf.title}"`);
+            console.log(`Replacing file entry for ID ${fileId}: "${existing.title}" (${existing.url}) -> "${pdf.title}" (${pdf.url})`);
             seenFiles.set(fileId, pdf);
+          } else {
+            console.log(`Keeping existing file entry for ID ${fileId}: "${existing.title}" (${existing.url})`);
           }
         } else {
           seenFiles.set(fileId, pdf);
@@ -953,15 +978,26 @@ class CanvasContentScript {
 
   extractBetterTitle(linkElement, url) {
     try {
-      // First, check if the URL itself contains the filename (for redirected Canvas URLs)
-      if (url.includes('canvas-user-content.com') && url.includes('course%20files/')) {
-        const filenameMatch = url.match(/course%20files\/(.+?)(?:\?|$)/);
+      // First, check if the URL itself contains the filename (for redirected Canvas URLs or direct URLs)
+      const decodedUrl = decodeURIComponent(url);
+      
+      // Handle canvas-user-content URLs with course files
+      if (url.includes('canvas-user-content.com') || decodedUrl.includes('course files/')) {
+        const filenameMatch = decodedUrl.match(/course files\/(.+?)(?:\?|$)/);
         if (filenameMatch) {
-          const encodedFilename = filenameMatch[1];
-          const decodedFilename = decodeURIComponent(encodedFilename);
-          if (decodedFilename && decodedFilename.length > 1) {
-            return decodedFilename.replace(/\.pdf$/i, '');
+          const filename = filenameMatch[1].trim();
+          if (filename && filename.length > 1 && filename !== '1') {
+            return filename.replace(/\.pdf$/i, '');
           }
+        }
+      }
+      
+      // Check for any PDF filename in the URL path or query
+      const pdfMatch = decodedUrl.match(/([^/\?]+\.pdf)/i);
+      if (pdfMatch) {
+        const filename = pdfMatch[1];
+        if (filename && filename !== '1.pdf') {
+          return filename.replace(/\.pdf$/i, '');
         }
       }
       

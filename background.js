@@ -80,42 +80,86 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Filter and deduplicate PDFs
 async function filterAndDeduplicatePdfs(pdfs) {
   const seenUrls = new Set();
-  const seenTitles = new Set();
+  const titleCounts = new Map(); // Track how many times we've seen each title
   const validPdfs = [];
   
   for (const pdf of pdfs) {
-    // Skip if we've already seen this URL or a very similar title
-    const normalizedTitle = pdf.title.toLowerCase().trim();
-    
-    // Don't use generic download titles for deduplication
-    const isGenericTitle = normalizedTitle === 'ladda ner' || 
-                          normalizedTitle === 'download' ||
-                          normalizedTitle === 'canvas file';
-    
-    if (seenUrls.has(pdf.url) || (!isGenericTitle && seenTitles.has(normalizedTitle))) {
-      console.log(`Skipping duplicate: ${pdf.title} (${pdf.url})`);
+    // Skip if we've already seen this exact URL
+    if (seenUrls.has(pdf.url)) {
+      console.log(`Skipping duplicate URL: ${pdf.title} (${pdf.url})`);
       continue;
     }
     
     // Check if this looks like a PDF based on available information
-    const isPdf = pdf.url.includes('.pdf') ||
-                 pdf.title.toLowerCase().includes('.pdf') ||
-                 pdf.type === 'canvas_pdf' ||
-                 pdf.type === 'direct_link' ||
-                 (pdf.url.includes('/files/') && pdf.url.includes('canvas')) ||
-                 pdf.filename?.toLowerCase().includes('.pdf');
+    // Be more strict about what we consider a valid PDF
+    const isPdf = (
+      // Direct PDF links
+      pdf.url.match(/\.pdf($|\?)/i) ||
+      // Canvas download URLs (but not preview/wrap URLs)
+      (pdf.url.includes('/download') && pdf.url.includes('/files/') && !pdf.url.includes('/preview') && !pdf.url.includes('/wrap')) ||
+      // Explicitly marked as PDF types
+      pdf.type === 'direct_link' ||
+      // PDF in filename
+      (pdf.filename && pdf.filename.toLowerCase().endsWith('.pdf'))
+    ) && (
+      // Exclude URLs that are likely to return HTML previews
+      !pdf.url.includes('/preview') &&
+      !pdf.url.includes('/wrap') &&
+      !pdf.url.includes('verifier=')
+    );
     
     if (isPdf) {
       seenUrls.add(pdf.url);
-      seenTitles.add(normalizedTitle);
+      
+      // Handle duplicate titles by adding numbers
+      const normalizedTitle = pdf.title.toLowerCase().trim();
+      if (titleCounts.has(normalizedTitle)) {
+        titleCounts.set(normalizedTitle, titleCounts.get(normalizedTitle) + 1);
+        const count = titleCounts.get(normalizedTitle);
+        pdf.uniqueTitle = `${pdf.title}(${count})`;
+        console.log(`📝 Renamed duplicate title: "${pdf.title}" -> "${pdf.uniqueTitle}"`);
+      } else {
+        titleCounts.set(normalizedTitle, 1);
+        pdf.uniqueTitle = pdf.title;
+      }
+      
       validPdfs.push(pdf);
-      console.log(`✅ Valid PDF: ${pdf.title} (${pdf.type || 'unknown type'})`);
+      console.log(`✅ Valid PDF: ${pdf.uniqueTitle} (${pdf.type || 'unknown type'}) - URL: ${pdf.url}`);
     } else {
-      console.log(`❌ Skipping non-PDF: ${pdf.title} (${pdf.type || 'unknown type'})`);
+      console.log(`❌ Skipping non-PDF: ${pdf.title} (${pdf.type || 'unknown type'}) - URL: ${pdf.url}`);
     }
   }
   
   return validPdfs;
+}
+
+// Extract filename from URL as fallback
+function extractFilenameFromUrl(url) {
+  try {
+    const decodedUrl = decodeURIComponent(url);
+    
+    // Look for PDF filename in URL
+    const pdfMatch = decodedUrl.match(/([^/\?]+\.pdf)/i);
+    if (pdfMatch) {
+      const filename = pdfMatch[1];
+      if (filename && filename !== '1.pdf') {
+        return filename.replace(/\.pdf$/i, '');
+      }
+    }
+    
+    // Check for course files pattern
+    const courseFilesMatch = decodedUrl.match(/course files\/(.+?)(?:\?|$)/);
+    if (courseFilesMatch) {
+      const filename = courseFilesMatch[1].trim();
+      if (filename && filename.length > 1 && filename !== '1') {
+        return filename.replace(/\.pdf$/i, '');
+      }
+    }
+    
+    return null;
+  } catch (e) {
+    return null;
+  }
 }
 
 // Download PDFs with authentication
@@ -128,7 +172,7 @@ async function downloadPDFsWithAuth(pdfs, courseId) {
   
   for (const pdf of filteredPdfs) {
     try {
-      console.log(`Downloading PDF: ${pdf.title} from ${pdf.url}`);
+      console.log(`Downloading PDF: ${pdf.uniqueTitle || pdf.title} from ${pdf.url}`);
       console.log(`Original filename: ${pdf.filename}`);
       
       // Clean filename for download
@@ -141,9 +185,27 @@ async function downloadPDFsWithAuth(pdfs, courseId) {
                                filename === 'download.pdf' ||
                                filename === 'preview.pdf';
       
-      // If filename is generic or missing, use the title instead
-      if (isGenericFilename || !filename.toLowerCase().endsWith('.pdf')) {
-        const cleanTitle = pdf.title.replace(/[^a-z0-9._åäöÅÄÖ-]/gi, '_').replace(/_+/g, '_');
+      // Check if title is meaningful (not generic download text)
+      const titleToUse = pdf.uniqueTitle || pdf.title;
+      const titleLower = titleToUse.toLowerCase();
+      const isGenericTitle = titleLower === 'ladda ner' ||
+                            titleLower === 'ladda ned' ||
+                            titleLower === 'download' ||
+                            titleLower === 'canvas file' ||
+                            titleToUse.length <= 2;
+      
+      // If title is generic, try to extract filename from URL or use a default
+      if (isGenericTitle) {
+        // Try to extract filename from the URL itself
+        const urlFilename = extractFilenameFromUrl(pdf.url);
+        if (urlFilename) {
+          filename = `${urlFilename}.pdf`;
+        } else if (isGenericFilename || !filename) {
+          filename = `Canvas_Document_${Date.now()}.pdf`;
+        }
+      } else if (isGenericFilename || !filename?.toLowerCase().endsWith('.pdf')) {
+        // Use meaningful title (with unique suffix if needed)
+        const cleanTitle = titleToUse.replace(/[^a-z0-9._åäöÅÄÖ()-]/gi, '_').replace(/_+/g, '_');
         filename = `${cleanTitle}.pdf`;
       }
       
@@ -154,12 +216,49 @@ async function downloadPDFsWithAuth(pdfs, courseId) {
       
       console.log(`Final download filename: ${cleanFilename}`);
       
-      // Use Chrome downloads API directly with the URL
+      // First, verify the URL actually points to a PDF by ensuring proper download endpoint
+      let actualUrl = pdf.url;
+      
+      // For Canvas file URLs, ensure we use the download endpoint
+      if (pdf.url.includes('/files/') && !pdf.url.includes('/download')) {
+        const fileIdMatch = pdf.url.match(/\/files\/(\d+)/);
+        if (fileIdMatch) {
+          const courseIdMatch = pdf.url.match(/\/courses\/(\d+)/);
+          if (courseIdMatch) {
+            actualUrl = `${new URL(pdf.url).origin}/courses/${courseIdMatch[1]}/files/${fileIdMatch[1]}/download`;
+            console.log(`Converted to download URL: ${actualUrl}`);
+          }
+        }
+      }
+      
+      // Use Chrome downloads API with the verified URL
       const downloadId = await chrome.downloads.download({
-        url: pdf.url,
+        url: actualUrl,
         filename: cleanFilename,
         saveAs: false,
         conflictAction: 'uniquify' // Add numbers if file exists
+      });
+      
+      // Monitor the download to verify it's actually a PDF
+      chrome.downloads.onChanged.addListener(function downloadListener(delta) {
+        if (delta.id === downloadId && delta.state && delta.state.current === 'complete') {
+          chrome.downloads.onChanged.removeListener(downloadListener);
+          
+          // Get download info to check the final filename
+          chrome.downloads.search({id: downloadId}, (downloads) => {
+            if (downloads.length > 0) {
+              const download = downloads[0];
+              // If the file was downloaded as .html, remove it
+              if (download.filename && download.filename.toLowerCase().endsWith('.html')) {
+                console.log(`⚠️  Removing HTML file that should have been PDF: ${download.filename}`);
+                chrome.downloads.removeFile(downloadId);
+                chrome.downloads.erase({id: downloadId});
+              } else {
+                console.log(`✅ Successfully downloaded PDF: ${download.filename}`);
+              }
+            }
+          });
+        }
       });
       
       results.push({
