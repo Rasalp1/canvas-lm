@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Canvas RAG Assistant</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Canvas RAG Assistant</h1>
+    
+    <div id="canvas-detection" class="section">
+      <h3>Canvas Course Detection <button id="detectCanvas" class="retry-btn" title="Re-detect Canvas Course">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button></h3>
+      <p id="status">Checking current page...</p>
+      <div class="info-box">
+        <small>💡 <strong>Tip:</strong> Navigate to a Canvas course page (e.g., canvas.education.lu.se/courses/12345) for this extension to work.</small>
+      </div>
+    </div>
+    
+    <div id="course-info" class="section hidden">
+      <h3>Current Course</h3>
+      <div id="course-details"></div>
+      
+      <div id="scan-section" class="scan-section">
+        <h4>Enhanced Auto-Navigation Crawler</h4>
+        <p class="scan-help">🤖 Automatically navigates through your entire course to find ALL PDFs!</p>
+        <p class="scan-features">✅ Expands modules ✅ Visits assignments ✅ Crawls files ✅ Downloads everything</p>
+        <button id="scanPDFs">Start Enhanced Course Crawl</button>
+      </div>
+    </div>
+    
+    <div id="results" class="section">
+      <pre id="result" aria-live="polite"></pre>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

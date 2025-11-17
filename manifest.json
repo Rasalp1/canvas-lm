@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Canvas RAG Assistant",
+  "version": "1.0",
+  "description": "Extract PDFs from Canvas courses and chat with course materials using AI.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://*.instructure.com/*",
+    "*://canvas.education.lu.se/*",
+    "*://*.canvas.com/*",
+    "*://*.canvaslms.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.instructure.com/*", 
+        "*://canvas.education.lu.se/*",
+        "*://*.canvas.com/*",
+        "*://*.canvaslms.com/*"
+      ],
+      "js": ["content-script.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
