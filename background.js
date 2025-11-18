@@ -126,7 +126,14 @@ async function filterAndDeduplicatePdfs(pdfs) {
       validPdfs.push(pdf);
       console.log(`✅ Valid PDF: ${pdf.uniqueTitle} (${pdf.type || 'unknown type'}) - URL: ${pdf.url}`);
     } else {
-      console.log(`❌ Skipping non-PDF: ${pdf.title} (${pdf.type || 'unknown type'}) - URL: ${pdf.url}`);
+      console.log(`❌ Skipping non-PDF: ${pdf.title} (${pdf.type || 'unknown type'}) - URL: ${pdf.url}`, {
+        hasUrlPdfMatch: !!pdf.url.match(/\.pdf($|\?)/i),
+        hasDownloadUrl: pdf.url.includes('/download') && pdf.url.includes('/files/'),
+        hasPreview: pdf.url.includes('/preview'),
+        hasWrap: pdf.url.includes('/wrap'),
+        filename: pdf.filename,
+        type: pdf.type
+      });
     }
   }
   
@@ -211,6 +218,11 @@ async function downloadPDFsWithAuth(pdfs, courseId) {
       
       // Ensure filename doesn't start with dots or have invalid characters
       filename = filename.replace(/^[._]+/, '').replace(/[<>:"/\\|?*]/g, '_');
+      
+      // Ensure filename ends with .pdf but doesn't have double extensions
+      if (!filename.toLowerCase().endsWith('.pdf')) {
+        filename = `${filename}.pdf`;
+      }
       
       const cleanFilename = `Canvas_Course_${courseId}/${filename}`;
       

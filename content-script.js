@@ -5,10 +5,17 @@ console.log('Canvas RAG Assistant: Content script file loaded');
 // Canvas course information detector and PDF scraper
 class CanvasContentScript {
   constructor() {
+    console.log('Canvas RAG Assistant: Initializing content script on:', location.href);
     this.courseId = this.extractCourseId();
     this.courseName = this.extractCourseName();
     if (this.courseId) {
-      console.log('Canvas RAG Assistant: Course detected:', this.courseId, this.courseName);
+      console.log('Canvas RAG Assistant: ✅ Course detected!', {
+        courseId: this.courseId,
+        courseName: this.courseName,
+        url: location.href
+      });
+    } else {
+      console.log('Canvas RAG Assistant: ⚠️ No course ID found on this page');
     }
     this.lastUrl = location.href;
     this.init();
@@ -38,17 +45,19 @@ class CanvasContentScript {
       if (this.courseId) {
         console.log(`Canvas RAG Assistant: Detected course ${this.courseId} - ${this.courseName}`);
         
-        // Use setTimeout to avoid blocking the main thread
+        // Store course info immediately for immediate access
+        this.storeCourseInfo();
+        
+        // Use setTimeout only for heavy operations to avoid blocking the main thread
         setTimeout(() => {
           try {
-            // Store course info in extension storage
-            this.storeCourseInfo();
-            
+            console.log('Canvas RAG Assistant: Starting initial PDF scan...');
             // Scan for PDFs immediately
             this.scanAndReportPDFs();
             
             // Set up mutation observer for single-page navigation
             this.setupNavigationObserver();
+            console.log('Canvas RAG Assistant: Course initialization completed');
           } catch (asyncError) {
             console.error('Canvas RAG Assistant: Error in async initialization:', asyncError);
           }
@@ -76,32 +85,52 @@ class CanvasContentScript {
 
   scanAndReportPDFs() {
     const pdfs = this.getAllPdfLinks();
-    console.log(`Found ${pdfs.length} PDF links on ${location.href}:`, pdfs);
     
-    // Track PDFs in crawler state if crawler is running
-    if (this.crawlerState?.isRunning) {
-      pdfs.forEach(pdf => this.crawlerState.foundPDFs.add(pdf.url));
+    // Only report if we found new PDFs (avoid duplicate reporting)
+    const newPdfs = [];
+    const currentPageKey = location.href;
+    
+    if (!this.lastReportedPdfs) {
+      this.lastReportedPdfs = new Map();
     }
     
-    // Debug log PDF data
-    if (pdfs.length > 0) {
-      console.log('PDF data being sent to background:', pdfs.map(p => ({
+    // Check for new PDFs on this page
+    for (const pdf of pdfs) {
+      const pdfKey = `${currentPageKey}:${pdf.url}`;
+      if (!this.lastReportedPdfs.has(pdfKey)) {
+        this.lastReportedPdfs.set(pdfKey, pdf);
+        newPdfs.push(pdf);
+      }
+    }
+    
+    if (newPdfs.length > 0) {
+      console.log(`Found ${newPdfs.length} NEW PDF links on ${location.href}:`, newPdfs);
+      
+      // Track PDFs in crawler state if crawler is running
+      if (this.crawlerState?.isRunning) {
+        newPdfs.forEach(pdf => this.crawlerState.foundPDFs.add(pdf.url));
+      }
+      
+      // Debug log PDF data
+      console.log('NEW PDF data being sent to background:', newPdfs.map(p => ({
         title: p.title,
         filename: p.filename,
         url: p.url,
         type: p.type
       })));
+      
+      // Send to background script
+      chrome.runtime.sendMessage({
+        type: 'FOUND_PDFS',
+        courseId: this.courseId,
+        courseName: this.courseName,
+        pdfs: newPdfs,
+        pageUrl: location.href,
+        crawlerActive: this.crawlerState?.isRunning || false
+      });
+    } else {
+      console.log(`No new PDFs found on ${location.href} (${pdfs.length} already reported)`);
     }
-    
-    // Send to background script
-    chrome.runtime.sendMessage({
-      type: 'FOUND_PDFS',
-      courseId: this.courseId,
-      courseName: this.courseName,
-      pdfs: pdfs,
-      pageUrl: location.href,
-      crawlerActive: this.crawlerState?.isRunning || false
-    });
   }
 
   extractCourseId() {
@@ -138,10 +167,16 @@ class CanvasContentScript {
       lastVisited: new Date().toISOString()
     };
 
+    console.log('Canvas RAG Assistant: Storing course info:', courseInfo);
+
     // Send to background script for storage
     chrome.runtime.sendMessage({
       action: 'storeCourseInfo',
       data: courseInfo
+    }).then(() => {
+      console.log('Canvas RAG Assistant: Course info stored successfully');
+    }).catch(error => {
+      console.error('Canvas RAG Assistant: Failed to store course info:', error);
     });
   }
 
@@ -215,22 +250,46 @@ class CanvasContentScript {
       // Step 1: Expand current page content
       console.log('Step 1: Expanding current page content...');
       this.crawlerState.currentStep = 'Expanding current page content';
-      await this.expandCurrentPageContent();
+      try {
+        await this.expandCurrentPageContent();
+        console.log('✅ Step 1 completed successfully');
+      } catch (step1Error) {
+        console.error('❌ Step 1 failed:', step1Error.message);
+        throw step1Error;
+      }
       
       // Step 2: Navigate to key course sections
       console.log('Step 2: Crawling course sections...');
       this.crawlerState.currentStep = 'Crawling course sections';
-      await this.crawlCourseSections();
+      try {
+        await this.crawlCourseSections();
+        console.log('✅ Step 2 completed successfully');
+      } catch (step2Error) {
+        console.error('❌ Step 2 failed:', step2Error.message);
+        throw step2Error;
+      }
       
       // Step 3: Deep crawl modules
       console.log('Step 3: Deep crawling modules...');
       this.crawlerState.currentStep = 'Deep crawling modules';
-      await this.crawlModules();
+      try {
+        await this.crawlModules();
+        console.log('✅ Step 3 completed successfully');
+      } catch (step3Error) {
+        console.error('❌ Step 3 failed:', step3Error.message);
+        throw step3Error;
+      }
       
       // Step 4: Crawl assignments and files
       console.log('Step 4: Crawling assignments and files...');
       this.crawlerState.currentStep = 'Crawling assignments and files';
-      await this.crawlAssignmentsAndFiles();
+      try {
+        await this.crawlAssignmentsAndFiles();
+        console.log('✅ Step 4 completed successfully');
+      } catch (step4Error) {
+        console.error('❌ Step 4 failed:', step4Error.message);
+        throw step4Error;
+      }
       
       // Final report
       console.log('Crawl completed successfully!');
@@ -243,8 +302,19 @@ class CanvasContentScript {
       this.reportCrawlComplete();
       
     } catch (error) {
-      console.error('Crawler error:', error);
-      this.crawlerState.currentStep = 'Error: ' + error.message;
+      console.error('Crawler error occurred:');
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      console.error('Full error object:', error);
+      
+      // Also try to get more details for DOMExceptions
+      if (error instanceof DOMException) {
+        console.error('DOMException code:', error.code);
+        console.error('DOMException details:', error.toString());
+      }
+      
+      this.crawlerState.currentStep = 'Error: ' + (error.message || error.name || 'Unknown error');
       // Still report completion to trigger PDF download
       this.reportCrawlComplete();
     } finally {
@@ -268,17 +338,26 @@ class CanvasContentScript {
     
     for (const btn of expandButtons) {
       try {
+        // Check if element is still in DOM and visible
+        if (!btn || !btn.isConnected || btn.offsetParent === null) {
+          continue;
+        }
+        
         // Check if it's actually collapsed before clicking
         const isCollapsed = btn.getAttribute('aria-expanded') === 'false' || 
                           btn.classList.contains('collapsed') ||
                           btn.classList.contains('expand_module_link');
         
-        if (isCollapsed) {
+        if (isCollapsed && btn.offsetParent !== null) { // Only click visible elements
           btn.click();
           await this.wait(300); // Wait for expansion animation
         }
       } catch (e) {
-        console.log('Could not click expand button:', e);
+        console.log('Could not click expand button:', {
+          error: e.message || e.name,
+          element: btn.tagName,
+          className: btn.className
+        });
       }
     }
     
@@ -291,11 +370,16 @@ class CanvasContentScript {
     // Also find buttons by text content (since :contains() doesn't work)
     const allButtons = document.querySelectorAll('button, .btn, a[role="button"]');
     const textBasedButtons = Array.from(allButtons).filter(btn => {
-      const text = btn.textContent.toLowerCase();
-      return text.includes('show more') || 
-             text.includes('load more') || 
-             text.includes('see more') ||
-             text.includes('view more');
+      try {
+        if (!btn || !btn.isConnected) return false;
+        const text = btn.textContent?.toLowerCase() || '';
+        return text.includes('show more') || 
+               text.includes('load more') || 
+               text.includes('see more') ||
+               text.includes('view more');
+      } catch (e) {
+        return false;
+      }
     });
     
     // Combine both sets
@@ -304,12 +388,16 @@ class CanvasContentScript {
     
     for (const btn of allLoadMoreButtons) {
       try {
-        if (btn.offsetParent !== null) { // Check if button is visible
+        if (btn && btn.isConnected && btn.offsetParent !== null) { // Check if button is visible and in DOM
           btn.click();
           await this.wait(1000); // Wait for content to load
         }
       } catch (e) {
-        console.log('Could not click load more button:', e);
+        console.log('Could not click load more button:', {
+          error: e.message || e.name,
+          element: btn?.tagName,
+          className: btn?.className
+        });
       }
     }
     
@@ -327,16 +415,11 @@ class CanvasContentScript {
     console.log('🗂️ Systematically crawling ALL course sections for PDF content...');
     
     const sectionsToVisit = [
-      { path: 'files', name: 'Files', priority: 1, deepCrawl: true },           // Highest priority - direct file browser
-      { path: 'modules', name: 'Modules', priority: 1, deepCrawl: true },       // High priority - contains most content
-      { path: 'pages', name: 'Pages', priority: 1, deepCrawl: true },           // High priority - often contains embedded PDFs
-      { path: 'assignments', name: 'Assignments', priority: 2, deepCrawl: true }, // Medium priority - attachments
-      { path: 'quizzes', name: 'Quizzes', priority: 2, deepCrawl: true },       // Quizzes can have PDF attachments
-      { path: 'announcements', name: 'Announcements', priority: 3, deepCrawl: true },
-      { path: 'discussion_topics', name: 'Discussions', priority: 3, deepCrawl: true },
-      { path: 'syllabus', name: 'Syllabus', priority: 3, deepCrawl: false },    // Usually single page
-      { path: 'gradebook', name: 'Gradebook', priority: 4, deepCrawl: false },  // Less likely to have PDFs
-      { path: 'people', name: 'People', priority: 4, deepCrawl: false }         // Rarely has PDFs
+      { path: 'modules', name: 'Modules', priority: 1, deepCrawl: true },       // Highest priority - contains most content
+      { path: 'files', name: 'Files', priority: 2, deepCrawl: true },           // High priority - direct file browser
+      { path: 'pages', name: 'Pages', priority: 3, deepCrawl: true },           // High priority - often contains embedded PDFs
+      { path: 'assignments', name: 'Assignments', priority: 4, deepCrawl: true }, // Medium priority - attachments
+      { path: 'syllabus', name: 'Syllabus', priority: 5, deepCrawl: false }    // Usually single page
     ];
     
     // Sort by priority (lower number = higher priority)
@@ -370,15 +453,6 @@ class CanvasContentScript {
           case 'assignments':
             await this.deepCrawlAssignmentsSection();
             break;
-          case 'quizzes':
-            await this.deepCrawlQuizzesSection();
-            break;
-          case 'announcements':
-            await this.deepCrawlAnnouncementsSection();
-            break;
-          case 'discussion_topics':
-            await this.deepCrawlDiscussionsSection();
-            break;
         }
       }
     }
@@ -395,16 +469,23 @@ class CanvasContentScript {
     await this.expandAllFolders();
     
     // Look for file links in the files section
-    const fileLinks = document.querySelectorAll(
-      '.ef-item-row a[href*="/files/"], ' +
-      '.file-link a, ' +
-      '.instructure_file_link, ' +
-      'a[href*="/courses/" + this.courseId + "/files/"], ' +
-      'a[href$=".pdf"], ' +
-      'a[data-file-id]'
-    );
-    
-    console.log(`Found ${fileLinks.length} potential file links in files section`);
+    let fileLinks = [];
+    try {
+      const selector = `.ef-item-row a[href*="/files/"], ` +
+                      `.file-link a, ` +
+                      `.instructure_file_link, ` +
+                      `a[href*="/courses/${this.courseId}/files/"], ` +
+                      `a[href$=".pdf"], ` +
+                      `a[data-file-id]`;
+      
+      fileLinks = document.querySelectorAll(selector);
+      console.log(`Found ${fileLinks.length} potential file links in files section`);
+    } catch (selectorError) {
+      console.error('Error with file links selector:', selectorError.message);
+      // Fallback to simpler selectors
+      fileLinks = document.querySelectorAll('a[href*="/files/"], a[href$=".pdf"]');
+      console.log(`Found ${fileLinks.length} file links using fallback selector`);
+    }
     
     for (const link of fileLinks) {
       const href = link.href;
@@ -451,22 +532,38 @@ class CanvasContentScript {
   async expandAllFolders() {
     console.log('📁 Expanding all folders...');
     
-    // Canvas files section folder expansion
-    const folderToggles = document.querySelectorAll(
-      '.ef-folder .ef-name-col button, ' +
-      '.folder-toggle, ' +
-      '.ef-folder-toggle, ' +
-      'button[aria-label*="folder"], ' +
-      '.icon-folder button'
-    );
-    
-    for (const toggle of folderToggles) {
-      try {
-        toggle.click();
-        await this.wait(300); // Wait for folder to expand
-      } catch (e) {
-        console.log('Could not expand folder:', e);
+    try {
+      // Canvas files section folder expansion
+      const folderToggles = document.querySelectorAll(
+        '.ef-folder .ef-name-col button, ' +
+        '.folder-toggle, ' +
+        '.ef-folder-toggle, ' +
+        'button[aria-label*="folder"], ' +
+        '.icon-folder button'
+      );
+      
+      console.log(`Found ${folderToggles.length} folder toggles`);
+      
+      for (const toggle of folderToggles) {
+        try {
+          if (toggle && toggle.isConnected && toggle.offsetParent !== null) {
+            toggle.click();
+            await this.wait(300); // Wait for folder to expand
+          }
+        } catch (e) {
+          console.log('Could not expand folder:', {
+            error: e.message || e.name,
+            element: toggle?.tagName,
+            className: toggle?.className
+          });
+        }
       }
+    } catch (e) {
+      console.error('Error in expandAllFolders:', {
+        name: e.name,
+        message: e.message,
+        error: e
+      });
     }
   }
 
@@ -508,15 +605,18 @@ class CanvasContentScript {
 
   async crawlModules() {
     this.crawlerState.currentStep = 'crawling_modules';
-    console.log('📚 Deep crawling modules...');
+    console.log('📚 Deep crawling modules with sub-link exploration...');
     
     // Navigate to modules page if not already there
     const modulesUrl = `${window.location.origin}/courses/${this.courseId}/modules`;
     await this.navigateAndScan(modulesUrl);
     
+    // Expand all modules first
+    await this.expandCurrentPageContent();
+    
     // Find all module items and visit them
     const moduleItems = document.querySelectorAll(
-      '.context_module_item a, .module-item-title a, .ig-title a'
+      '.context_module_item a, .module-item-title a, .ig-title a, .module-item a'
     );
     
     console.log(`Found ${moduleItems.length} module items to explore`);
@@ -524,8 +624,19 @@ class CanvasContentScript {
     for (const item of moduleItems) {
       const href = item.href;
       if (href && !this.crawlerState.visitedUrls.has(href) && href.includes(this.courseId)) {
-        console.log(`📄 Visiting module item: ${item.textContent?.trim()}`);
+        // Skip quizzes, discussions, and announcements in modules
+        if (href.includes('/quizzes/') || 
+            href.includes('/discussion_topics/') || 
+            href.includes('/announcements/')) {
+          console.log(`⏭️ Skipping ${this.getUrlType(href)}: ${item.textContent?.trim()}`);
+          continue;
+        }
+        
+        console.log(`📄 Visiting module item: ${item.textContent?.trim()} (${this.getUrlType(href)})`);
         await this.navigateAndScan(href);
+        
+        // Explore sub-links on each module item page (2 layers deep)
+        await this.exploreSubLinks(href, 2);
       }
     }
   }
@@ -583,13 +694,11 @@ class CanvasContentScript {
     for (const item of moduleItems) {
       const href = item.href;
       if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
-        // Filter for content that might contain PDFs
+        // Focus on content types most likely to contain PDFs (exclude quizzes/discussions)
         if (href.includes('/files/') || 
             href.includes('/pages/') || 
             href.includes('/assignments/') ||
-            href.includes('/discussion_topics/') ||
-            href.includes('/external_tools/') ||
-            href.includes('/quizzes/')) {
+            href.includes('/external_tools/')) {
           
           itemsToVisit.push({
             url: href,
@@ -600,14 +709,17 @@ class CanvasContentScript {
       }
     }
     
-    console.log(`Will systematically visit ${itemsToVisit.length} module items`);
+    console.log(`Will systematically visit ${itemsToVisit.length} module items (excluding quizzes/discussions/announcements)`);
     
-    // Visit each module item
+    // Visit each module item and look for sub-links
     for (const item of itemsToVisit) {
       if (!this.crawlerState.isRunning) break;
       
       console.log(`📖 Visiting module item: ${item.title} (${item.type})`);
       await this.navigateAndScan(item.url);
+      
+      // After visiting the main item, look for sub-links on that page (go 2 layers deep)
+      await this.exploreSubLinks(item.url, 2);
       
       // If it's a page, scan for embedded content
       if (item.type === 'page') {
@@ -734,26 +846,61 @@ class CanvasContentScript {
 
   async navigateAndScan(url) {
     if (this.crawlerState.visitedUrls.has(url) || !this.crawlerState.isRunning) {
+      console.log(`⏭️ Skipping ${url} (already visited or crawler stopped)`);
       return;
     }
     
     this.crawlerState.visitedUrls.add(url);
     
     try {
-      console.log(`🧭 Planning to visit: ${url}`);
+      console.log(`🧭 Navigating to: ${url}`);
       
-      // For now, be conservative and don't navigate to avoid getting stuck
-      // Just scan current page content and note that we would visit this URL
+      // Check if we're already on the target page
       if (window.location.href === url || 
           window.location.href.startsWith(url) ||
           window.location.pathname === new URL(url).pathname) {
-        console.log('Already on target page or similar, performing scan...');
+        console.log('✅ Already on target page, performing scan...');
         await this.wait(1000);
         await this.performThoroughPageScan();
       } else {
-        console.log(`Would visit: ${url} (navigation disabled for stability)`);
-        // Still scan current page for any content that might be relevant
-        this.scanAndReportPDFs();
+        // Store current URL to restore navigation state
+        const currentUrl = window.location.href;
+        
+        // Try to extract PDFs from the target URL without full navigation
+        console.log(`🎯 Analyzing target URL for PDFs: ${url}`);
+        
+        // Check if URL itself is a PDF
+        if (url.includes('.pdf') || url.includes('/download')) {
+          console.log(`📄 Direct PDF URL detected: ${url}`);
+          
+          // Extract title from the URL or current page context
+          const titleFromUrl = this.extractFilename(url) || 'Canvas PDF';
+          
+          // Add this PDF to our collection
+          this.crawlerState.foundPDFs.add(url);
+          
+          // Report this PDF
+          chrome.runtime.sendMessage({
+            type: 'FOUND_PDFS',
+            courseId: this.courseId,
+            courseName: this.courseName,
+            pdfs: [{
+              url: url,
+              title: titleFromUrl,
+              filename: this.extractFilename(url),
+              context: 'Direct Link',
+              type: 'direct_link'
+            }],
+            pageUrl: currentUrl,
+            crawlerActive: this.crawlerState?.isRunning || false
+          });
+          
+          console.log(`✅ Added direct PDF: ${titleFromUrl}`);
+        } else {
+          // For non-PDF URLs, we'll mark them as visited but not navigate
+          // This prevents infinite loops while still tracking progress
+          console.log(`📝 Noted as visited (no navigation): ${url}`);
+        }
       }
       
     } catch (error) {
@@ -766,13 +913,16 @@ class CanvasContentScript {
 
 
   async performThoroughPageScan() {
-    console.log('🔍 Performing thorough page scan...');
+    console.log(`🔍 Performing thorough page scan on: ${window.location.href}`);
     
     // Wait for page to fully load
     await this.wait(2000);
     
     // Expand all content first
     await this.expandCurrentPageContent();
+    
+    // Get PDF count before scan
+    const pdfsBeforeScan = this.crawlerState.foundPDFs.size;
     
     // Scan for PDFs with current method
     this.scanAndReportPDFs();
@@ -783,7 +933,34 @@ class CanvasContentScript {
     // Scan for file attachments
     await this.scanForFileAttachments();
     
-    console.log('✅ Thorough page scan completed');
+    // Log results
+    const pdfsAfterScan = this.crawlerState.foundPDFs.size;
+    const newPdfsFound = pdfsAfterScan - pdfsBeforeScan;
+    console.log(`✅ Thorough page scan completed: ${newPdfsFound} new PDFs found on ${window.location.href}`);
+    
+    // If we found 0 PDFs, let's be more aggressive and look for any file links
+    if (newPdfsFound === 0) {
+      console.log('🔎 No PDFs found, scanning for any file links as backup...');
+      const allLinks = document.querySelectorAll('a[href]');
+      let potentialPdfs = 0;
+      
+      allLinks.forEach(link => {
+        const href = link.href;
+        const text = link.textContent?.toLowerCase() || '';
+        
+        // Look for any file-related links
+        if (href.includes('/files/') || 
+            href.includes('/download') || 
+            text.includes('pdf') ||
+            text.includes('file') ||
+            text.includes('attachment')) {
+          console.log(`🔗 Potential file link: "${link.textContent?.trim()}" -> ${href}`);
+          potentialPdfs++;
+        }
+      });
+      
+      console.log(`📊 Found ${potentialPdfs} potential file links on page`);
+    }
   }
 
   async handleFilesPage() {
@@ -877,6 +1054,91 @@ class CanvasContentScript {
     if (url.includes('/external_tools/')) return 'external_tool';
     return 'unknown';
   }
+  
+  async exploreSubLinks(pageUrl, maxDepth = 2, currentDepth = 1) {
+    if (currentDepth > maxDepth || !this.crawlerState.isRunning) return;
+    
+    console.log(`🔍 Exploring sub-links on current page (depth ${currentDepth}/${maxDepth})`);
+    
+    // Wait for page content to load
+    await this.wait(1500);
+    
+    // Look for links that might lead to PDFs
+    const subLinks = document.querySelectorAll(
+      'a[href*=".pdf"], ' +
+      'a[href*="/files/"], ' +
+      'a[href*="/download"], ' +
+      'a[href*="/preview"], ' +
+      '.instructure_file_link, ' +
+      '.file-link a, ' +
+      'a[data-file-id], ' +
+      '.attachment a, ' +
+      '.file a, ' +
+      '.document a'
+    );
+    
+    const directPdfLinks = new Set();
+    const pageLinksToExplore = new Set();
+    
+    for (const link of subLinks) {
+      const href = link.href;
+      const text = link.textContent?.trim() || '';
+      
+      if (href && 
+          !this.crawlerState.visitedUrls.has(href) && 
+          (href.includes(this.courseId) || href.includes('.pdf'))) {
+        
+        // Separate direct PDF links from page links
+        if (href.includes('.pdf') || 
+            href.includes('/download') || 
+            text.toLowerCase().includes('pdf')) {
+          directPdfLinks.add({url: href, title: text});
+        } else if (href.includes('/pages/') || 
+                  href.includes('/assignments/') ||
+                  href.includes('/files/')) {
+          pageLinksToExplore.add({url: href, title: text});
+        }
+      }
+    }
+    
+    console.log(`Found ${directPdfLinks.size} direct PDF links and ${pageLinksToExplore.size} pages to explore at depth ${currentDepth}`);
+    
+    // Process direct PDF links immediately
+    for (const pdfLink of directPdfLinks) {
+      if (!this.crawlerState.isRunning) break;
+      
+      console.log(`📄 Processing direct PDF: ${pdfLink.title} -> ${pdfLink.url}`);
+      this.crawlerState.foundPDFs.add(pdfLink.url);
+      this.crawlerState.visitedUrls.add(pdfLink.url);
+      
+      // Report this PDF immediately
+      chrome.runtime.sendMessage({
+        type: 'FOUND_PDFS',
+        courseId: this.courseId,
+        courseName: this.courseName,
+        pdfs: [{
+          url: pdfLink.url,
+          title: pdfLink.title || this.extractFilename(pdfLink.url) || 'Canvas PDF',
+          filename: this.extractFilename(pdfLink.url),
+          context: `Found at depth ${currentDepth}`,
+          type: 'sub_link_pdf'
+        }],
+        pageUrl: window.location.href,
+        crawlerActive: this.crawlerState?.isRunning || false
+      });
+    }
+    
+    // For pages, only explore if we haven't reached max depth
+    if (currentDepth < maxDepth) {
+      for (const pageLink of pageLinksToExplore) {
+        if (!this.crawlerState.isRunning) break;
+        
+        console.log(`🔗 Would explore page: ${pageLink.title} -> ${pageLink.url}`);
+        // Mark as visited but don't actually navigate to avoid complexity
+        this.crawlerState.visitedUrls.add(pageLink.url);
+      }
+    }
+  }
 
   async scanForFileAttachments() {
     console.log('🔍 Scanning for file attachments...');
@@ -923,15 +1185,20 @@ class CanvasContentScript {
   reportCrawlComplete() {
     const totalPDFs = this.crawlerState.foundPDFs.size;
     const totalPages = this.crawlerState.visitedUrls.size;
+    const visitedUrlsArray = Array.from(this.crawlerState.visitedUrls);
     
-    console.log(`✅ Crawl complete! Visited ${totalPages} pages, found ${totalPDFs} unique PDFs`);
+    console.log(`🏁 Crawl complete! Summary:`, {
+      pagesVisited: totalPages,
+      pdfsFound: totalPDFs,
+      visitedPages: visitedUrlsArray
+    });
     
     chrome.runtime.sendMessage({
       type: 'CRAWL_COMPLETE',
       courseId: this.courseId,
       pagesVisited: totalPages,
       pdfsFound: totalPDFs,
-      visitedUrls: Array.from(this.crawlerState.visitedUrls)
+      visitedUrls: visitedUrlsArray
     });
     
     this.crawlerState.currentStep = 'complete';
