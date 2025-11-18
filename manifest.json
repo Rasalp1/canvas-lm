@@ -10,7 +10,8 @@
     "scripting",
     "activeTab",
     "storage",
-    "downloads"
+    "downloads",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.instructure.com/*",

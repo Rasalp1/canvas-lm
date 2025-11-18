@@ -296,13 +296,11 @@ function setupEventListeners() {
       const monitorInterval = setInterval(async () => {
         monitorDuration++;
         
-        // Timeout check - if we've been monitoring for too long, finish
+        // Timeout check - if we've been monitoring for too long, stop monitoring
         if (monitorDuration >= maxMonitorTime) {
-          console.log('Monitor timeout reached, finishing crawl...');
+          console.log('Monitor timeout reached, stopping monitoring...');
           clearInterval(monitorInterval);
-          status.textContent = '⏱️ Crawler timeout - downloading found PDFs...';
-          await downloadFoundPDFs();
-          resetScanButton();
+          status.textContent = '⏱️ Crawler timeout - check console for details';
           return;
         }
         try {
@@ -319,21 +317,7 @@ function setupEventListeners() {
             
             status.textContent = `🔍 ${step.replace(/_/g, ' ').toUpperCase()} - Visited: ${visited} pages, Found: ${found} PDFs`;
             
-            // Check if PDF count has been stable (fallback mechanism)
-            if (found > 0 && found === lastFoundCount) {
-              stableCount++;
-              if (stableCount >= 10) { // 10 seconds of no new PDFs
-                console.log('PDF count stable, initiating download...');
-                clearInterval(monitorInterval);
-                status.textContent = `✅ Found ${found} PDFs - starting download...`;
-                await downloadFoundPDFs();
-                return;
-              }
-            } else {
-              stableCount = 0;
-            }
-            lastFoundCount = found;
-            
+            // Only download when crawler actually completes
             if (!crawlerStatus.isRunning) {
               clearInterval(monitorInterval);
               
@@ -341,7 +325,6 @@ function setupEventListeners() {
                 // Crawler finished, now download PDFs
                 status.textContent = '✅ Crawler completed successfully - downloading PDFs...';
                 await downloadFoundPDFs();
-                resetScanButton();
               } else if (step.includes('error') || step.includes('Error')) {
                 status.textContent = '❌ Crawler encountered an error';
                 // Still try to download any PDFs found
@@ -466,6 +449,13 @@ function resetScanButton() {
 }
 
 async function downloadFoundPDFs() {
+  // Prevent multiple simultaneous downloads
+  if (downloadFoundPDFs.isDownloading) {
+    console.log('Download already in progress, skipping...');
+    return;
+  }
+  downloadFoundPDFs.isDownloading = true;
+  
   try {
     // Get all PDFs found during crawling
     const storedData = await chrome.storage.local.get([`pdfs_${currentCourseData.courseId}`]);
@@ -509,7 +499,8 @@ async function downloadFoundPDFs() {
     status.textContent = '❌ Error downloading PDFs';
     result.textContent = `Download error: ${err.message}`;
     console.error(err);
+  } finally {
+    downloadFoundPDFs.isDownloading = false;
+    resetScanButton();
   }
-  
-  resetScanButton();
 }

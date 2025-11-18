@@ -11,11 +11,50 @@ chrome.management.getSelf((info) => {
   }
 });
 
+// Tab-based fetch queue to prevent overwhelming the browser
+const tabFetchQueue = {
+  active: 0,
+  maxConcurrent: 2, // Maximum 2 temporary tabs at once
+  queue: [],
+  
+  async add(url, originalTabId) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ url, originalTabId, resolve, reject });
+      this.process();
+    });
+  },
+  
+  async process() {
+    if (this.active >= this.maxConcurrent || this.queue.length === 0) {
+      return;
+    }
+    
+    const item = this.queue.shift();
+    this.active++;
+    
+    try {
+      const result = await fetchCanvasPageWithNavigation(item.url, item.originalTabId);
+      item.resolve(result);
+    } catch (error) {
+      item.reject(error);
+    } finally {
+      this.active--;
+      // Process next item in queue
+      setTimeout(() => this.process(), 1000); // 1 second delay between tab creations
+    }
+  }
+};
+
 // Handle messages from content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background received message:', request);
   
   switch (request.action || request.type) {
+    case 'AUTHENTICATED_FETCH':
+      // Handle authenticated fetch requests from content scripts
+      handleAuthenticatedFetch(request, sender, sendResponse);
+      return true; // Keep message channel open for async response
+      
     case 'storeCourseInfo':
       // Store course information in extension storage
       chrome.storage.local.set({
@@ -76,6 +115,202 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ error: 'Unknown action' });
   }
 });
+
+// Handle authenticated fetch requests from content scripts
+async function handleAuthenticatedFetch(request, sender, sendResponse) {
+  try {
+    console.log(`🌐 Background script fetching: ${request.url}`);
+    
+    // For Canvas pages, we need to actually navigate to them to get proper authentication
+    if (request.url.includes('canvas.education.lu.se') || request.url.includes('instructure.com')) {
+      // First try regular fetch to see if we already have access
+      try {
+        const quickResult = await chrome.scripting.executeScript({
+          target: { tabId: sender.tab.id },
+          func: async (url) => {
+            try {
+              const response = await fetch(url, { credentials: 'include' });
+              if (response.ok) {
+                const html = await response.text();
+                return {
+                  ok: true,
+                  status: response.status,
+                  statusText: response.statusText,
+                  html: html,
+                  method: 'direct_fetch'
+                };
+              }
+              return null;
+            } catch (e) {
+              return null;
+            }
+          },
+          args: [request.url]
+        });
+        
+        if (quickResult[0].result && quickResult[0].result.ok) {
+          console.log(`✅ Direct fetch successful for ${request.url}`);
+          sendResponse(quickResult[0].result);
+          return;
+        }
+      } catch (e) {
+        console.log(`⚠️ Direct fetch failed, using tab navigation for ${request.url}`);
+      }
+      
+      // If direct fetch fails, use tab navigation
+      const result = await tabFetchQueue.add(request.url, sender.tab.id);
+      sendResponse(result);
+    } else {
+      // For non-Canvas URLs, use the original method
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: sender.tab.id },
+        func: async (url, options, referer) => {
+          const defaultOptions = {
+            credentials: 'include',
+            headers: {
+              'User-Agent': navigator.userAgent,
+              'Referer': referer,
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Accept-Encoding': 'gzip, deflate',
+              'DNT': '1',
+              'Connection': 'keep-alive',
+              'Upgrade-Insecure-Requests': '1',
+              'X-Requested-With': 'XMLHttpRequest',
+              ...options.headers
+            },
+            ...options
+          };
+
+          try {
+            const response = await fetch(url, defaultOptions);
+            const html = await response.text();
+            
+            return {
+              ok: response.ok,
+              status: response.status,
+              statusText: response.statusText,
+              html: html,
+              headers: Object.fromEntries(response.headers.entries())
+            };
+          } catch (error) {
+            return {
+              ok: false,
+              status: 0,
+              statusText: error.message,
+              html: '',
+              error: error.message
+            };
+          }
+        },
+        args: [request.url, request.options || {}, request.referer]
+      });
+
+      const result = results[0].result;
+      sendResponse(result);
+    }
+    
+  } catch (error) {
+    console.error('Error in authenticated fetch:', error);
+    sendResponse({
+      ok: false,
+      status: 0,
+      statusText: error.message,
+      html: '',
+      error: error.message
+    });
+  }
+}
+
+// Fetch Canvas page by actually navigating to it in a temporary tab
+async function fetchCanvasPageWithNavigation(url, originalTabId) {
+  let tempTab = null;
+  
+  try {
+    console.log(`🔗 Creating temporary tab to fetch: ${url}`);
+    
+    // Notify the content script that we're starting the fetch
+    try {
+      chrome.tabs.sendMessage(originalTabId, {
+        type: 'FETCH_STATUS',
+        message: `Accessing Canvas page: ${url.split('/').pop()}...`,
+        url: url
+      });
+    } catch (e) {
+      // Ignore if content script can't receive message
+    }
+    
+    // Create a new tab in the background to navigate to the URL
+    tempTab = await chrome.tabs.create({
+      url: url,
+      active: false, // Don't make it the active tab
+      openerTabId: originalTabId // Associate with original tab
+    });
+    
+    // Wait for the tab to finish loading with better error handling
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Tab loading timeout after 15 seconds'));
+      }, 15000);
+      
+      const listener = (tabId, changeInfo, tab) => {
+        if (tabId === tempTab.id) {
+          if (changeInfo.status === 'complete') {
+            clearTimeout(timeout);
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
+          } else if (changeInfo.url && changeInfo.url.includes('error') || 
+                     changeInfo.url && changeInfo.url.includes('login')) {
+            clearTimeout(timeout);
+            chrome.tabs.onUpdated.removeListener(listener);
+            reject(new Error('Authentication required or error page encountered'));
+          }
+        }
+      };
+      
+      chrome.tabs.onUpdated.addListener(listener);
+    });
+    
+    // Extract the HTML content from the loaded tab
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tempTab.id },
+      func: () => {
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          html: document.documentElement.outerHTML,
+          url: window.location.href
+        };
+      }
+    });
+    
+    const result = results[0].result;
+    console.log(`✅ Successfully fetched ${result.html.length} characters from ${url}`);
+    
+    return result;
+    
+  } catch (error) {
+    console.error(`❌ Failed to fetch Canvas page ${url}:`, error);
+    return {
+      ok: false,
+      status: 0,
+      statusText: error.message,
+      html: '',
+      error: error.message
+    };
+  } finally {
+    // Clean up: close the temporary tab
+    if (tempTab) {
+      try {
+        await chrome.tabs.remove(tempTab.id);
+        console.log(`🗑️ Cleaned up temporary tab for ${url}`);
+      } catch (cleanupError) {
+        console.warn('Error cleaning up temporary tab:', cleanupError);
+      }
+    }
+  }
+}
 
 // Filter and deduplicate PDFs
 async function filterAndDeduplicatePdfs(pdfs) {

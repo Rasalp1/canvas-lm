@@ -8,6 +8,18 @@ class CanvasContentScript {
     console.log('Canvas RAG Assistant: Initializing content script on:', location.href);
     this.courseId = this.extractCourseId();
     this.courseName = this.extractCourseName();
+    
+    // Initialize deep crawling infrastructure
+    this.deepCrawlState = {
+      fetchQueue: new Map(), // URL -> {level, priority, type, parentUrl}
+      fetchedUrls: new Set(),
+      maxDepth: 3,
+      maxConcurrentRequests: 3,
+      activeRequests: 0,
+      rateLimitDelay: 1000, // 1 second between requests
+      lastRequestTime: 0
+    };
+    
     if (this.courseId) {
       console.log('Canvas RAG Assistant: ✅ Course detected!', {
         courseId: this.courseId,
@@ -19,6 +31,23 @@ class CanvasContentScript {
     }
     this.lastUrl = location.href;
     this.init();
+  }
+
+  // Helper method to ensure deepCrawlState is properly initialized
+  ensureDeepCrawlState() {
+    if (!this.deepCrawlState) {
+      console.error('❌ deepCrawlState was undefined, reinitializing...');
+      this.deepCrawlState = {
+        fetchQueue: new Map(),
+        fetchedUrls: new Set(),
+        maxDepth: 3,
+        maxConcurrentRequests: 3,
+        activeRequests: 0,
+        rateLimitDelay: 1000,
+        lastRequestTime: 0,
+        foundPdfs: []
+      };
+    }
   }
 
   init() {
@@ -83,11 +112,1371 @@ class CanvasContentScript {
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  scanAndReportPDFs() {
-    const pdfs = this.getAllPdfLinks();
+  // ============================================================================
+  // PHASE 1: INFRASTRUCTURE - Authenticated Fetch & HTML Parsing Utilities
+  // ============================================================================
+
+  async authenticatedFetch(url, options = {}) {
+    // Ensure deepCrawlState is initialized
+    this.ensureDeepCrawlState();
     
-    // Only report if we found new PDFs (avoid duplicate reporting)
-    const newPdfs = [];
+    // Rate limiting
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.deepCrawlState.lastRequestTime;
+    if (timeSinceLastRequest < this.deepCrawlState.rateLimitDelay) {
+      await this.wait(this.deepCrawlState.rateLimitDelay - timeSinceLastRequest);
+    }
+    this.deepCrawlState.lastRequestTime = Date.now();
+
+    try {
+      console.log(`🌐 Fetching via background script: ${url}`);
+      this.deepCrawlState.activeRequests++;
+
+      // Use background script for authenticated cross-origin requests
+      const response = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Request timeout after 30 seconds'));
+        }, 30000);
+
+        chrome.runtime.sendMessage({
+          action: 'AUTHENTICATED_FETCH',
+          url: url,
+          options: options,
+          referer: window.location.href
+        }, (response) => {
+          clearTimeout(timeout);
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response.error) {
+            reject(new Error(response.error));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      if (response.status === 429) {
+        console.warn(`Rate limited on ${url}, increasing delay`);
+        this.deepCrawlState.rateLimitDelay = Math.min(this.deepCrawlState.rateLimitDelay * 2, 5000);
+        throw new Error(`Rate limited: ${response.status}`);
+      } else if (response.status === 403) {
+        throw new Error(`Access forbidden: ${response.status}`);
+      } else if (response.status === 404) {
+        throw new Error(`Not found: ${response.status}`);
+      } else if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      console.log(`✅ Fetched ${response.html.length} characters from ${url}`);
+      return response.html;
+
+    } catch (error) {
+      console.error(`❌ Background fetch failed for ${url}:`, error.message);
+      
+      // Fallback: Try direct fetch if background script fails
+      console.log(`🔄 Trying fallback direct fetch for ${url}...`);
+      try {
+        const fallbackOptions = {
+          credentials: 'include',
+          headers: {
+            'User-Agent': navigator.userAgent,
+            'Referer': window.location.href,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...options.headers
+          },
+          ...options
+        };
+        
+        const response = await fetch(url, fallbackOptions);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const html = await response.text();
+        console.log(`✅ Fallback fetch successful: ${html.length} characters from ${url}`);
+        return html;
+        
+      } catch (fallbackError) {
+        console.error(`❌ Fallback fetch also failed for ${url}:`, fallbackError.message);
+        throw new Error(`Both background and direct fetch failed: ${error.message} | ${fallbackError.message}`);
+      }
+    } finally {
+      this.deepCrawlState.activeRequests--;
+    }
+  }
+
+  parseHTMLForPDFs(html, sourceUrl) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const foundPDFs = [];
+
+      // Canvas-specific selectors for better PDF detection
+      const canvasSelectors = [
+        '.context_module_item.attachment .item_link',  // Canvas attachments
+        '.context_module_item .item_link',             // All module items
+        '.instructure_file_link_holder a',             // Embedded file links (lectures, etc.)
+        '.instructure_file_holder a',                  // File holder links
+        'a.inline_disabled[href*="/files/"]',          // Canvas inline file links
+        'a[data-id][href*="/files/"]',                 // Files with data-id attributes
+        'a[href*="/files/"]',                          // Direct file links
+        'a[href*="/modules/items/"]',                  // Module item links
+        'a[href*=".pdf"]',                            // Direct PDF links
+        'a[href*="/download"]'                        // Download links
+      ];
+      
+      // Process Canvas-specific links first
+      canvasSelectors.forEach(selector => {
+        const links = doc.querySelectorAll(selector);
+        links.forEach(a => {
+          this.processParsedLink(a, sourceUrl, foundPDFs, 'canvas_specific');
+        });
+      });
+      
+      // Then process all other links for any patterns we missed
+      const allLinks = doc.querySelectorAll('a[href]');
+      allLinks.forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && (href.includes('/files/') || href.includes('/modules/items/') || 
+                     href.includes('.pdf') || href.includes('/download'))) {
+          this.processParsedLink(a, sourceUrl, foundPDFs, 'general_scan');
+        }
+      });
+      
+      console.log(`📄 Extracted ${foundPDFs.length} PDFs from ${sourceUrl}`);
+      return foundPDFs;
+
+    } catch (error) {
+      console.error(`Error parsing HTML from ${sourceUrl}:`, error);
+      return [];
+    }
+  }
+  
+  processParsedLink(element, sourceUrl, foundPDFs, source) {
+    const href = element.getAttribute('href');
+    const text = element.textContent?.trim() || '';
+    
+    // Skip template placeholder URLs early
+    if (href && (href.includes('%7B%7B') || href.includes('{{'))) {
+      console.warn(`⚠️ Skipping template placeholder URL in HTML parsing: ${href}`);
+      return;
+    }
+    
+    // Convert relative URLs to absolute
+    let absoluteUrl;
+    try {
+      absoluteUrl = new URL(href, sourceUrl).href;
+    } catch {
+      return; // Skip invalid URLs
+    }
+    
+    // Double-check for template placeholders in absolute URL
+    if (absoluteUrl.includes('%7B%7B') || absoluteUrl.includes('{{')) {
+      console.warn(`⚠️ Skipping template placeholder URL in absolute URL: ${absoluteUrl}`);
+      return;
+    }
+    
+    // Avoid duplicates (check both current batch and existing surface PDFs)
+    if (foundPDFs.some(pdf => pdf.url === absoluteUrl)) return;
+    
+    // Also check against existing surface PDFs to avoid duplicates
+    const existingSurfacePdfs = this.crawlerState?.surfacePDFs || [];
+    if (existingSurfacePdfs.some(pdf => pdf.url === absoluteUrl)) return;
+    
+    // Check if it's a PDF using enhanced logic
+    if (this.isPDFLink(absoluteUrl, text, element)) {
+      // Get Canvas-specific context with improved detection
+      const moduleItem = element.closest('.context_module_item');
+      const fileHolder = element.closest('.instructure_file_holder, .instructure_file_link_holder');
+      
+      // Try multiple ways to detect item type (Canvas may populate this dynamically)
+      let itemType = moduleItem?.querySelector('.type')?.textContent?.trim();
+      if (!itemType && moduleItem) {
+        // Fallback: check class names for wiki_page, attachment, etc.
+        if (moduleItem.classList.contains('wiki_page')) itemType = 'wiki_page';
+        else if (moduleItem.classList.contains('attachment')) itemType = 'attachment';
+        else if (moduleItem.querySelector('span[style*="display: none"]')?.textContent === 'wiki_page') itemType = 'wiki_page';
+      }
+      
+      const isAttachment = moduleItem?.classList.contains('attachment');
+      const isEmbeddedFile = !!fileHolder;
+      const fileId = element.getAttribute('data-id');
+      
+      let pdfType = 'deep_crawl_pdf';
+      let contextDescription = 'PDF';
+      
+      if (isEmbeddedFile) {
+        pdfType = 'deep_crawl_embedded_file';
+        contextDescription = 'embedded file';
+      } else if (isAttachment) {
+        pdfType = 'deep_crawl_attachment';
+        contextDescription = 'attachment';
+      }
+      
+      foundPDFs.push({
+        url: this.convertToDownloadURL(absoluteUrl),
+        title: this.extractBetterTitle(element, absoluteUrl) || text || 'Canvas PDF',
+        filename: this.extractFilename(absoluteUrl),
+        context: `Found in: ${sourceUrl}`,
+        type: pdfType,
+        sourceUrl: sourceUrl,
+        canvasItemType: itemType,
+        isAttachment: isAttachment,
+        isEmbeddedFile: isEmbeddedFile,
+        fileId: fileId,
+        source: source,
+        needsRedirectResolution: absoluteUrl.includes('/modules/items/')
+      });
+      
+      console.log(`📎 Deep crawl found ${contextDescription}: "${text}" -> ${absoluteUrl} (source: ${source}, type: ${itemType || 'unknown'})`);
+    }
+  }
+
+  isPDFLink(url, text, element) {
+    // Direct PDF URLs
+    if (url.match(/\.pdf($|\?)/i)) return true;
+    
+    // Canvas download URLs
+    if (url.includes('/download') && url.includes('/files/')) return true;
+    
+    // Canvas file URLs (even without .pdf extension)
+    if (url.match(/\/courses\/\d+\/files\/\d+/)) return true;
+    
+    // Canvas embedded files (very high probability)
+    if (element) {
+      const fileHolder = element.closest('.instructure_file_holder, .instructure_file_link_holder');
+      const hasFileId = element.hasAttribute('data-id');
+      const isInlineDisabled = element.classList.contains('inline_disabled');
+      
+      if (fileHolder || hasFileId || isInlineDisabled) return true;
+    }
+    
+    // Canvas module items - ALL module items are potential PDFs (pattern-based approach)
+    if (url.includes('/modules/items/')) {
+      // Always consider module items as potential PDFs
+      // The pattern detection will have already filtered for likely lecture content
+      return true;
+      
+      // Legacy detailed checking (kept as fallback)
+      if (element) {
+        const moduleItem = element.closest('.context_module_item');
+        if (moduleItem) {
+          // Check if it's an attachment type
+          const isAttachment = moduleItem.classList.contains('attachment');
+          let itemType = moduleItem.querySelector('.type')?.textContent?.trim();
+          
+          // Fallback for parsed HTML where .type might not be populated
+          if (!itemType) {
+            if (moduleItem.classList.contains('wiki_page')) itemType = 'wiki_page';
+            else if (moduleItem.classList.contains('attachment')) itemType = 'attachment';
+            // Check for hidden spans that might contain the type
+            const hiddenTypeSpan = moduleItem.querySelector('span[style*="display: none"]');
+            if (hiddenTypeSpan && hiddenTypeSpan.textContent === 'wiki_page') itemType = 'wiki_page';
+          }
+          
+          if (isAttachment || itemType === 'attachment') return true;
+          
+          // Wiki pages are very likely to contain PDFs (lectures, etc.)
+          if (itemType === 'wiki_page') return true;
+          
+          // Check for PDF-like or lecture-like text in Canvas context
+          const lowerText = text.toLowerCase();
+          if (lowerText.includes('pdf') || lowerText.includes('manual') || 
+              lowerText.includes('lab') || lowerText.includes('guide') ||
+              lowerText.includes('document') || lowerText.includes('handout') ||
+              lowerText.includes('föreläsning') || lowerText.includes('lecture') ||
+              lowerText.includes('fö') || lowerText.includes('opt')) {
+            return true;
+          }
+        }
+      }
+      // If no element context, still consider module items as potential PDFs
+      return true;
+    }
+    
+    // Text-based indicators
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('pdf') || lowerText.includes('.pdf')) return true;
+    
+    // Canvas-specific text patterns with academic context
+    const academicTerms = ['manual', 'lab', 'guide', 'document', 'handout', 'assignment', 
+                          'worksheet', 'instructions', 'slides', 'notes', 'reading'];
+    if (academicTerms.some(term => lowerText.includes(term))) {
+      // Additional check for Canvas context
+      if (url.includes('/courses/') || url.includes('/files/') || url.includes('/modules/')) return true;
+    }
+    
+    // Element-based indicators
+    if (element) {
+      // Canvas attachment icons
+      if (element.querySelector('.icon-paperclip, .icon-document')) return true;
+      
+      // PDF icons
+      if (element.querySelector('.icon-pdf, .file-icon[class*="pdf"], i[class*="pdf"]')) return true;
+      
+      // Canvas file type indicators
+      if (element.querySelector('.type[title*="pdf"], .file-type[class*="pdf"]')) return true;
+      
+      // Check parent elements for Canvas attachment patterns
+      const moduleItem = element.closest('.context_module_item');
+      if (moduleItem && moduleItem.classList.contains('attachment')) return true;
+    }
+    
+    return false;
+  }
+
+  convertToDownloadURL(url) {
+    // Handle module items - these need to be resolved by fetching the redirect
+    if (url.includes('/modules/items/')) {
+      // Module items will be handled by resolveModuleItemUrl method
+      return url;
+    }
+    
+    // Convert Canvas file URLs to download URLs
+    if (url.includes('/files/') && !url.includes('/download')) {
+      const fileIdMatch = url.match(/\/files\/(\d+)/);
+      if (fileIdMatch) {
+        const fileId = fileIdMatch[1];
+        const baseUrl = url.split('/files/')[0];
+        
+        // Handle different Canvas file URL patterns:
+        // 1. /files/12345?wrap=1 -> /files/12345/download
+        // 2. /files/12345/preview -> /files/12345/download  
+        // 3. /files/12345 -> /files/12345/download
+        return `${baseUrl}/files/${fileId}/download`;
+      }
+    }
+    
+    // Already a download URL or not a Canvas file URL
+    return url;
+  }
+  
+  async resolveModuleItemUrl(moduleItemUrl) {
+    try {
+      console.log(`🔄 Resolving module item: ${moduleItemUrl}`);
+      
+      // Directly use HTML parsing approach since iframe might not work in content script context
+      return await this.resolveModuleItemFromHTML(moduleItemUrl);
+      
+    } catch (error) {
+      console.error(`❌ Error resolving module item ${moduleItemUrl}:`, error);
+      return null;
+    }
+  }
+
+  async resolveModuleItemFromHTML(moduleItemUrl) {
+    try {
+      // Skip template placeholder URLs
+      if (moduleItemUrl.includes('%7B%7B') || moduleItemUrl.includes('{{')) {
+        console.warn(`⚠️ Skipping template placeholder URL: ${moduleItemUrl}`);  
+        return null;
+      }
+      
+      // Fallback method: fetch the HTML content and parse it
+      const html = await this.authenticatedFetch(moduleItemUrl);
+      
+      // Parse the HTML to look for various patterns
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      // Method 1: Look for direct file links in href attributes  
+      const fileLinks = doc.querySelectorAll('a[href*="/files/"]');
+      for (const link of fileLinks) {
+        const href = link.getAttribute('href');
+        if (href && href.includes('/files/')) {
+          const fileUrl = this.makeAbsoluteUrl(href, moduleItemUrl);
+          const downloadUrl = fileUrl.includes('/download') ? fileUrl : `${fileUrl.split('?')[0]}/download`;
+          console.log(`✅ Found file link in HTML: ${downloadUrl}`);
+          return downloadUrl;
+        }
+      }
+      
+      // Method 2: Look for wiki page links
+      const pageLinks = doc.querySelectorAll('a[href*="/pages/"]');
+      for (const link of pageLinks) {
+        const href = link.getAttribute('href');
+        if (href && href.includes('/pages/')) {
+          const pageUrl = this.makeAbsoluteUrl(href, moduleItemUrl);
+          console.log(`📄 Found wiki page link in HTML: ${pageUrl}`);
+          return pageUrl;
+        }
+      }
+      
+      // Method 3: Look for redirect patterns in raw HTML
+      const fileMatch = html.match(/['"]([^'"]*\/courses\/\d+\/files\/\d+[^'"]*)['"]/);
+      if (fileMatch) {
+        const fileUrl = this.makeAbsoluteUrl(fileMatch[1], moduleItemUrl);
+        const downloadUrl = fileUrl.includes('/download') ? fileUrl : `${fileUrl.split('?')[0]}/download`;
+        console.log(`✅ Found file in HTML content: ${downloadUrl}`);
+        return downloadUrl;
+      }
+      
+      // Method 4: Look for wiki page patterns in raw HTML
+      const wikiPageMatch = html.match(/['"]([^'"]*\/courses\/\d+\/pages\/[\w-]+[^'"]*)['"]/);
+      if (wikiPageMatch) {
+        const wikiPageUrl = this.makeAbsoluteUrl(wikiPageMatch[1], moduleItemUrl);
+        console.log(`📄 Found wiki page in HTML content: ${wikiPageUrl}`);
+        return wikiPageUrl;
+      }
+      
+      // Method 5: Look for JavaScript redirects or meta refreshes
+      const jsRedirectMatch = html.match(/window\.location\s*=\s*['"]([^'"]+)['"]/);
+      if (jsRedirectMatch) {
+        const redirectUrl = this.makeAbsoluteUrl(jsRedirectMatch[1], moduleItemUrl);
+        console.log(`🔄 Found JavaScript redirect: ${redirectUrl}`);
+        return redirectUrl;
+      }
+      
+      const metaRefreshMatch = html.match(/<meta[^>]+http-equiv=['"]refresh['"][^>]+content=['"][^;]*;\s*url=([^'"]+)['"]/i);
+      if (metaRefreshMatch) {
+        const redirectUrl = this.makeAbsoluteUrl(metaRefreshMatch[1], moduleItemUrl);
+        console.log(`🔄 Found meta refresh redirect: ${redirectUrl}`);
+        return redirectUrl;
+      }
+      
+      // Method 6: Look for Canvas-specific redirect indicators
+      const canvasRedirectMatch = html.match(/data-api-endpoint=['"]([^'"]+)['"]/);
+      if (canvasRedirectMatch) {
+        const apiUrl = this.makeAbsoluteUrl(canvasRedirectMatch[1], moduleItemUrl);
+        console.log(`🔍 Found Canvas API endpoint: ${apiUrl}`);
+        // Convert API endpoint to downloadable file URL if it's a file
+        if (apiUrl.includes('/files/')) {
+          const downloadUrl = `${apiUrl.split('?')[0]}/download`;
+          console.log(`✅ Converted API endpoint to download URL: ${downloadUrl}`);
+          return downloadUrl;
+        }
+      }
+      
+      console.warn(`⚠️ Could not resolve module item from HTML: ${moduleItemUrl}`);
+      console.log(`📝 HTML snippet (first 500 chars):`, html.substring(0, 500));
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in resolveModuleItemFromHTML for ${moduleItemUrl}:`, error);
+      return null;
+    }
+  }
+
+  async queueUrlForDeepCrawl(url, level = 1, priority = 1, type = 'unknown', parentUrl = null) {
+    // Ensure deepCrawlState is initialized
+    this.ensureDeepCrawlState();
+    
+    // Skip template placeholder URLs before they enter the queue
+    if (url.includes('%7B%7B') || url.includes('{{')) {
+      console.warn(`⚠️ Skipping template placeholder URL from queue: ${url}`);
+      return;
+    }
+    
+    if (level > this.deepCrawlState.maxDepth || 
+        this.deepCrawlState.fetchedUrls.has(url) ||
+        this.deepCrawlState.fetchQueue.has(url)) {
+      return;
+    }
+
+    this.deepCrawlState.fetchQueue.set(url, {
+      level,
+      priority,
+      type,
+      parentUrl,
+      addedAt: Date.now()
+    });
+
+    console.log(`📋 Queued for deep crawl: ${type} (level ${level}) - ${url}`);
+  }
+
+  // ============================================================================
+  // END PHASE 1 INFRASTRUCTURE
+  // ============================================================================
+
+  // ============================================================================
+  // CANVAS MODULE PATTERN DETECTION
+  // ============================================================================
+  
+  // Detect and batch process similar Canvas module items
+  detectCanvasModulePatterns() {
+    const patterns = [];
+    const processedModules = new Set();
+    
+    // Find all context modules
+    const modules = document.querySelectorAll('.context_module');
+    
+    modules.forEach(module => {
+      const moduleId = module.id;
+      if (processedModules.has(moduleId)) return;
+      processedModules.add(moduleId);
+      
+      // Find all module items in this module
+      const moduleItems = module.querySelectorAll('.context_module_item');
+      
+      if (moduleItems.length < 2) return; // Skip modules with single items
+      
+      // Group items by structural similarity
+      const groups = this.groupModuleItemsByStructure(moduleItems);
+      
+      // Look for groups with lecture-like patterns
+      groups.forEach(group => {
+        if (group.items.length >= 2 && this.isLecturePattern(group)) {
+          patterns.push({
+            moduleId: moduleId,
+            type: 'lecture_series',
+            items: group.items,
+            pattern: group.pattern,
+            confidence: group.confidence
+          });
+          
+          console.log(`📚 Detected lecture series pattern in ${moduleId}: ${group.items.length} items (${group.pattern})`);
+        }
+      });
+    });
+    
+    return patterns;
+  }
+  
+  groupModuleItemsByStructure(moduleItems) {
+    const groups = [];
+    const itemsByStructure = new Map();
+    
+    moduleItems.forEach(item => {
+      const structure = this.getModuleItemStructure(item);
+      const key = `${structure.type}_${structure.hasLink}_${structure.hasHiddenType}`;
+      
+      if (!itemsByStructure.has(key)) {
+        itemsByStructure.set(key, {
+          pattern: structure,
+          items: [],
+          confidence: 0
+        });
+      }
+      
+      itemsByStructure.get(key).items.push(item);
+    });
+    
+    itemsByStructure.forEach(group => {
+      group.confidence = this.calculatePatternConfidence(group);
+      groups.push(group);
+    });
+    
+    return groups.sort((a, b) => b.confidence - a.confidence);
+  }
+  
+  getModuleItemStructure(item) {
+    const classList = Array.from(item.classList);
+    const link = item.querySelector('a[href*="/modules/items/"]');
+    const typeSpan = item.querySelector('.type');
+    const itemType = typeSpan?.textContent?.trim();
+    
+    // Filter out template placeholder URLs
+    const linkHref = link?.getAttribute('href');
+    const hasValidLink = link && linkHref && !linkHref.includes('%7B%7B') && !linkHref.includes('{{');
+    
+    return {
+      type: itemType || 'unknown',
+      hasLink: hasValidLink,
+      hasHiddenType: !!typeSpan,
+      isWikiPage: classList.includes('wiki_page'),
+      classes: classList,
+      linkHref: hasValidLink ? linkHref : null
+    };
+  }
+  
+  isLecturePattern(group) {
+    const structure = group.pattern;
+    const items = group.items;
+    
+    // High confidence: wiki page module items with sequential IDs
+    if (structure.isWikiPage && structure.hasLink && items.length >= 3) {
+      // Check for sequential or lecture-like naming
+      const hasSequentialIds = this.hasSequentialModuleIds(items);
+      const hasLectureNames = this.hasLectureNames(items);
+      
+      return hasSequentialIds || hasLectureNames;
+    }
+    
+    return false;
+  }
+  
+  hasSequentialModuleIds(items) {
+    const ids = items.map(item => {
+      const link = item.querySelector('a[href*="/modules/items/"]');
+      const href = link?.getAttribute('href');
+      // Skip template placeholder URLs
+      if (!href || href.includes('%7B%7B') || href.includes('{{')) return null;
+      const match = href.match(/\/modules\/items\/(\d+)/);
+      return match ? parseInt(match[1]) : null;
+    }).filter(id => id !== null).sort((a, b) => a - b);
+    
+    if (ids.length < 3) return false;
+    
+    // Check if IDs are roughly sequential (allow gaps of 1-2)
+    let sequential = 0;
+    for (let i = 1; i < ids.length; i++) {
+      if (ids[i] - ids[i-1] <= 3) sequential++;
+    }
+    
+    return sequential / (ids.length - 1) > 0.7; // 70% sequential
+  }
+  
+  hasLectureNames(items) {
+    const names = items.map(item => {
+      const link = item.querySelector('a[href*="/modules/items/"]');
+      const href = link?.getAttribute('href');
+      // Skip template placeholder URLs
+      if (!href || href.includes('%7B%7B') || href.includes('{{')) return '';
+      return link?.textContent?.trim() || '';
+    });
+    
+    const lectureNames = names.filter(name => 
+      name.toLowerCase().includes('optfö') ||
+      name.toLowerCase().includes('simfö') ||
+      name.toLowerCase().includes('föreläsning') ||
+      name.toLowerCase().includes('lecture')
+    );
+    
+    return lectureNames.length >= 2;
+  }
+  
+  calculatePatternConfidence(group) {
+    let confidence = 0;
+    const structure = group.pattern;
+    const items = group.items;
+    
+    // Base confidence for structure
+    if (structure.isWikiPage) confidence += 30;
+    if (structure.hasLink) confidence += 20;
+    if (structure.hasHiddenType) confidence += 10;
+    
+    // Bonus for quantity
+    confidence += Math.min(items.length * 5, 25);
+    
+    // Bonus for lecture patterns
+    if (this.hasLectureNames(items)) confidence += 25;
+    if (this.hasSequentialModuleIds(items)) confidence += 20;
+    
+    return confidence;
+  }
+
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+
+  wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ============================================================================
+  // PHASE 2: ENHANCED URL DISCOVERY - Canvas Content Categorization & Discovery
+  // ============================================================================
+
+  discoverCanvasUrls() {
+    const discoveredUrls = new Set();
+    const currentUrl = window.location.href;
+    
+    console.log('🔍 Discovering Canvas URLs for deep crawling...');
+
+    // Canvas-specific selectors based on actual DOM structure
+    const canvasSelectors = [
+      // Module items (primary target)
+      '.context_module_item .item_link',     // Canvas module item links
+      '.ig-title.item_link',                 // Canvas item links with ig-title class
+      'a.item_link[href*="/modules/items/"]', // Direct module item links
+      
+      // Embedded file links (wiki pages, assignments, etc.)
+      '.instructure_file_link_holder a',     // Canvas embedded file links
+      '.instructure_file_holder a',          // Canvas file holder links
+      'a.inline_disabled[href*="/files/"]',  // Canvas inline file links
+      
+      // File and assignment links
+      'a[href*="/files/"]',                  // Direct file links
+      'a[href*="/assignments/"]',            // Assignment links
+      'a[href*="/pages/"]',                  // Wiki page links
+      
+      // General Canvas course links
+      'a[href*="/courses/"][href*="/modules"]', // Module navigation
+      'a[href*="/courses/"][href*="/files"]'   // File navigation
+    ];
+    
+    // Also get all links and filter for Canvas patterns
+    const allLinks = document.querySelectorAll('a[href]');
+    const canvasLinks = document.querySelectorAll(canvasSelectors.join(', '));
+    
+    console.log(`🔗 Found ${allLinks.length} total links, ${canvasLinks.length} Canvas-specific links`);
+    
+    // First, add all items from detected module patterns (highest priority)
+    const modulePatterns = this.detectCanvasModulePatterns();
+    modulePatterns.forEach(pattern => {
+      pattern.items.forEach(item => {
+        const link = item.querySelector('a[href*="/modules/items/"]');
+        const href = link?.getAttribute('href');
+        // Skip template placeholder URLs
+        if (link && href && !href.includes('%7B%7B') && !href.includes('{{')) {
+          this.processDiscoveredLink(link, currentUrl, discoveredUrls, 'module_pattern');
+        }
+      });
+    });
+    
+    // Process Canvas-specific links (high priority)
+    canvasLinks.forEach(link => {
+      this.processDiscoveredLink(link, currentUrl, discoveredUrls, 'canvas_specific');
+    });
+    
+    // Special handling for course main pages with many module items
+    const isCourseFrontPage = currentUrl.match(/\/courses\/\d+\/?(?:\?.*)?$/);
+    if (isCourseFrontPage) {
+      // Look for module items that might be wiki pages with lectures
+      const moduleItems = document.querySelectorAll('.context_module_item .item_link');
+      console.log(`📋 Course front page: found ${moduleItems.length} module items to analyze`);
+      
+      moduleItems.forEach(link => {
+        const moduleItem = link.closest('.context_module_item');
+        const itemType = moduleItem?.querySelector('.type')?.textContent?.trim();
+        const linkText = link.textContent?.trim() || '';
+        
+        // Prioritize wiki pages (likely lecture content)
+        if (itemType === 'wiki_page') {
+          this.processDiscoveredLink(link, currentUrl, discoveredUrls, 'course_main_wiki_pages');
+        }
+      });
+    }
+    
+    // Process remaining links for any Canvas patterns we might have missed
+    allLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      if (href && (href.includes('/modules/items/') || href.includes('/files/') || 
+                   href.includes('/assignments/') || href.includes('/pages/'))) {
+        this.processDiscoveredLink(link, currentUrl, discoveredUrls, 'general_scan');
+      }
+    });
+
+    // Add specific Canvas API endpoints if we can construct them
+    this.addCanvasApiUrls(discoveredUrls);
+    
+    console.log(`📋 Discovered ${discoveredUrls.size} URLs for deep crawling`);
+    
+    // Debug: Show pattern-based discoveries
+    const patternUrls = Array.from(discoveredUrls).filter(item => item.source === 'module_pattern');
+    if (patternUrls.length > 0) {
+      console.log(`📋 Pattern-based discoveries:`, patternUrls.map(item => `"${item.linkText}" -> ${item.url}`));
+    }
+    
+    return Array.from(discoveredUrls).sort((a, b) => a.priority - b.priority);
+  }
+  
+  processDiscoveredLink(link, currentUrl, discoveredUrls, source) {
+    const href = link.getAttribute('href');
+    const text = link.textContent?.trim() || '';
+    
+    // Skip template placeholder URLs early
+    if (href && (href.includes('%7B%7B') || href.includes('{{'))) {
+      console.warn(`⚠️ Skipping template placeholder URL in processDiscoveredLink: ${href}`);
+      return;
+    }
+    
+    const absoluteUrl = this.makeAbsoluteUrl(href, currentUrl);
+    
+    if (!absoluteUrl || !this.isValidCanvasUrl(absoluteUrl)) return;
+    
+    // Double-check for template placeholders in absolute URL
+    if (absoluteUrl.includes('%7B%7B') || absoluteUrl.includes('{{')) {
+      console.warn(`⚠️ Skipping template placeholder URL in absolute URL (processDiscoveredLink): ${absoluteUrl}`);
+      return;
+    }
+    
+    // Check if we already have this URL
+    const existingUrl = Array.from(discoveredUrls).find(item => item.url === absoluteUrl);
+    if (existingUrl) return;
+    
+    const urlInfo = this.categorizeCanvasUrl(absoluteUrl, text, link);
+    if (urlInfo.shouldCrawl) {
+      // Get additional context from Canvas DOM structure
+      const moduleItem = link.closest('.context_module_item');
+      const fileHolder = link.closest('.instructure_file_holder, .instructure_file_link_holder');
+      const itemType = moduleItem?.querySelector('.type')?.textContent?.trim();
+      const isAttachment = moduleItem?.classList.contains('attachment');
+      const isEmbeddedFile = !!fileHolder;
+      const fileId = link.getAttribute('data-id');
+      const apiEndpoint = link.getAttribute('data-api-endpoint');
+      
+      discoveredUrls.add({
+        url: absoluteUrl,
+        linkText: text,
+        canvasItemType: itemType,
+        isAttachment: isAttachment,
+        isEmbeddedFile: isEmbeddedFile,
+        fileId: fileId,
+        apiEndpoint: apiEndpoint,
+        source: source,
+        ...urlInfo
+      });
+      
+      const contextInfo = isEmbeddedFile ? 'embedded_file' : (itemType || 'unknown');
+      console.log(`➕ ${source}: ${urlInfo.type} (${contextInfo}) - "${text}" - ${absoluteUrl}`);
+    }
+  }
+
+  categorizeCanvasUrl(url, linkText = '', element = null) {
+    const urlPath = new URL(url).pathname;
+    const searchParams = new URL(url).searchParams;
+    
+    // Get Canvas-specific context from DOM
+    const moduleItem = element?.closest('.context_module_item');
+    const fileHolder = element?.closest('.instructure_file_holder, .instructure_file_link_holder');
+    const itemType = moduleItem?.querySelector('.type')?.textContent?.trim();
+    const isAttachment = moduleItem?.classList.contains('attachment');
+    const isEmbeddedFile = !!fileHolder;
+    const hasFileId = element?.hasAttribute('data-id');
+    
+    // Very high priority: Embedded Canvas files (lectures, assignments, etc.)
+    if (isEmbeddedFile || hasFileId || element?.classList.contains('inline_disabled')) {
+      return {
+        type: 'canvas_embedded_file',
+        priority: 1,
+        shouldCrawl: true,
+        reason: 'Canvas embedded file - very likely to be a PDF or document'
+      };
+    }
+    
+    // High priority: Attachments (most likely to be PDFs)
+    if (isAttachment || itemType === 'attachment') {
+      return {
+        type: 'canvas_attachment',
+        priority: 1,
+        shouldCrawl: true,
+        reason: 'Canvas attachment - very likely to be a PDF file'
+      };
+    }
+    
+    // High priority: Module items (especially wiki pages with lectures)
+    if (urlPath.includes('/modules/') && urlPath.includes('/items/')) {
+      const lowerText = linkText.toLowerCase();
+      const isPDFLike = lowerText.includes('pdf') || lowerText.includes('manual') || 
+                        lowerText.includes('lab') || lowerText.includes('guide') ||
+                        lowerText.includes('document') || lowerText.includes('handout');
+      
+      // Check if it's a wiki page type (common for lecture pages)
+      const isWikiPageType = itemType === 'wiki_page';
+      
+      // High priority for wiki pages (often contain lecture content)
+      const isLectureLike = lowerText.includes('föreläsning') || lowerText.includes('lecture') ||
+                           lowerText.includes('fö') || lowerText.includes('opt') ||
+                           lowerText.includes('introduktion') || lowerText.includes('intro');
+      
+      let priority = 2; // Default priority
+      let reason = 'Module item may contain resources';
+      
+      if (isWikiPageType && isLectureLike) {
+        priority = 1;
+        reason = 'Wiki page module item - likely contains lecture PDFs';
+      } else if (isPDFLike) {
+        priority = 1;
+        reason = 'Module item with PDF-like title';
+      } else if (isWikiPageType) {
+        priority = 1;
+        reason = 'Wiki page module item - may contain embedded files';
+      }
+      
+      return {
+        type: isWikiPageType ? 'wiki_page_module_item' : 'module_item',
+        priority: priority,
+        shouldCrawl: true,
+        reason: reason
+      };
+    }
+    
+    
+    // High priority: Assignment pages
+    if (urlPath.includes('/assignments/')) {
+      return {
+        type: 'assignment',
+        priority: 1,
+        shouldCrawl: true,
+        reason: 'Assignment pages often contain PDF attachments and linked resources'
+      };
+    }
+    
+    // Medium priority: Wiki pages
+    if (urlPath.includes('/pages/') || itemType === 'wiki_page') {
+      return {
+        type: 'wiki_page',
+        priority: 2,
+        shouldCrawl: true,
+        reason: 'Wiki pages may embed PDFs and external content'
+      };
+    }
+    
+    // Medium priority: Course content areas
+    if (urlPath.includes('/modules') && !urlPath.includes('/items/')) {
+      return {
+        type: 'modules_index',
+        priority: 2,
+        shouldCrawl: true,
+        reason: 'Modules index contains links to all module items'
+      };
+    }
+    
+    if (urlPath.includes('/files') && !urlPath.includes('/download')) {
+      return {
+        type: 'file_browser',
+        priority: 2,
+        shouldCrawl: true,
+        reason: 'File browser may show additional PDFs not visible on course front page'
+      };
+    }
+    
+    // External links that might contain PDFs
+    if (!url.includes(window.location.hostname)) {
+      const domain = new URL(url).hostname;
+      if (this.isAcademicDomain(domain) || linkText.toLowerCase().includes('pdf')) {
+        return {
+          type: 'external_academic',
+          priority: 3,
+          shouldCrawl: true,
+          reason: 'External academic link may contain course-related PDFs'
+        };
+      }
+    }
+    
+    // Skip low-value pages
+    if (urlPath.includes('/quizzes') || 
+        urlPath.includes('/discussion_topics') || 
+        urlPath.includes('/announcements') ||
+        urlPath.includes('/grades')) {
+      return {
+        type: 'skip',
+        priority: 0,
+        shouldCrawl: false,
+        reason: 'Low probability of containing PDFs'
+      };
+    }
+    
+    // Default: crawl unknown Canvas pages at low priority
+    if (url.includes('/courses/')) {
+      return {
+        type: 'canvas_page',
+        priority: 3,
+        shouldCrawl: true,
+        reason: 'Unknown Canvas page - might contain PDFs'
+      };
+    }
+    
+    return {
+      type: 'other',
+      priority: 0,
+      shouldCrawl: false,
+      reason: 'Not a Canvas course page'
+    };
+  }
+
+  addCanvasApiUrls(discoveredUrls) {
+    const courseId = this.courseId;
+    if (!courseId) return;
+    
+    const baseUrl = `${window.location.origin}/courses/${courseId}`;
+    const currentUrl = window.location.href;
+    
+    // Add key Canvas endpoints that may contain PDF links
+    const apiUrls = [
+      { url: `${baseUrl}/assignments`, type: 'assignments_index', priority: 1 },
+      { url: `${baseUrl}/modules`, type: 'modules_index', priority: 1 },
+      { url: `${baseUrl}/files`, type: 'files_index', priority: 2 },
+      { url: `${baseUrl}/pages`, type: 'pages_index', priority: 2 }
+    ];
+    
+    // If we're already on the modules page, don't add it again
+    if (currentUrl.includes('/modules')) {
+      apiUrls.splice(1, 1); // Remove modules URL
+    }
+    
+    apiUrls.forEach(apiUrl => {
+      if (!Array.from(discoveredUrls).some(item => item.url === apiUrl.url)) {
+        discoveredUrls.add({
+          ...apiUrl,
+          shouldCrawl: true,
+          reason: 'Canvas API endpoint likely to contain PDF references'
+        });
+      }
+    });
+  }
+
+  isValidCanvasUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      
+      // Must be HTTP/HTTPS
+      if (!['http:', 'https:'].includes(urlObj.protocol)) return false;
+      
+      // Skip fragments and javascript links
+      if (url.startsWith('#') || url.startsWith('javascript:')) return false;
+      
+      // Skip common file types that won't contain HTML
+      if (url.match(/\.(jpg|jpeg|png|gif|css|js|ico|svg)($|\?)/i)) return false;
+      
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  isAcademicDomain(domain) {
+    const academicTlds = ['.edu', '.ac.', '.edu.'];
+    return academicTlds.some(tld => domain.includes(tld)) ||
+           ['arxiv.org', 'jstor.org', 'springer.com', 'wiley.com', 'elsevier.com', 
+            'ieee.org', 'acm.org', 'researchgate.net', 'academia.edu'].includes(domain);
+  }
+
+  makeAbsoluteUrl(href, baseUrl) {
+    try {
+      return new URL(href, baseUrl).href;
+    } catch {
+      return null;
+    }
+  }
+
+  // ============================================================================
+  // END PHASE 2 URL DISCOVERY
+  // ============================================================================
+
+  // ============================================================================
+  // PHASE 3: MULTI-LEVEL FETCH CRAWLER - Deep PDF Discovery Engine
+  // ============================================================================
+
+  async testAuthentication() {
+    // Test if we can access Canvas API endpoints
+    try {
+      const apiTestUrl = `${window.location.origin}/api/v1/courses/${this.courseId}`;
+      console.log(`🔐 Testing Canvas API access: ${apiTestUrl}`);
+      
+      const response = await this.authenticatedFetch(apiTestUrl);
+      console.log('✅ Canvas API access successful');
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Canvas API access test failed:', error.message);
+      console.warn('   This may affect deep crawl performance but surface scanning should still work');
+      return false;
+    }
+  }
+
+  async startDeepCrawl() {
+    console.log('🔮 Starting deep crawl for embedded PDFs...');
+    
+    // Test authentication before starting deep crawl
+    await this.testAuthentication();
+    
+    // Ensure deepCrawlState is initialized
+    this.ensureDeepCrawlState();
+    
+    // Reset deep crawl state but preserve any surface PDFs already found
+    this.deepCrawlState.fetchQueue.clear();
+    this.deepCrawlState.fetchedUrls.clear();
+    
+    // Preserve surface PDFs if they exist
+    const existingSurfacePdfs = this.crawlerState?.surfacePDFs || [];
+    this.deepCrawlState.foundPdfs = [...existingSurfacePdfs]; // Start with surface PDFs
+    console.log(`🏁 Starting deep crawl with ${existingSurfacePdfs.length} surface PDFs already found`);
+    
+    try {
+      // Phase 1: Queue Canvas module items from surface scan that need resolution
+      const allSurfacePdfs = this.getAllPdfLinks();
+      const moduleItemsToResolve = allSurfacePdfs.filter(pdf => 
+        pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')
+      );
+      
+      console.log(`🔄 Found ${moduleItemsToResolve.length} Canvas module items to resolve during deep crawl`);
+      if (moduleItemsToResolve.length > 0) {
+        console.log('📋 Canvas module items to resolve:', moduleItemsToResolve.map(item => `"${item.title}" -> ${item.url}`));
+      }
+      
+      for (const moduleItem of moduleItemsToResolve) {
+        await this.queueUrlForDeepCrawl(
+          moduleItem.url,
+          1, // Level 1 for module items
+          1, // High priority
+          'canvas_module_item',
+          window.location.href
+        );
+        console.log(`📋 Queued module item for resolution: ${moduleItem.title} -> ${moduleItem.url}`);
+      }
+      
+      // Phase 2: Discover all crawlable URLs on current page
+      const discoveredUrls = this.discoverCanvasUrls();
+      
+      // Phase 3: Ensure current page is processed first (to catch any surface PDFs that weren't found)
+      await this.queueUrlForDeepCrawl(
+        window.location.href,
+        0, // Level 0 for current page
+        0, // Highest priority
+        'current_page',
+        null
+      );
+      
+      // Queue discovered URLs by priority
+      for (const urlInfo of discoveredUrls) {
+        await this.queueUrlForDeepCrawl(
+          urlInfo.url, 
+          1, // Start at level 1
+          urlInfo.priority, 
+          urlInfo.type,
+          window.location.href
+        );
+      }
+      
+      // Phase 3: Process queue with concurrency control
+      await this.processDeepCrawlQueue();
+      
+      const totalPdfs = this.deepCrawlState.foundPdfs.length;
+      const surfacePdfs = this.crawlerState?.surfacePDFs?.length || 0;
+      const deepOnlyPdfs = totalPdfs - surfacePdfs;
+      
+      console.log(`🎆 Deep crawl complete! Total: ${totalPdfs} PDFs (${surfacePdfs} surface + ${deepOnlyPdfs} deep crawl)`);
+      
+      // Report all PDFs (surface + deep crawl combined)
+      if (this.deepCrawlState.foundPdfs.length > 0) {
+        chrome.runtime.sendMessage({
+          action: "pdfsFound",
+          pdfs: this.deepCrawlState.foundPdfs,
+          source: "combined_scan",
+          surfacePdfCount: surfacePdfs,
+          deepCrawlPdfCount: deepOnlyPdfs,
+          courseInfo: {
+            title: document.title,
+            url: window.location.href,
+            courseId: this.courseId
+          }
+        });
+      }
+      
+      return this.deepCrawlState.foundPdfs;
+      
+    } catch (error) {
+      console.error('❌ Deep crawl failed:', error);
+      return [];
+    }
+  }
+
+  async processDeepCrawlQueue() {
+    // Ensure deepCrawlState is initialized
+    this.ensureDeepCrawlState();
+    
+    console.log(`📋 Processing ${this.deepCrawlState.fetchQueue.size} URLs in crawl queue...`);
+    
+    // Convert queue to sorted array by priority
+    const sortedQueue = Array.from(this.deepCrawlState.fetchQueue.entries())
+      .sort(([, a], [, b]) => a.priority - b.priority); // Lower number = higher priority
+    
+    const processingPromises = [];
+    
+    for (const [url, queueInfo] of sortedQueue) {
+      // Wait for available slot if at max concurrent requests
+      while (this.deepCrawlState.activeRequests >= this.deepCrawlState.maxConcurrentRequests) {
+        await this.wait(100);
+      }
+      
+      // Start processing this URL
+      const promise = this.processDeepCrawlUrl(url, queueInfo)
+        .catch(error => {
+          console.error(`❌ Failed to process ${url}:`, error.message);
+          return []; // Return empty array on failure
+        });
+      
+      processingPromises.push(promise);
+    }
+    
+    // Wait for all requests to complete
+    const results = await Promise.all(processingPromises);
+    
+    // Flatten and add all found PDFs
+    const allFoundPdfs = results.flat();
+    this.deepCrawlState.foundPdfs.push(...allFoundPdfs);
+    
+    console.log(`✅ Processed ${sortedQueue.length} URLs, found ${allFoundPdfs.length} PDFs`);
+  }
+
+  async processDeepCrawlUrl(url, queueInfo) {
+    if (this.deepCrawlState.fetchedUrls.has(url)) {
+      return []; // Already processed
+    }
+    
+    console.log(`🔮 Processing: ${queueInfo.type} (level ${queueInfo.level}) - ${url}`);
+    
+    try {
+      // Mark as fetched before processing to prevent duplicates
+      this.deepCrawlState.fetchedUrls.add(url);
+      
+      let htmlToProcess, urlToProcess = url;
+      
+      // Special handling for Canvas module items
+      if (url.includes('/modules/items/')) {
+        console.log(`🔄 Special handling for Canvas module item: ${url}`);
+        const resolvedUrl = await this.resolveModuleItemUrl(url);
+        if (resolvedUrl && resolvedUrl.includes('/pages/')) {
+          console.log(`📄 Module item resolved to wiki page: ${resolvedUrl}`);
+          htmlToProcess = await this.authenticatedFetch(resolvedUrl);
+          urlToProcess = resolvedUrl;
+        } else if (resolvedUrl && resolvedUrl.includes('/files/')) {
+          console.log(`📎 Module item resolved to direct file: ${resolvedUrl}`);
+          // Return a synthetic PDF object for direct file links
+          return [{
+            url: resolvedUrl,
+            title: this.extractFilename(resolvedUrl) || 'Canvas File',
+            filename: this.extractFilename(resolvedUrl),
+            type: 'resolved_module_file',
+            originalModuleUrl: url,
+            context: `Resolved from Canvas module item: ${url}`
+          }];
+        } else {
+          // Fallback: fetch the module item page directly
+          console.log(`⚠️ Module item resolution failed, fetching directly: ${url}`);
+          htmlToProcess = await this.authenticatedFetch(url);
+        }
+      } else {
+        // Normal page processing
+        htmlToProcess = await this.authenticatedFetch(url);
+      }
+      
+      // Parse for PDFs
+      const foundPdfs = this.parseHTMLForPDFs(htmlToProcess, urlToProcess);
+      
+      // Resolve any remaining module items that were found
+      const resolvedPdfs = await this.resolveModuleItems(foundPdfs);
+      
+      // If we're not at max depth, queue more URLs from this page
+      if (queueInfo.level < this.deepCrawlState.maxDepth) {
+        await this.discoverNestedUrls(htmlToProcess, url, queueInfo.level + 1);
+      }
+      
+      return resolvedPdfs;
+      
+    } catch (error) {
+      console.error(`❌ Error processing ${url}:`, error.message);
+      
+      // Enhanced error reporting for debugging
+      if (error.message.includes('403') || error.message.includes('forbidden')) {
+        console.error(`🔒 Authentication issue detected for ${url}. This may indicate:`);
+        console.error(`   • The page requires additional authentication`);
+        console.error(`   • Canvas session may have expired`);
+        console.error(`   • Page requires direct navigation to access`);
+        console.error(`   • CSRF token or additional headers needed`);
+      } else if (error.message.includes('404')) {
+        console.error(`🔍 Page not found: ${url} may have been moved or deleted`);
+      } else if (error.message.includes('429')) {
+        console.error(`⏳ Rate limited when accessing ${url}. Crawler will slow down.`);
+      }
+      
+      return [];
+    }
+  }
+  
+  async resolveModuleItems(pdfs) {
+    const resolvedPdfs = [];
+    const wikiPagesToProcess = [];
+    
+    for (const pdf of pdfs) {
+      if (pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')) {
+        console.log(`🔄 Resolving module item: ${pdf.title}`);
+        
+        const resolvedUrl = await this.resolveModuleItemUrl(pdf.url);
+        if (resolvedUrl) {
+          if (resolvedUrl.includes('/pages/')) {
+            // This is a wiki page - we need to fetch and parse it for PDFs
+            console.log(`📄 Module item resolved to wiki page, will process: ${resolvedUrl}`);
+            wikiPagesToProcess.push({
+              ...pdf,
+              url: resolvedUrl,
+              type: 'resolved_wiki_page',
+              originalModuleUrl: pdf.url,
+              needsRedirectResolution: false
+            });
+          } else if (resolvedUrl.includes('/files/')) {
+            // Direct file resolution
+            resolvedPdfs.push({
+              ...pdf,
+              url: resolvedUrl,
+              title: pdf.title !== 'Canvas Module Item' ? pdf.title : this.extractFilename(resolvedUrl) || 'Canvas PDF',
+              filename: this.extractFilename(resolvedUrl),
+              type: 'resolved_module_item',
+              originalModuleUrl: pdf.url,
+              needsRedirectResolution: false
+            });
+          }
+        } else {
+          console.warn(`⚠️ Could not resolve module item: ${pdf.url}`);
+        }
+      } else {
+        resolvedPdfs.push(pdf);
+      }
+    }
+    
+    // Process any wiki pages we found
+    for (const wikiPage of wikiPagesToProcess) {
+      console.log(`🔍 Processing wiki page for PDFs: ${wikiPage.url}`);
+      try {
+        const html = await this.authenticatedFetch(wikiPage.url);
+        const wikiPdfs = this.parseHTMLForPDFs(html, wikiPage.url);
+        
+        // Add context about the original module item
+        wikiPdfs.forEach(wikiPdf => {
+          wikiPdf.originalModuleTitle = wikiPage.title;
+          wikiPdf.originalModuleUrl = wikiPage.originalModuleUrl;
+          wikiPdf.type = 'wiki_page_pdf';
+          wikiPdf.context = `Found in wiki page: ${wikiPage.url} (from module: ${wikiPage.title})`;
+        });
+        
+        resolvedPdfs.push(...wikiPdfs);
+        console.log(`✅ Found ${wikiPdfs.length} PDFs in wiki page: ${wikiPage.title}`);
+      } catch (error) {
+        console.error(`❌ Error processing wiki page ${wikiPage.url}:`, error);
+      }
+    }
+    
+    return resolvedPdfs;
+  }
+
+  async discoverNestedUrls(html, sourceUrl, level) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = doc.querySelectorAll('a[href]');
+      
+      for (const link of links) {
+        const href = link.getAttribute('href');
+        const text = link.textContent?.trim() || '';
+        const absoluteUrl = this.makeAbsoluteUrl(href, sourceUrl);
+        
+        if (absoluteUrl && this.isValidCanvasUrl(absoluteUrl)) {
+          const urlInfo = this.categorizeCanvasUrl(absoluteUrl, text, link);
+          
+          if (urlInfo.shouldCrawl && !this.deepCrawlState.fetchedUrls.has(absoluteUrl)) {
+            await this.queueUrlForDeepCrawl(
+              absoluteUrl,
+              level,
+              urlInfo.priority + 1, // Lower priority for nested URLs
+              urlInfo.type,
+              sourceUrl
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error discovering nested URLs from ${sourceUrl}:`, error);
+    }
+  }
+
+  // ============================================================================
+  // END PHASE 3 MULTI-LEVEL CRAWLER
+  // ============================================================================
+
+  // ============================================================================
+  // MAIN SCANNING METHODS
+  // ============================================================================
+
+  async scanAndReportPDFs() {
+    console.log('🔍 Starting comprehensive PDF scan (surface + deep)...'); 
+    
+    // Phase 1: Surface scan (existing functionality)
+    const surfacePdfs = this.getAllPdfLinks();
+    
+    // Only report new surface PDFs (avoid duplicate reporting)
+    const newSurfacePdfs = [];
     const currentPageKey = location.href;
     
     if (!this.lastReportedPdfs) {
@@ -95,42 +1484,179 @@ class CanvasContentScript {
     }
     
     // Check for new PDFs on this page
-    for (const pdf of pdfs) {
+    for (const pdf of surfacePdfs) {
       const pdfKey = `${currentPageKey}:${pdf.url}`;
       if (!this.lastReportedPdfs.has(pdfKey)) {
+        // Skip Canvas module items that need resolution - they'll be processed by deep crawl
+        if (pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')) {
+          console.log(`🔄 Holding back Canvas module item for deep crawl: ${pdf.title}`);
+          this.lastReportedPdfs.set(pdfKey, pdf); // Mark as seen to avoid duplicates
+          continue;
+        }
+        
         this.lastReportedPdfs.set(pdfKey, pdf);
-        newPdfs.push(pdf);
+        newSurfacePdfs.push(pdf);
       }
     }
     
-    if (newPdfs.length > 0) {
-      console.log(`Found ${newPdfs.length} NEW PDF links on ${location.href}:`, newPdfs);
+    if (newSurfacePdfs.length > 0) {
+      console.log(`📋 Found ${newSurfacePdfs.length} NEW surface PDFs on ${location.href}:`, newSurfacePdfs.map(p => p.title));
       
-      // Track PDFs in crawler state if crawler is running
+      // If crawler is running, accumulate PDFs AND store full PDF objects (not just URLs)
       if (this.crawlerState?.isRunning) {
-        newPdfs.forEach(pdf => this.crawlerState.foundPDFs.add(pdf.url));
+        newSurfacePdfs.forEach(pdf => {
+          this.crawlerState.foundPDFs.add(pdf.url);
+          // Also store the full PDF object for final reporting
+          if (!this.crawlerState.surfacePDFs) {
+            this.crawlerState.surfacePDFs = [];
+          }
+          this.crawlerState.surfacePDFs.push(pdf);
+        });
+        console.log(`📊 Total unique PDFs found so far: ${this.crawlerState.foundPDFs.size} (${newSurfacePdfs.length} from surface scan)`);
+        console.log('🔍 Surface PDFs details:', newSurfacePdfs.map(p => `"${p.title}" -> ${p.url}`));
+      } else {
+        // If not crawling, report immediately (for single-page scans)
+        console.log('Sending immediate surface PDF report (not crawling)');
+        chrome.runtime.sendMessage({
+          type: 'FOUND_PDFS',
+          courseId: this.courseId,
+          courseName: this.courseName,
+          pdfs: newSurfacePdfs,
+          pageUrl: location.href,
+          crawlerActive: false,
+          source: 'surface_scan'
+        });
       }
-      
-      // Debug log PDF data
-      console.log('NEW PDF data being sent to background:', newPdfs.map(p => ({
-        title: p.title,
-        filename: p.filename,
-        url: p.url,
-        type: p.type
-      })));
-      
-      // Send to background script
-      chrome.runtime.sendMessage({
-        type: 'FOUND_PDFS',
-        courseId: this.courseId,
-        courseName: this.courseName,
-        pdfs: newPdfs,
-        pageUrl: location.href,
-        crawlerActive: this.crawlerState?.isRunning || false
-      });
     } else {
-      console.log(`No new PDFs found on ${location.href} (${pdfs.length} already reported)`);
+      console.log(`📄 No new surface PDFs found on ${location.href} (${surfacePdfs.length} already found on this page)`);
     }
+    
+    // Phase 2: Deep crawl (only on course front page to avoid redundancy)
+    if (this.shouldPerformDeepCrawl()) {
+      console.log('🌊 Conditions met for deep crawl - starting enhanced PDF discovery...');
+      
+      try {
+        await this.startDeepCrawl();
+      } catch (error) {
+        console.error('❌ Deep crawl failed:', error);
+      }
+    } else {
+      console.log('🚫 Skipping deep crawl - not on course front page or already performed');
+    }
+  }
+  
+  shouldPerformDeepCrawl() {
+    const currentUrl = window.location.href;
+    
+    // Perform deep crawl on various Canvas content pages
+    const isCourseFrontPage = currentUrl.match(/\/courses\/\d+\/?(?:\?.*)?$/);
+    const isModulesPage = currentUrl.match(/\/courses\/\d+\/modules\/?(?:\?.*)?$/);
+    const isWikiPage = currentUrl.match(/\/courses\/\d+\/pages\/[\w-]+\/?(?:\?.*)?$/);
+    const isAssignmentPage = currentUrl.match(/\/courses\/\d+\/assignments\/\d+\/?(?:\?.*)?$/);
+    const isFilesPage = currentUrl.match(/\/courses\/\d+\/files\/?(?:\?.*)?$/);
+    
+    const isRelevantPage = isCourseFrontPage || isModulesPage || isWikiPage || isAssignmentPage || isFilesPage;
+    
+    // Check if there are Canvas module items that need resolution
+    const allPdfs = this.getAllPdfLinks();
+    const hasUnresolvedModuleItems = allPdfs.some(pdf => 
+      pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')
+    );
+    
+    // Don't repeat deep crawl on same page unless there are unresolved module items
+    const alreadyCrawled = this.deepCrawlState.fetchedUrls.has(currentUrl);
+    
+    // Only crawl if we have a valid course ID
+    const hasValidCourse = this.courseId && this.courseId !== 'unknown';
+    
+    console.log(`🔍 Deep crawl check: relevantPage=${isRelevantPage} (front=${isCourseFrontPage}, modules=${isModulesPage}, wiki=${isWikiPage}, assignment=${isAssignmentPage}, files=${isFilesPage}), alreadyCrawled=${alreadyCrawled}, hasUnresolvedModuleItems=${hasUnresolvedModuleItems}, validCourse=${hasValidCourse}`);
+    
+    // Allow deep crawl if on relevant page, have valid course, and either haven't crawled or have unresolved module items
+    return isRelevantPage && hasValidCourse && (!alreadyCrawled || hasUnresolvedModuleItems);
+  }
+  
+  // Method to manually trigger comprehensive PDF scanning (called from popup)
+  async triggerPDFScan() {
+    console.log('📝 Manual PDF scan triggered from popup - starting comprehensive scan...');
+    await this.scanAndReportPDFs();
+  }
+  
+  // Method to manually trigger deep crawl only
+  async triggerDeepCrawlOnly() {
+    console.log('🔮 Manual deep crawl triggered - bypassing normal restrictions...');
+    
+    try {
+      const deepPdfs = await this.startDeepCrawl();
+      console.log(`🎆 Manual deep crawl complete! Found ${deepPdfs.length} PDFs`);
+      return deepPdfs;
+    } catch (error) {
+      console.error('❌ Manual deep crawl failed:', error);
+      return [];
+    }
+  }
+  
+  // Debug method to see what URLs would be discovered
+  debugUrlDiscovery() {
+    console.log('🐛 DEBUG: Analyzing URL discovery...');
+    
+    const discoveredUrls = this.discoverCanvasUrls();
+    console.table(discoveredUrls.map(url => ({
+      URL: url.url,
+      Type: url.type,
+      Priority: url.priority,
+      ShouldCrawl: url.shouldCrawl,
+      Reason: url.reason,
+      LinkText: url.linkText || 'No text',
+      CanvasItemType: url.canvasItemType || 'N/A',
+      IsEmbeddedFile: url.isEmbeddedFile || false,
+      Source: url.source
+    })));
+    
+    // Analyze by type
+    const typeCount = {};
+    discoveredUrls.forEach(url => {
+      typeCount[url.type] = (typeCount[url.type] || 0) + 1;
+    });
+    
+    console.log('📊 URL Discovery Summary:');
+    console.table(typeCount);
+    
+    return discoveredUrls;
+  }
+  
+  // Debug method to test PDF detection on current page
+  debugPDFDetection() {
+    console.log('🐛 DEBUG: Testing PDF detection...');
+    
+    const allLinks = document.querySelectorAll('a[href]');
+    const results = [];
+    
+    allLinks.forEach((link, index) => {
+      const href = link.getAttribute('href');
+      const text = link.textContent?.trim() || '';
+      const absoluteUrl = this.makeAbsoluteUrl(href, window.location.href);
+      
+      if (absoluteUrl) {
+        const isPdf = this.isPDFLink(absoluteUrl, text, link);
+        
+        if (isPdf || href?.includes('/files/') || href?.includes('/modules/items/')) {
+          results.push({
+            Index: index,
+            URL: absoluteUrl,
+            Text: text,
+            IsPDF: isPdf,
+            HasFiles: href?.includes('/files/') || false,
+            HasModuleItems: href?.includes('/modules/items/') || false,
+            Element: link
+          });
+        }
+      }
+    });
+    
+    console.table(results);
+    console.log(`🔍 Found ${results.length} potential PDF/file links out of ${allLinks.length} total links`);
+    
+    return results;
   }
 
   extractCourseId() {
@@ -182,6 +1708,12 @@ class CanvasContentScript {
 
   handleMessage(request, sender, sendResponse) {
     try {
+      // Handle messages from background script (not popup)
+      if (request.type === 'FETCH_STATUS') {
+        console.log(`📡 Background fetch status: ${request.message}`);
+        return;
+      }
+      
       switch (request.action) {
         case 'getCourseInfo':
           const response = {
@@ -219,6 +1751,45 @@ class CanvasContentScript {
 
       case 'getCrawlerStatus':
         sendResponse(this.crawlerState);
+        break;
+
+      case 'startDeepCrawl':
+        console.log('🔮 Manual deep crawl requested from popup...');
+        if (!this.courseId) {
+          sendResponse({ error: 'No course detected on this page' });
+          return;
+        }
+        
+        // Start deep crawl asynchronously
+        this.triggerDeepCrawlOnly()
+          .then(pdfs => {
+            console.log(`✅ Deep crawl completed, found ${pdfs.length} PDFs`);
+            // Note: PDFs are already reported via chrome.runtime.sendMessage in startDeepCrawl
+          })
+          .catch(error => {
+            console.error('❌ Deep crawl failed:', error);
+          });
+        
+        sendResponse({ started: true, message: 'Deep crawl started' });
+        break;
+
+      case 'triggerScan':
+        console.log('📄 Manual comprehensive scan requested from popup...');
+        if (!this.courseId) {
+          sendResponse({ error: 'No course detected on this page' });
+          return;
+        }
+        
+        // Start comprehensive scan asynchronously
+        this.triggerPDFScan()
+          .then(() => {
+            console.log('✅ Comprehensive scan completed');
+          })
+          .catch(error => {
+            console.error('❌ Comprehensive scan failed:', error);
+          });
+        
+        sendResponse({ started: true, message: 'Comprehensive scan started' });
         break;
 
       default:
@@ -758,92 +2329,6 @@ class CanvasContentScript {
     }
   }
 
-  async deepCrawlQuizzesSection() {
-    console.log('🧪 Deep crawling quizzes section...');
-    this.crawlerState.currentStep = 'deep_crawl_quizzes';
-    
-    await this.wait(2000);
-    
-    // Find all quiz links
-    const quizLinks = document.querySelectorAll(
-      '.quiz_list a[href*="/quizzes/"], ' +
-      '.quiz-list a, ' +
-      'a[href*="/quizzes/"], ' +
-      '.quiz-title a'
-    );
-    
-    console.log(`Found ${quizLinks.length} quizzes to examine`);
-    
-    for (const link of quizLinks) {
-      if (!this.crawlerState.isRunning) break;
-      
-      const href = link.href;
-      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
-        console.log(`🧪 Visiting quiz: ${link.textContent?.trim()}`);
-        await this.navigateAndScan(href);
-        
-        // Look for file attachments on quiz pages
-        await this.scanForFileAttachments();
-      }
-    }
-  }
-
-  async deepCrawlAnnouncementsSection() {
-    console.log('📢 Deep crawling announcements section...');
-    this.crawlerState.currentStep = 'deep_crawl_announcements';
-    
-    await this.wait(2000);
-    
-    // Find all announcement links
-    const announcementLinks = document.querySelectorAll(
-      '.announcement-list a[href*="/discussion_topics/"], ' +
-      '.topic_list a, ' +
-      'a[href*="/announcements/"], ' +
-      '.discussion-title a'
-    );
-    
-    console.log(`Found ${announcementLinks.length} announcements to examine`);
-    
-    for (const link of announcementLinks) {
-      if (!this.crawlerState.isRunning) break;
-      
-      const href = link.href;
-      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
-        console.log(`📢 Visiting announcement: ${link.textContent?.trim()}`);
-        await this.navigateAndScan(href);
-        await this.scanForFileAttachments();
-      }
-    }
-  }
-
-  async deepCrawlDiscussionsSection() {
-    console.log('💬 Deep crawling discussions section...');
-    this.crawlerState.currentStep = 'deep_crawl_discussions';
-    
-    await this.wait(2000);
-    
-    // Find all discussion links
-    const discussionLinks = document.querySelectorAll(
-      '.discussion-list a[href*="/discussion_topics/"], ' +
-      '.topic_list a, ' +
-      'a[href*="/discussion_topics/"], ' +
-      '.discussion-title a'
-    );
-    
-    console.log(`Found ${discussionLinks.length} discussions to examine`);
-    
-    for (const link of discussionLinks) {
-      if (!this.crawlerState.isRunning) break;
-      
-      const href = link.href;
-      if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
-        console.log(`💬 Visiting discussion: ${link.textContent?.trim()}`);
-        await this.navigateAndScan(href);
-        await this.scanForFileAttachments();
-      }
-    }
-  }
-
   async navigateAndScan(url) {
     if (this.crawlerState.visitedUrls.has(url) || !this.crawlerState.isRunning) {
       console.log(`⏭️ Skipping ${url} (already visited or crawler stopped)`);
@@ -876,26 +2361,10 @@ class CanvasContentScript {
           // Extract title from the URL or current page context
           const titleFromUrl = this.extractFilename(url) || 'Canvas PDF';
           
-          // Add this PDF to our collection
+          // Add this PDF to our collection (reporting handled by scanAndReportPDFs)
           this.crawlerState.foundPDFs.add(url);
           
-          // Report this PDF
-          chrome.runtime.sendMessage({
-            type: 'FOUND_PDFS',
-            courseId: this.courseId,
-            courseName: this.courseName,
-            pdfs: [{
-              url: url,
-              title: titleFromUrl,
-              filename: this.extractFilename(url),
-              context: 'Direct Link',
-              type: 'direct_link'
-            }],
-            pageUrl: currentUrl,
-            crawlerActive: this.crawlerState?.isRunning || false
-          });
-          
-          console.log(`✅ Added direct PDF: ${titleFromUrl}`);
+          console.log(`✅ Noted direct PDF URL: ${titleFromUrl} (${url})`);
         } else {
           // For non-PDF URLs, we'll mark them as visited but not navigate
           // This prevents infinite loops while still tracking progress
@@ -1107,25 +2576,9 @@ class CanvasContentScript {
     for (const pdfLink of directPdfLinks) {
       if (!this.crawlerState.isRunning) break;
       
-      console.log(`📄 Processing direct PDF: ${pdfLink.title} -> ${pdfLink.url}`);
+      console.log(`📄 Noted direct PDF: ${pdfLink.title} -> ${pdfLink.url}`);
       this.crawlerState.foundPDFs.add(pdfLink.url);
       this.crawlerState.visitedUrls.add(pdfLink.url);
-      
-      // Report this PDF immediately
-      chrome.runtime.sendMessage({
-        type: 'FOUND_PDFS',
-        courseId: this.courseId,
-        courseName: this.courseName,
-        pdfs: [{
-          url: pdfLink.url,
-          title: pdfLink.title || this.extractFilename(pdfLink.url) || 'Canvas PDF',
-          filename: this.extractFilename(pdfLink.url),
-          context: `Found at depth ${currentDepth}`,
-          type: 'sub_link_pdf'
-        }],
-        pageUrl: window.location.href,
-        crawlerActive: this.crawlerState?.isRunning || false
-      });
     }
     
     // For pages, only explore if we haven't reached max depth
@@ -1193,6 +2646,28 @@ class CanvasContentScript {
       visitedPages: visitedUrlsArray
     });
     
+    // Send final batch of all found PDFs (no duplicates since we used a Set)
+    if (totalPDFs > 0) {
+      const allFoundPdfs = Array.from(this.crawlerState.foundPDFs).map(url => ({
+        url: url,
+        title: this.extractFilename(url) || 'Canvas PDF',
+        filename: this.extractFilename(url) || 'document.pdf',
+        context: 'Final Crawl Results',
+        type: 'crawl_result'
+      }));
+      
+      console.log(`📦 Sending final batch of ${allFoundPdfs.length} unique PDFs to background script`);
+      
+      chrome.runtime.sendMessage({
+        type: 'FOUND_PDFS',
+        courseId: this.courseId,
+        courseName: this.courseName,
+        pdfs: allFoundPdfs,
+        pageUrl: location.href,
+        crawlerActive: false
+      });
+    }
+    
     chrome.runtime.sendMessage({
       type: 'CRAWL_COMPLETE',
       courseId: this.courseId,
@@ -1207,6 +2682,44 @@ class CanvasContentScript {
   getAllPdfLinks() {
     const links = new Set();
     const pdfData = [];
+    
+    // First, detect Canvas module patterns for systematic discovery
+    const modulePatterns = this.detectCanvasModulePatterns();
+    console.log(`🔍 Detected ${modulePatterns.length} Canvas module patterns`);
+    
+    // Process all items in detected lecture series patterns
+    modulePatterns.forEach(pattern => {
+      pattern.items.forEach(item => {
+        const link = item.querySelector('a[href*="/modules/items/"]');
+        if (link) {
+          const href = link.getAttribute('href');
+          const text = link.textContent?.trim() || '';
+          const absoluteUrl = this.makeAbsoluteUrl(href, window.location.href);
+          
+          // Skip template placeholder URLs
+          if (absoluteUrl && (absoluteUrl.includes('{{') || absoluteUrl.includes('%7B%7B'))) {
+            console.log(`🚫 Skipping template placeholder URL: ${absoluteUrl}`);
+            return;
+          }
+          
+          if (absoluteUrl && !links.has(absoluteUrl)) {
+            links.add(absoluteUrl);
+            pdfData.push({
+              url: absoluteUrl,
+              title: text || `Canvas Module Item (${pattern.type})`,
+              filename: this.extractFilename(absoluteUrl),
+              context: `Module pattern: ${pattern.type} (confidence: ${pattern.confidence})`,
+              type: 'canvas_module_pattern',
+              needsRedirectResolution: true,
+              patternType: pattern.type,
+              confidence: pattern.confidence
+            });
+            
+            console.log(`📋 Added from pattern: "${text}" -> ${absoluteUrl}`);
+          }
+        }
+      });
+    });
 
     // 1. Direct PDF URLs (.pdf at end or in query)
     document.querySelectorAll('a[href]').forEach(a => {
@@ -1440,21 +2953,7 @@ class CanvasContentScript {
       
       this.crawlerState.foundPDFs.add(downloadUrl);
       
-      // Also report this PDF
-      chrome.runtime.sendMessage({
-        type: 'FOUND_PDFS',
-        courseId: this.courseId,
-        courseName: this.courseName,
-        pdfs: [{
-          url: downloadUrl,
-          title: title,
-          filename: `file_${fileId}.pdf`,
-          context: this.findContext(iframe),
-          type: 'iframe_extracted'
-        }],
-        pageUrl: location.href,
-        crawlerActive: this.crawlerState?.isRunning || false
-      });
+      console.log(`📄 Noted iframe PDF: ${title} (${downloadUrl})`);
     }
   }
 
@@ -1769,13 +3268,15 @@ class CanvasContentScript {
 }
 
 // Initialize the content script when DOM is ready
+let canvasContentScript = null;
+
 try {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      new CanvasContentScript();
+      canvasContentScript = new CanvasContentScript();
     });
   } else {
-    new CanvasContentScript();
+    canvasContentScript = new CanvasContentScript();
   }
 } catch (error) {
   console.error('Canvas RAG Assistant: Error during initialization:', error);
