@@ -605,13 +605,50 @@ async function openAndScanTab(url, courseId) {
                 console.log('Content script already injected or error:', e.message);
               }
               
+              // Ping content script to verify it's ready
+              let retryCount = 0;
+              const maxRetries = 3;
+              
+              while (retryCount < maxRetries) {
+                try {
+                  const pingResponse = await new Promise((resolve) => {
+                    chrome.tabs.sendMessage(tabId, { action: 'ping' }, (response) => {
+                      if (chrome.runtime.lastError) {
+                        resolve(null);
+                      } else {
+                        resolve(response);
+                      }
+                    });
+                  });
+                  
+                  if (pingResponse && pingResponse.ready) {
+                    console.log('✓ Content script ready on background tab');
+                    break;
+                  }
+                } catch (e) {
+                  console.log(`Ping attempt ${retryCount + 1} failed:`, e.message);
+                }
+                
+                retryCount++;
+                if (retryCount < maxRetries) {
+                  await new Promise(r => setTimeout(r, 500)); // Wait 500ms before retry
+                }
+              }
+              
               // Request PDF scan from the tab
               chrome.tabs.sendMessage(tabId, { action: 'getPDFs' }, (response) => {
                 clearTimeout(timeout);
                 
                 if (!resolved) {
                   resolved = true;
-                  const pdfs = response || [];
+                  
+                  // Ensure response is an array
+                  const pdfs = Array.isArray(response) ? response : [];
+                  
+                  if (!Array.isArray(response)) {
+                    console.warn(`⚠️ getPDFs returned non-array response:`, typeof response, response);
+                  }
+                  
                   console.log(`✅ Found ${pdfs.length} PDFs in background tab: ${url}`);
                   
                   // Close the background tab

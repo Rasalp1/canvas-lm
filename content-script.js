@@ -71,7 +71,7 @@ class CanvasContentScript {
         isRunning: false,
         visitedUrls: new Set(),
         pendingUrls: [],
-        foundPDFs: new Set(),
+        foundPDFs: new Map(), // Map of URL -> {title, filename, context, type}
         currentStep: 'idle'
       };
       
@@ -439,35 +439,54 @@ class CanvasContentScript {
   convertToDownloadURL(url) {
     // Handle module items - these need to be resolved by fetching the redirect
     if (url.includes('/modules/items/')) {
-      // Module items will be handled by resolveModuleItemUrl method
-      return url;
+      console.warn('⚠️ Module item URL should be resolved first:', url);
+      return null; // Signal that resolution is needed
     }
     
     // Convert Canvas file URLs to download URLs
-    if (url.includes('/files/') && !url.includes('/download')) {
+    if (url.includes('/files/')) {
       const fileIdMatch = url.match(/\/files\/(\d+)/);
       if (fileIdMatch) {
         const fileId = fileIdMatch[1];
         const baseUrl = url.split('/files/')[0];
         
-        // Handle different Canvas file URL patterns:
-        // 1. /files/12345?wrap=1 -> /files/12345/download
-        // 2. /files/12345/preview -> /files/12345/download  
-        // 3. /files/12345 -> /files/12345/download
-        return `${baseUrl}/files/${fileId}/download`;
+        // Always use /download endpoint
+        const downloadUrl = `${baseUrl}/files/${fileId}/download`;
+        
+        // Add query params to force download (not preview)
+        return `${downloadUrl}?download_frd=1`;
       }
     }
     
-    // Already a download URL or not a Canvas file URL
+    // Handle preview URLs
+    if (url.includes('/preview')) {
+      return url.replace('/preview', '/download');
+    }
+    
+    // Already a download URL or direct PDF
+    if (url.includes('/download') || url.endsWith('.pdf')) {
+      return url;
+    }
+    
     return url;
   }
   
-  async resolveModuleItemUrl(moduleItemUrl) {
+  async resolveModuleItemUrl(moduleItemUrl, originalTitle = null) {
     try {
       console.log(`🔄 Resolving module item: ${moduleItemUrl}`);
+      if (originalTitle) {
+        console.log(`📝 Preserving original title: "${originalTitle}"`);
+      }
       
       // Directly use HTML parsing approach since iframe might not work in content script context
-      return await this.resolveModuleItemFromHTML(moduleItemUrl);
+      const resolvedUrl = await this.resolveModuleItemFromHTML(moduleItemUrl);
+      
+      // Return both the URL and the original title if available
+      if (resolvedUrl && originalTitle) {
+        return { url: resolvedUrl, title: originalTitle };
+      }
+      
+      return resolvedUrl ? { url: resolvedUrl, title: null } : null;
       
     } catch (error) {
       console.error(`❌ Error resolving module item ${moduleItemUrl}:`, error);
@@ -1141,6 +1160,15 @@ class CanvasContentScript {
     }
   }
 
+  // Check if URL contains Canvas template placeholders
+  isTemplateUrl(url) {
+    if (!url) return true; // Treat empty URLs as invalid
+    return url.includes('{{') || 
+           url.includes('}}') || 
+           url.includes('%7B%7B') || 
+           url.includes('%7D%7D');
+  }
+
   // ============================================================================
   // END PHASE 2 URL DISCOVERY
   // ============================================================================
@@ -1516,7 +1544,12 @@ class CanvasContentScript {
       // If crawler is running, accumulate PDFs AND store full PDF objects (not just URLs)
       if (this.crawlerState?.isRunning) {
         newSurfacePdfs.forEach(pdf => {
-          this.crawlerState.foundPDFs.add(pdf.url);
+          this.crawlerState.foundPDFs.set(pdf.url, {
+            title: pdf.title || 'Canvas PDF',
+            filename: pdf.filename || this.extractFilename(pdf.url),
+            context: pdf.context || 'Surface Scan',
+            type: pdf.type || 'surface_scan'
+          });
           // Also store the full PDF object for final reporting
           if (!this.crawlerState.surfacePDFs) {
             this.crawlerState.surfacePDFs = [];
@@ -1734,6 +1767,22 @@ class CanvasContentScript {
         }
         const pdfs = this.getAllPdfLinks();
         sendResponse(pdfs);
+        break;
+
+      case 'getPDFs':
+        try {
+          const pdfLinks = this.getAllPdfLinks();
+          console.log(`📎 getPDFs returning ${pdfLinks.length} PDFs`);
+          sendResponse(pdfLinks);
+        } catch (error) {
+          console.error('Error getting PDFs:', error);
+          sendResponse([]);
+        }
+        break;
+
+      case 'ping':
+        // Respond to ping to verify content script is ready
+        sendResponse({ ready: true, courseId: this.courseId });
         break;
 
       case 'startAutoCrawl':
@@ -1955,7 +2004,7 @@ class CanvasContentScript {
       await this.wait(2000);
       
       this.crawlerState.currentStep = 'complete';
-      this.reportCrawlComplete();
+      await this.reportCrawlComplete();
       
     } catch (error) {
       console.error('Crawler error occurred:');
@@ -1972,7 +2021,7 @@ class CanvasContentScript {
       
       this.crawlerState.currentStep = 'Error: ' + (error.message || error.name || 'Unknown error');
       // Still report completion to trigger PDF download
-      this.reportCrawlComplete();
+      await this.reportCrawlComplete();
     } finally {
       this.crawlerState.isRunning = false;
       console.log('Crawler finished, final state:', this.crawlerState);
@@ -2064,12 +2113,42 @@ class CanvasContentScript {
     
     // Scan current page after expansion (smart navigation mode - surface scan only)
     const pdfs = this.getAllPdfLinks();
-    pdfs.forEach(pdf => {
+    for (const pdf of pdfs) {
       if (!this.crawlerState.foundPDFs.has(pdf.url)) {
-        this.crawlerState.foundPDFs.add(pdf.url);
-        console.log(`📎 Smart Navigation found: ${pdf.title}`);
+        let finalUrl = pdf.url;
+        let finalTitle = pdf.title;
+        
+        // Resolve module items
+        if (pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')) {
+          console.log(`🔄 [expandCurrentPageContent] Resolving module item: ${pdf.url}`);
+          const resolved = await this.resolveModuleItemUrl(pdf.url, pdf.title);
+          
+          if (resolved && resolved.url) {
+            finalUrl = this.convertToDownloadURL(resolved.url);
+            // Preserve original title if we have it
+            if (resolved.title) {
+              finalTitle = resolved.title;
+            }
+            console.log(`✅ [expandCurrentPageContent] Resolved to: ${finalUrl} with title: "${finalTitle}"`);
+          } else {
+            console.warn(`⚠️ [expandCurrentPageContent] Could not resolve: ${pdf.url}`);
+            continue; // Skip unresolved module items
+          }
+        } else {
+          finalUrl = this.convertToDownloadURL(pdf.url);
+        }
+        
+        if (finalUrl) {
+          this.crawlerState.foundPDFs.set(finalUrl, {
+            title: finalTitle,
+            filename: pdf.filename || this.extractFilename(finalUrl),
+            context: pdf.context || 'After Expansion',
+            type: pdf.type || 'expanded_content'
+          });
+          console.log(`📎 Smart Navigation found: ${finalTitle} -> ${finalUrl}`);
+        }
       }
-    });
+    }
   }
 
   async crawlCourseSections() {
@@ -2152,6 +2231,11 @@ class CanvasContentScript {
     for (const link of fileLinks) {
       const href = link.href;
       if (href && !this.crawlerState.visitedUrls.has(href)) {
+        // Skip template URLs
+        if (this.isTemplateUrl(href)) {
+          console.warn(`⚠️ Skipping template URL in files section: ${href}`);
+          continue;
+        }
         // Check if it's a PDF or file preview link
         if (href.includes('.pdf') || href.includes('/preview') || href.includes('/download')) {
           console.log(`🔍 Examining file: ${link.textContent?.trim()}`);
@@ -2182,6 +2266,11 @@ class CanvasContentScript {
     for (const link of pageLinks) {
       const href = link.href;
       if (href && !this.crawlerState.visitedUrls.has(href) && href.includes(this.courseId)) {
+        // Skip template URLs
+        if (this.isTemplateUrl(href)) {
+          console.warn(`⚠️ Skipping template URL in pages section: ${href}`);
+          continue;
+        }
         console.log(`📖 Crawling page: ${link.textContent?.trim()}`);
         await this.navigateAndScan(href);
         
@@ -2356,6 +2445,11 @@ class CanvasContentScript {
     for (const item of moduleItems) {
       const href = item.href;
       if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        // Skip template URLs
+        if (this.isTemplateUrl(href)) {
+          console.warn(`⚠️ Skipping template URL in modules section: ${href}`);
+          continue;
+        }
         // Focus on content types most likely to contain PDFs (exclude quizzes/discussions)
         if (href.includes('/files/') || 
             href.includes('/pages/') || 
@@ -2411,6 +2505,11 @@ class CanvasContentScript {
       
       const href = link.href;
       if (href && href.includes(this.courseId) && !this.crawlerState.visitedUrls.has(href)) {
+        // Skip template URLs
+        if (this.isTemplateUrl(href)) {
+          console.warn(`⚠️ Skipping template URL in assignments section: ${href}`);
+          continue;
+        }
         console.log(`📋 Visiting assignment: ${link.textContent?.trim()}`);
         await this.navigateAndScan(href);
         
@@ -2421,6 +2520,12 @@ class CanvasContentScript {
   }
 
   async navigateAndScan(url) {
+    // Check for template URLs first
+    if (this.isTemplateUrl(url)) {
+      console.warn(`⚠️ Skipping template URL: ${url}`);
+      return;
+    }
+    
     if (this.crawlerState.visitedUrls.has(url) || !this.crawlerState.isRunning) {
       console.log(`⏭️ Skipping ${url} (already visited or crawler stopped)`);
       return;
@@ -2439,11 +2544,36 @@ class CanvasContentScript {
         await this.wait(1000);
         await this.performThoroughPageScan();
       } else {
+        // Check if it's a module item that needs resolution
+        if (url.includes('/modules/items/')) {
+          console.log(`🔄 Module item detected, resolving: ${url}`);
+          const resolvedUrl = await this.resolveModuleItemUrl(url);
+          
+          if (resolvedUrl) {
+            const downloadUrl = this.convertToDownloadURL(resolvedUrl);
+            if (downloadUrl && !this.crawlerState.foundPDFs.has(downloadUrl)) {
+              this.crawlerState.foundPDFs.set(downloadUrl, {
+                title: this.extractFilename(downloadUrl) || 'Canvas PDF',
+                filename: this.extractFilename(downloadUrl) || 'document.pdf',
+                context: 'Resolved Module Item',
+                type: 'resolved_module_item'
+              });
+              console.log(`✅ Resolved and added module item: ${downloadUrl}`);
+            }
+          }
+          return;
+        }
+        
         // Check if URL itself is a PDF
         if (url.includes('.pdf') || url.includes('/download')) {
           console.log(`📄 Direct PDF URL detected: ${url}`);
           const titleFromUrl = this.extractFilename(url) || 'Canvas PDF';
-          this.crawlerState.foundPDFs.add(url);
+          this.crawlerState.foundPDFs.set(url, {
+            title: titleFromUrl,
+            filename: this.extractFilename(url) || 'document.pdf',
+            context: 'Direct PDF Link',
+            type: 'direct_pdf'
+          });
           console.log(`✅ Added direct PDF: ${titleFromUrl}`);
           return;
         }
@@ -2461,7 +2591,12 @@ class CanvasContentScript {
               console.log(`✅ Background tab scan found ${response.pdfs.length} PDFs from ${url}`);
               response.pdfs.forEach(pdf => {
                 if (!this.crawlerState.foundPDFs.has(pdf.url)) {
-                  this.crawlerState.foundPDFs.add(pdf.url);
+                  this.crawlerState.foundPDFs.set(pdf.url, {
+                    title: pdf.title || 'Canvas PDF',
+                    filename: pdf.filename || this.extractFilename(pdf.url),
+                    context: pdf.context || 'Background Tab Scan',
+                    type: pdf.type || 'background_scan'
+                  });
                   console.log(`📎 Smart Navigation found: ${pdf.title}`);
                 }
               });
@@ -2477,7 +2612,18 @@ class CanvasContentScript {
       const pdfs = this.getAllPdfLinks();
       pdfs.forEach(pdf => {
         if (!this.crawlerState.foundPDFs.has(pdf.url)) {
-          this.crawlerState.foundPDFs.add(pdf.url);
+          // Skip module items in fallback - they need proper resolution
+          if (pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')) {
+            console.warn(`⚠️ Skipping module item in fallback scan (needs resolution): ${pdf.title}`);
+            return;
+          }
+          
+          this.crawlerState.foundPDFs.set(pdf.url, {
+            title: pdf.title || 'Canvas PDF',
+            filename: pdf.filename || this.extractFilename(pdf.url),
+            context: pdf.context || 'Fallback Scan',
+            type: pdf.type || 'fallback_scan'
+          });
           console.log(`📎 Smart Navigation found: ${pdf.title}`);
         }
       });
@@ -2500,12 +2646,44 @@ class CanvasContentScript {
     
     // Scan for PDFs (smart navigation mode - surface scan only)
     const pdfs = this.getAllPdfLinks();
-    pdfs.forEach(pdf => {
+    
+    // Resolve module items to actual PDFs
+    for (const pdf of pdfs) {
       if (!this.crawlerState.foundPDFs.has(pdf.url)) {
-        this.crawlerState.foundPDFs.add(pdf.url);
-        console.log(`📎 Smart Navigation found: ${pdf.title}`);
+        let finalUrl = pdf.url;
+        let finalTitle = pdf.title;
+        
+        // Resolve module items
+        if (pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')) {
+          console.log(`🔄 Resolving module item: ${pdf.url}`);
+          const resolved = await this.resolveModuleItemUrl(pdf.url, pdf.title);
+          
+          if (resolved && resolved.url) {
+            finalUrl = this.convertToDownloadURL(resolved.url);
+            // Preserve original title if we have it
+            if (resolved.title) {
+              finalTitle = resolved.title;
+            }
+            console.log(`✅ Resolved module item to: ${finalUrl} with title: "${finalTitle}"`);
+          } else {
+            console.warn(`⚠️ Could not resolve module item: ${pdf.url}`);
+            continue; // Skip unresolved module items
+          }
+        } else {
+          finalUrl = this.convertToDownloadURL(pdf.url);
+        }
+        
+        if (finalUrl) {
+          this.crawlerState.foundPDFs.set(finalUrl, {
+            title: finalTitle,
+            filename: pdf.filename || this.extractFilename(finalUrl),
+            context: pdf.context || 'Smart Navigation',
+            type: pdf.type || 'resolved_pdf'
+          });
+          console.log(`📎 Smart Navigation found: ${finalTitle} -> ${finalUrl}`);
+        }
       }
-    });
+    }
     
     // Additional scans for embedded content
     await this.scanPageForEmbeddedContent();
@@ -2596,8 +2774,14 @@ class CanvasContentScript {
     for (const link of attachmentLinks) {
       const href = link.href;
       if (href && (href.includes('.pdf') || href.includes('/files/'))) {
-        console.log(`📎 Found assignment attachment: ${link.textContent?.trim()}`);
-        this.crawlerState.foundPDFs.add(href);
+        const title = link.textContent?.trim() || this.extractFilename(href);
+        console.log(`📎 Found assignment attachment: ${title}`);
+        this.crawlerState.foundPDFs.set(href, {
+          title: title,
+          filename: this.extractFilename(href) || 'document.pdf',
+          context: 'Assignment Attachment',
+          type: 'assignment_attachment'
+        });
       }
     }
   }
@@ -2688,7 +2872,12 @@ class CanvasContentScript {
       if (!this.crawlerState.isRunning) break;
       
       console.log(`📄 Noted direct PDF: ${pdfLink.title} -> ${pdfLink.url}`);
-      this.crawlerState.foundPDFs.add(pdfLink.url);
+      this.crawlerState.foundPDFs.set(pdfLink.url, {
+        title: pdfLink.title || this.extractFilename(pdfLink.url),
+        filename: this.extractFilename(pdfLink.url) || 'document.pdf',
+        context: 'Sub-link Exploration',
+        type: 'sublink_pdf'
+      });
       this.crawlerState.visitedUrls.add(pdfLink.url);
     }
     
@@ -2738,12 +2927,42 @@ class CanvasContentScript {
     
     // Also scan current page for any PDFs we might have missed (smart navigation mode)
     const pdfs = this.getAllPdfLinks();
-    pdfs.forEach(pdf => {
+    for (const pdf of pdfs) {
       if (!this.crawlerState.foundPDFs.has(pdf.url)) {
-        this.crawlerState.foundPDFs.add(pdf.url);
-        console.log(`📎 Smart Navigation found: ${pdf.title}`);
+        let finalUrl = pdf.url;
+        let finalTitle = pdf.title;
+        
+        // Resolve module items
+        if (pdf.needsRedirectResolution && pdf.url.includes('/modules/items/')) {
+          console.log(`🔄 [scanPageForEmbeddedContent] Resolving module item: ${pdf.url}`);
+          const resolved = await this.resolveModuleItemUrl(pdf.url, pdf.title);
+          
+          if (resolved && resolved.url) {
+            finalUrl = this.convertToDownloadURL(resolved.url);
+            // Preserve original title if we have it
+            if (resolved.title) {
+              finalTitle = resolved.title;
+            }
+            console.log(`✅ [scanPageForEmbeddedContent] Resolved to: ${finalUrl} with title: "${finalTitle}"`);
+          } else {
+            console.warn(`⚠️ [scanPageForEmbeddedContent] Could not resolve: ${pdf.url}`);
+            continue; // Skip unresolved module items
+          }
+        } else {
+          finalUrl = this.convertToDownloadURL(pdf.url);
+        }
+        
+        if (finalUrl) {
+          this.crawlerState.foundPDFs.set(finalUrl, {
+            title: finalTitle,
+            filename: pdf.filename || this.extractFilename(finalUrl),
+            context: pdf.context || 'Embedded Content Scan',
+            type: pdf.type || 'embedded_scan'
+          });
+          console.log(`📎 Smart Navigation found: ${finalTitle} -> ${finalUrl}`);
+        }
       }
-    });
+    }
   }
 
   stopCrawl() {
@@ -2752,7 +2971,7 @@ class CanvasContentScript {
     this.crawlerState.currentStep = 'stopped';
   }
 
-  reportCrawlComplete() {
+  async reportCrawlComplete() {
     const totalPDFs = this.crawlerState.foundPDFs.size;
     const totalPages = this.crawlerState.visitedUrls.size;
     const visitedUrlsArray = Array.from(this.crawlerState.visitedUrls);
@@ -2763,23 +2982,54 @@ class CanvasContentScript {
       visitedPages: visitedUrlsArray
     });
     
-    // Send final batch of all found PDFs (no duplicates since we used a Set)
+    // Send final batch of all found PDFs (no duplicates since we used a Map)
     if (totalPDFs > 0) {
-      const allFoundPdfs = Array.from(this.crawlerState.foundPDFs).map(url => ({
-        url: url,
-        title: this.extractFilename(url) || 'Canvas PDF',
-        filename: this.extractFilename(url) || 'document.pdf',
-        context: 'Final Crawl Results',
-        type: 'crawl_result'
-      }));
+      console.log(`🔄 Processing ${totalPDFs} PDFs for final report, resolving any remaining module items...`);
       
-      console.log(`📦 Sending final batch of ${allFoundPdfs.length} unique PDFs to background script`);
+      const resolvedPdfs = [];
+      const entries = Array.from(this.crawlerState.foundPDFs.entries());
+      
+      for (const [url, metadata] of entries) {
+        // If this is still an unresolved module item URL, resolve it now
+        if (url.includes('/modules/items/')) {
+          console.log(`🔄 Resolving unresolved module item in final report: ${metadata.title} -> ${url}`);
+          try {
+            const resolved = await this.resolveModuleItemUrl(url, metadata.title);
+            if (resolved && resolved.url) {
+              const downloadUrl = this.convertToDownloadURL(resolved.url);
+              resolvedPdfs.push({
+                url: downloadUrl,
+                title: resolved.title || metadata.title || this.extractFilename(downloadUrl) || 'Canvas PDF',
+                filename: this.extractFilename(downloadUrl) || 'document.pdf',
+                context: metadata.context || 'Final Crawl Results (Resolved)',
+                type: 'resolved_module_item'
+              });
+              console.log(`✅ Resolved in final report: ${metadata.title} -> ${downloadUrl}`);
+            } else {
+              console.warn(`⚠️ Could not resolve module item in final report: ${url}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error resolving module item in final report: ${url}`, error);
+          }
+        } else {
+          // Already resolved or direct PDF link
+          resolvedPdfs.push({
+            url: url,
+            title: metadata.title || this.extractFilename(url) || 'Canvas PDF',
+            filename: metadata.filename || this.extractFilename(url) || 'document.pdf',
+            context: metadata.context || 'Final Crawl Results',
+            type: metadata.type || 'crawl_result'
+          });
+        }
+      }
+      
+      console.log(`📦 Sending final batch of ${resolvedPdfs.length} unique PDFs to background script (from ${totalPDFs} total, resolved all module items)`);
       
       chrome.runtime.sendMessage({
         type: 'FOUND_PDFS',
         courseId: this.courseId,
         courseName: this.courseName,
-        pdfs: allFoundPdfs,
+        pdfs: resolvedPdfs,
         pageUrl: location.href,
         crawlerActive: false
       });
@@ -3068,7 +3318,12 @@ class CanvasContentScript {
       // Get title from surrounding context
       const title = this.getIframeTitle(iframe);
       
-      this.crawlerState.foundPDFs.add(downloadUrl);
+      this.crawlerState.foundPDFs.set(downloadUrl, {
+        title: title || this.extractFilename(downloadUrl),
+        filename: this.extractFilename(downloadUrl) || 'document.pdf',
+        context: 'Embedded Iframe',
+        type: 'embedded_iframe'
+      });
       
       console.log(`📄 Noted iframe PDF: ${title} (${downloadUrl})`);
     }
@@ -3077,12 +3332,23 @@ class CanvasContentScript {
   extractFileFromElement(element) {
     const fileId = element.dataset.fileId || element.dataset.fileUrl;
     const fileUrl = element.dataset.fileUrl || element.href;
+    const title = element.textContent?.trim() || element.title || this.extractFilename(fileUrl);
     
     if (fileId) {
       const downloadUrl = `${window.location.origin}/courses/${this.courseId}/files/${fileId}/download`;
-      this.crawlerState.foundPDFs.add(downloadUrl);
+      this.crawlerState.foundPDFs.set(downloadUrl, {
+        title: title || 'Canvas File',
+        filename: this.extractFilename(downloadUrl) || 'document.pdf',
+        context: 'File Attachment',
+        type: 'file_attachment'
+      });
     } else if (fileUrl && (fileUrl.includes('.pdf') || fileUrl.includes('/files/'))) {
-      this.crawlerState.foundPDFs.add(fileUrl);
+      this.crawlerState.foundPDFs.set(fileUrl, {
+        title: title || this.extractFilename(fileUrl),
+        filename: this.extractFilename(fileUrl) || 'document.pdf',
+        context: 'File Link',
+        type: 'file_link'
+      });
     }
   }
 
@@ -3940,7 +4206,25 @@ class StatefulPageScanner {
     const state = await this.stateManager.loadState();
     if (!state) return;
     
-    pdfs.forEach(pdf => state.foundPDFs.add(pdf));
+    pdfs.forEach(pdf => {
+      if (typeof pdf === 'string') {
+        // Legacy: just a URL
+        state.foundPDFs.set(pdf, {
+          title: this.extractFilename(pdf) || 'Canvas PDF',
+          filename: this.extractFilename(pdf) || 'document.pdf',
+          context: 'State Update',
+          type: 'state_update'
+        });
+      } else {
+        // New: full PDF object
+        state.foundPDFs.set(pdf.url, {
+          title: pdf.title || this.extractFilename(pdf.url),
+          filename: pdf.filename || this.extractFilename(pdf.url),
+          context: pdf.context || 'State Update',
+          type: pdf.type || 'state_update'
+        });
+      }
+    });
     
     for (const urlInfo of newUrls) {
       await this.queueManager.addToQueue(urlInfo.url, urlInfo.priority, urlInfo.phase);
