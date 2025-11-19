@@ -5,70 +5,13 @@ A Chrome extension that automatically downloads PDFs from Canvas courses and cre
 
 ## 📋 Current State Analysis
 - **Basic Chrome extension structure** ✅ (manifest v3, popup, basic scripting)
-- **Canvas integration** ❌ (needs implementation)
-- **Authentication system** ❌ (needs Supabase setup)
-- **Backend infrastructure** ❌ (needs Supabase Edge Functions)
+- **Canvas integration** ✅ (PDF scraping and downloading working)
+- **Authentication system** ❌ (needs Firebase setup)
+- **Backend infrastructure** ❌ (needs Firestore setup)
 - **Gemini integration** ❌ (needs File Search API setup)
 - **RAG chat interface** ❌ (needs complete UI overhaul)
 
-## 🏗️ Architecture Overview - Backend Alternatives Analysis
-
-### 🤔 Backend Options Comparison
-
-#### Option 1: Supabase (Current Plan)
-**Pros:**
-- Full-stack solution with auth, database, and edge functions
-- Built-in Google OAuth integration
-- Real-time features for chat
-- Easy deployment and scaling
-
-**Cons:**
-- Additional service dependency
-- Learning curve for Supabase-specific APIs
-- Potential vendor lock-in
-- Extra complexity for simple use cases
-
-#### Option 2: Google Cloud Only (Direct API)
-**Pros:**
-- Single vendor (Google) for Gemini + Auth + Storage
-- Firebase Auth for Google OAuth
-- Firestore for metadata storage
-- Cloud Functions for any server-side logic
-- Better integration with Gemini ecosystem
-
-**Cons:**
-- More Google Cloud setup complexity
-- Firestore query limitations vs SQL
-- Firebase pricing can scale unexpectedly
-
-#### Option 3: Chrome Extension + Local Storage (Minimal Backend)
-**Pros:**
-- No backend servers needed
-- Direct API calls from extension
-- Fastest development time
-- No server costs
-
-**Cons:**
-- Limited by CORS policies
-
-- No server-side processing
-- Limited storage capabilities
-
-#### Option 4: Serverless Functions Only (Vercel/Netlify)
-**Pros:**
-- Minimal infrastructure
-- Easy deployment
-- Cost-effective
-- Good for simple API proxying
-
-**Cons:**
-- No built-in database
-- Need separate auth solution
-- Function cold starts
-
-### 🎯 Recommended Architecture: Google Cloud Native
-
-After analysis, **Google Cloud Native** (Option 2) is the best choice for this project:
+## 🏗️ Architecture Overview - Google Cloud Native
 
 ### System Components (Updated)
 1. **Chrome Extension Frontend** (current minimal structure needs expansion)
@@ -247,7 +190,25 @@ export const googleProvider = new GoogleAuthProvider();
 ```
 
 ### 3.2 Direct Gemini API Calls from Extension
+```javascript
+// gemini-api.js
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
+class GeminiService {
+  constructor(apiKey) {
+    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+  }
+
+  async uploadFile(file) {
+    // Upload file to Gemini File Search
+  }
+
+  async query(question, fileIds) {
+    // Query RAG with context from uploaded files
+  }
+}
+```
 
 ### 3.3 Chrome Extension API Management
 
@@ -459,9 +420,10 @@ const firebaseConfig = {
 **Solution**: Use Gemini's signed upload URLs (already planned)
 
 ### Challenge 3: Cross-Origin Restrictions
-**Solution**: Chrome extension host permissions + Firebase/Gemini APIs support CORS
+- [ ] Chrome extension host permissions + Firebase/Gemini APIs support CORS
 
-
+### Challenge 4: User Data Privacy
+**Solution**: Firebase Security Rules + client-side encryption for sensitive tokens
 
 ### Challenge 5: PDF Processing Time
 **Solution**: Implement background processing with status updates
@@ -498,51 +460,52 @@ const firebaseConfig = {
 
 ## 📅 Timeline Summary
 
-| Phase | Duration | Key Deliverables |
-|-------|----------|------------------|
-| 1 | Week 1-2 | Supabase setup, Gemini API, Updated manifest |
-| 2 | Week 2-3 | Canvas integration, PDF detection |
-| 3 | Week 3-4 | Backend functions, Authentication |
-| 4 | Week 4-5 | New UI, Enhanced popup |
-| 5 | Week 5-6 | RAG implementation, Chat system |
-| 6 | Week 6-7 | Testing, Polish, Security |
-| 7 | Week 7-8 | Deployment, Documentation |
+| Phase | Duration | Key Deliverables | Status |
+|-------|----------|------------------|--------|
+| 1 | Week 1-2 | Firebase setup, Gemini API, Updated manifest | 🔄 In Progress |
+| 2 | Week 2-3 | Canvas integration, PDF detection | ✅ Complete |
+| 3 | Week 3-4 | Backend functions, Authentication | ⏳ Next |
+| 4 | Week 4-5 | New UI, Enhanced popup | ⏳ Planned |
+| 5 | Week 5-6 | RAG implementation, Chat system | ⏳ Planned |
+| 6 | Week 6-7 | Testing, Polish, Security | ⏳ Planned |
+| 7 | Week 7-8 | Deployment, Documentation | ⏳ Planned |
 
 **Total Estimated Time**: 7-8 weeks for full implementation
 
 ---
 
-## 🚀 Next Steps
+## 🚀 Next Steps (Current Priority)
 
-1. **Set up Google Cloud/Firebase project** and configure authentication
-2. **Enable Gemini API** and test File Search directly
-3. **Update extension manifest** with Firebase/Gemini permissions  
-4. **Begin Canvas API integration** development
+### Phase 3: Firebase & Gemini API Integration
+1. **Set up Firebase project** - Create Google Cloud/Firebase project
+2. **Enable required APIs** - Firebase Auth, Firestore, Gemini API
+3. **Configure Firestore database** - Set up collections and security rules
+4. **Update extension manifest** - Add Firebase/Gemini permissions
+5. **Implement authentication** - Google OAuth sign-in flow
+6. **Integrate Gemini API** - Direct API calls for file upload and RAG queries
 
-## 🎯 Why Google Cloud Native is the Right Choice
+## 🎯 Why Google Cloud Native Architecture
 
 ### Simplified Development
-- **One vendor** to manage (Google ecosystem)
-- **No backend server code** to write or maintain
-- **Built-in integrations** between Firebase and Gemini
-- **Faster development cycle** with fewer dependencies
+- **Single vendor ecosystem** - All Google services work seamlessly together
+- **No backend server code** - Direct API calls from extension
+- **Built-in integrations** - Firebase Auth + Firestore + Gemini API
+- **Faster development** - Fewer dependencies and moving parts
 
 ### Better Performance  
-- **Direct API calls** eliminate proxy latency
-- **Google's global CDN** for Firebase
-- **Optimized for Chrome extensions** (same vendor)
+- **Direct API calls** - No proxy overhead or additional latency
+- **Google's infrastructure** - Global CDN and edge locations
+- **Chrome optimization** - Same vendor as the browser itself
 
 ### Cost Effectiveness
-- **No server hosting costs** (Supabase functions eliminated)
-- **Pay-per-use pricing** for Firebase/Gemini
-- **Free tiers** for development and testing
+- **No server hosting** - Eliminates backend infrastructure costs
+- **Pay-per-use pricing** - Only pay for what you actually use
+- **Generous free tiers** - Firebase and Gemini both offer free quotas
 
 ### Security & Reliability
-- **Enterprise-grade Google infrastructure**
-- **Built-in DDoS protection** and scaling
-- **Unified identity management** across services
-- **99.9% SLA** for production workloads
-
-This approach eliminates the middleman complexity while leveraging Google's integrated ecosystem - perfect for a Chrome extension that already runs in Google's browser!
+- **Enterprise-grade infrastructure** - Google's proven security model
+- **Built-in DDoS protection** - Automatic scaling and protection
+- **Unified identity** - Single sign-on across all services
+- **99.9% SLA** - Production-grade reliability guarantees
 
 This plan provides a comprehensive roadmap for building a production-ready Canvas RAG system. Each phase builds upon the previous one, ensuring a solid foundation while maintaining development momentum.
