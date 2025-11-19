@@ -9,7 +9,7 @@ class CanvasContentScript {
     this.courseId = this.extractCourseId();
     this.courseName = this.extractCourseName();
     
-    // Initialize deep crawling infrastructure
+    // Initialize deep crawling infrastructure (legacy DOM mining)
     this.deepCrawlState = {
       fetchQueue: new Map(), // URL -> {level, priority, type, parentUrl}
       fetchedUrls: new Set(),
@@ -19,6 +19,11 @@ class CanvasContentScript {
       rateLimitDelay: 1000, // 1 second between requests
       lastRequestTime: 0
     };
+    
+    // Initialize smart navigation infrastructure (Option 2) - defer until classes are available
+    setTimeout(() => {
+      this.initializeSmartNavigation();
+    }, 100);
     
     if (this.courseId) {
       console.log('Canvas RAG Assistant: ✅ Course detected!', {
@@ -52,6 +57,9 @@ class CanvasContentScript {
 
   init() {
     try {
+      // Check if we're resuming a smart navigation crawl session
+      this.checkForSmartNavigationResume();
+      
       // Always listen for messages from popup, regardless of course detection
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         this.handleMessage(request, sender, sendResponse);
@@ -1792,6 +1800,86 @@ class CanvasContentScript {
         sendResponse({ started: true, message: 'Comprehensive scan started' });
         break;
 
+      // Smart Navigation (Option 2) Message Handlers
+      case 'startSmartCrawl':
+        console.log('🚀 Smart navigation crawl requested from popup...');
+        console.log('Smart navigation enabled:', this.smartNavigationEnabled);
+        console.log('State manager exists:', !!this.stateManager);
+        console.log('Course ID:', this.courseId);
+        
+        if (!this.courseId) {
+          sendResponse({ error: 'No course detected on this page' });
+          return;
+        }
+        
+        if (!this.stateManager || !this.smartNavigationEnabled) {
+          sendResponse({ error: 'Smart navigation not initialized. Check console for details.' });
+          return;
+        }
+        
+        // Start smart navigation crawl
+        this.startSmartNavigationCrawl()
+          .then(result => {
+            console.log('Smart crawl start result:', result);
+            sendResponse(result);
+          })
+          .catch(error => {
+            console.error('Smart crawl start error:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        return true; // Keep message channel open for async response
+        break;
+
+      case 'stopSmartCrawl':
+        console.log('🛑 Stop smart navigation crawl requested...');
+        if (!this.stateManager) {
+          sendResponse({ error: 'Smart navigation not initialized' });
+          return;
+        }
+        
+        this.stopSmartNavigationCrawl()
+          .then(result => {
+            sendResponse(result);
+          })
+          .catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+        return true; // Keep message channel open for async response
+        break;
+
+      case 'getSmartCrawlProgress':
+        if (!this.stateManager) {
+          sendResponse({ active: false, error: 'Smart navigation not initialized' });
+          return;
+        }
+        
+        this.getSmartNavigationProgress()
+          .then(result => {
+            sendResponse(result);
+          })
+          .catch(error => {
+            sendResponse({ active: false, error: error.message });
+          });
+        return true; // Keep message channel open for async response
+        break;
+
+      case 'clearSmartCrawlState':
+        console.log('🗑️ Clear smart navigation state requested...');
+        if (!this.stateManager) {
+          sendResponse({ success: false, error: 'Smart navigation not initialized' });
+          return;
+        }
+        
+        this.stateManager.clearState()
+          .then(() => {
+            sendResponse({ success: true });
+          })
+          .catch(error => {
+            sendResponse({ success: false, error: error.message });
+          });
+        return true; // Keep message channel open for async response
+        break;
+
       default:
         console.log('Unknown action:', request.action);
         sendResponse({ error: 'Unknown action' });
@@ -3264,6 +3352,605 @@ class CanvasContentScript {
     };
     
     return typeMap[extension] || 'Unknown';
+  }
+
+  // ============================================================================
+  // SMART NAVIGATION WITH STATE PERSISTENCE (Option 2)
+  // ============================================================================
+
+  /**
+   * Initialize smart navigation components
+   */
+  initializeSmartNavigation() {
+    console.log('🔧 Initializing smart navigation infrastructure...');
+    
+    try {
+      // Check if classes are available
+      if (typeof CrawlerStateManager === 'undefined') {
+        throw new Error('CrawlerStateManager class not found');
+      }
+      
+      // Initialize state management components
+      console.log('Creating CrawlerStateManager...');
+      this.stateManager = new CrawlerStateManager();
+      
+      console.log('Creating NavigationQueueManager...');
+      this.queueManager = new NavigationQueueManager(this.stateManager);
+      
+      console.log('Creating NavigationErrorHandler...');
+      this.errorHandler = new NavigationErrorHandler(this.stateManager);
+      
+      console.log('Creating SmartNavigator...');
+      this.smartNavigator = new SmartNavigator(this.stateManager, this.queueManager, this.errorHandler);
+      
+      console.log('Creating StatefulPageScanner...');
+      this.statefulScanner = new StatefulPageScanner(this.stateManager, this.queueManager);
+      
+      // Set up navigation detection
+      console.log('Creating NavigationDetector...');
+      this.navigationDetector = new NavigationDetector((eventType, data) => {
+        this.handleNavigationEvent(eventType, data);
+      });
+      
+      console.log('✅ Smart navigation infrastructure initialized successfully');
+      this.smartNavigationEnabled = true;
+    } catch (error) {
+      console.error('❌ Failed to initialize smart navigation:', error);
+      console.error('Error details:', error.stack);
+      // Fall back to legacy crawler if smart navigation fails
+      this.smartNavigationEnabled = false;
+    }
+  }
+
+  /**
+   * Check if we need to resume a smart navigation crawl session
+   */
+  async checkForSmartNavigationResume() {
+    if (!this.stateManager) return;
+    
+    try {
+      const existingState = await this.stateManager.loadState();
+      
+      if (existingState && existingState.isActive) {
+        console.log('🔄 Smart navigation session detected, resuming...');
+        
+        // Verify this is the right course
+        if (existingState.courseId === this.courseId) {
+          setTimeout(() => {
+            this.resumeSmartNavigationSession(existingState);
+          }, 1000);
+        } else {
+          console.log('⚠️ Course ID mismatch, clearing stale session');
+          await this.stateManager.clearState();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error checking for smart navigation resume:', error);
+    }
+  }
+
+  /**
+   * Resume smart navigation crawl session
+   */
+  async resumeSmartNavigationSession(state) {
+    console.log(`📋 Resuming smart navigation session: ${state.sessionId}`);
+    console.log(`📊 Current progress: ${state.pagesVisited} pages, ${state.pdfsFound} PDFs`);
+    
+    try {
+      // Scan current page first
+      const scanResult = await this.statefulScanner.scanCurrentPage();
+      console.log(`✅ Current page scanned: ${scanResult.pdfsFound} PDFs found`);
+      
+      // Wait for scanning to complete
+      await this.wait(2000);
+      
+      // Continue with navigation queue
+      await this.smartNavigator.processNavigationQueue();
+      
+    } catch (error) {
+      console.error('❌ Error resuming smart navigation session:', error);
+      await this.errorHandler.handleNavigationFailure(window.location.href, error);
+    }
+  }
+
+  /**
+   * Start smart navigation crawl
+   */
+  async startSmartNavigationCrawl() {
+    if (!this.courseId) {
+      console.error('❌ Cannot start smart navigation: no course ID detected');
+      return { success: false, error: 'No course detected' };
+    }
+
+    console.log('🚀 Starting smart navigation crawler...');
+
+    try {
+      // Create initial crawler state
+      const initialState = this.stateManager.createInitialState(this.courseId, this.courseName);
+      await this.stateManager.saveState(initialState);
+
+      // Build initial navigation queue
+      const queuedPages = await this.smartNavigator.buildInitialNavigationQueue(this.courseId);
+      console.log(`📋 Initial queue built with ${queuedPages} pages`);
+
+      // Scan current page first
+      console.log('🔍 Scanning current page...');
+      const scanResult = await this.statefulScanner.scanCurrentPage();
+      console.log(`✅ Initial scan: ${scanResult.pdfsFound} PDFs found`);
+
+      // Start navigation process after a delay
+      setTimeout(() => {
+        console.log('▶️ Starting navigation queue processing...');
+        this.smartNavigator.processNavigationQueue();
+      }, 3000);
+
+      return { 
+        success: true, 
+        sessionId: initialState.sessionId,
+        queuedPages: queuedPages,
+        initialPDFs: scanResult.pdfsFound
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to start smart navigation crawl:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Stop smart navigation crawl
+   */
+  async stopSmartNavigationCrawl() {
+    console.log('🛑 Stopping smart navigation crawl...');
+    
+    try {
+      if (this.smartNavigator) {
+        await this.smartNavigator.stopCrawler('manual_stop');
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Error stopping smart navigation crawl:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get smart navigation crawl progress
+   */
+  async getSmartNavigationProgress() {
+    if (!this.smartNavigator) {
+      return { active: false, error: 'Smart navigation not initialized' };
+    }
+
+    try {
+      const progress = await this.smartNavigator.getCrawlProgress();
+      return { active: true, progress: progress };
+    } catch (error) {
+      console.error('❌ Error getting smart navigation progress:', error);
+      return { active: false, error: error.message };
+    }
+  }
+
+  /**
+   * Handle navigation events
+   */
+  handleNavigationEvent(eventType, data) {
+    console.log(`🔄 Navigation event: ${eventType}`, data);
+    
+    switch (eventType) {
+      case 'url_changed':
+        // URL changed due to Canvas SPA navigation
+        break;
+      case 'page_loaded':
+        // Full page reload occurred
+        break;
+      case 'page_visible':
+        // Page became visible (tab switching)
+        break;
+    }
+  }
+
+}
+
+// ============================================================================
+// SMART NAVIGATION COMPONENT DEFINITIONS
+// (Inline definitions to avoid separate file loading issues)
+// ============================================================================
+
+/**
+ * State management for smart navigation
+ */
+class CrawlerStateManager {
+  constructor() {
+    this.storageKey = 'canvas_crawler_state';
+    this.sessionId = this.generateSessionId();
+  }
+  
+  generateSessionId() {
+    return 'crawl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  async saveState(state) {
+    try {
+      const serializedState = {
+        ...state,
+        foundPDFs: Array.from(state.foundPDFs || []),
+        visitedUrls: Array.from(state.visitedUrls || [])
+      };
+      
+      await chrome.storage.local.set({ [this.storageKey]: serializedState });
+      console.log('💾 Crawler state saved successfully');
+    } catch (error) {
+      console.error('❌ Failed to save crawler state:', error);
+    }
+  }
+  
+  async loadState() {
+    try {
+      const result = await chrome.storage.local.get(this.storageKey);
+      const state = result[this.storageKey];
+      
+      if (!state) return null;
+      
+      const deserializedState = {
+        ...state,
+        foundPDFs: new Set(state.foundPDFs || []),
+        visitedUrls: new Set(state.visitedUrls || [])
+      };
+      
+      return deserializedState;
+    } catch (error) {
+      console.error('❌ Failed to load crawler state:', error);
+      return null;
+    }
+  }
+  
+  async clearState() {
+    try {
+      await chrome.storage.local.remove(this.storageKey);
+      console.log('🗑️ Crawler state cleared');
+    } catch (error) {
+      console.error('❌ Failed to clear crawler state:', error);
+    }
+  }
+  
+  createInitialState(courseId, courseName) {
+    return {
+      sessionId: this.sessionId,
+      isActive: true,
+      currentPhase: 'initialization',
+      courseId: courseId,
+      courseName: courseName,
+      navigationQueue: [],
+      foundPDFs: new Set(),
+      visitedUrls: new Set(),
+      startTime: Date.now(),
+      lastNavigationTime: Date.now(),
+      lastActivityTime: Date.now(),
+      pagesVisited: 0,
+      pdfsFound: 0,
+      maxNavigationAttempts: 50,
+      navigationAttempts: 0,
+      maxRetries: 3,
+      currentRetries: 0,
+      failedUrls: [],
+      completionStatus: 'in_progress'
+    };
+  }
+}
+
+/**
+ * Navigation queue management
+ */
+class NavigationQueueManager {
+  constructor(stateManager) {
+    this.stateManager = stateManager;
+  }
+  
+  async addToQueue(url, priority = 5, phase = 'general', metadata = {}) {
+    const state = await this.stateManager.loadState();
+    if (!state || !state.isActive) return false;
+    
+    const normalizedUrl = this.normalizeUrl(url);
+    if (!normalizedUrl || !this.isValidCanvasUrl(normalizedUrl)) return false;
+    
+    if (state.visitedUrls.has(normalizedUrl) || 
+        state.navigationQueue.some(item => item.url === normalizedUrl)) {
+      return false;
+    }
+    
+    state.navigationQueue.push({
+      url: normalizedUrl,
+      priority: priority,
+      phase: phase,
+      visited: false,
+      addedAt: Date.now(),
+      metadata: metadata
+    });
+    
+    state.navigationQueue.sort((a, b) => a.priority - b.priority);
+    await this.stateManager.saveState(state);
+    return true;
+  }
+  
+  async getNextUrl() {
+    const state = await this.stateManager.loadState();
+    if (!state || !state.isActive) return null;
+    
+    return state.navigationQueue.find(item => !item.visited) || null;
+  }
+  
+  async markUrlVisited(url) {
+    const state = await this.stateManager.loadState();
+    if (!state) return;
+    
+    const normalizedUrl = this.normalizeUrl(url);
+    state.visitedUrls.add(normalizedUrl);
+    
+    const queueItem = state.navigationQueue.find(item => item.url === normalizedUrl);
+    if (queueItem) {
+      queueItem.visited = true;
+      queueItem.visitedAt = Date.now();
+    }
+    
+    state.pagesVisited++;
+    state.lastActivityTime = Date.now();
+    await this.stateManager.saveState(state);
+  }
+  
+  normalizeUrl(url) {
+    try {
+      const urlObj = new URL(url, window.location.origin);
+      urlObj.hash = '';
+      return urlObj.href;
+    } catch {
+      return null;
+    }
+  }
+  
+  isValidCanvasUrl(url) {
+    if (!url || !url.includes('/courses/')) return false;
+    
+    const skipPatterns = [
+      '/quizzes/', '/discussion_topics/', '/announcements/',
+      '/gradebook', '/grades', '/users/', '.pdf', '/download'
+    ];
+    
+    return !skipPatterns.some(pattern => url.includes(pattern));
+  }
+}
+
+/**
+ * Smart navigator with state persistence
+ */
+class SmartNavigator {
+  constructor(stateManager, queueManager, errorHandler) {
+    this.stateManager = stateManager;
+    this.queueManager = queueManager;
+    this.errorHandler = errorHandler;
+    this.isNavigating = false;
+  }
+  
+  async navigateToUrl(url) {
+    if (this.isNavigating) return false;
+    
+    this.isNavigating = true;
+    console.log(`🧭 Smart navigation to: ${url}`);
+    
+    try {
+      const state = await this.stateManager.loadState();
+      if (!state || !state.isActive) return false;
+      
+      state.lastNavigationTime = Date.now();
+      state.currentUrl = url;
+      state.navigationAttempts++;
+      await this.stateManager.saveState(state);
+      
+      if (this.isAlreadyOnPage(url)) {
+        this.isNavigating = false;
+        return true;
+      }
+      
+      console.log(`📍 Navigating to: ${url}`);
+      window.location.href = url;
+      return false;
+      
+    } catch (error) {
+      this.isNavigating = false;
+      throw error;
+    }
+  }
+  
+  async processNavigationQueue() {
+    const state = await this.stateManager.loadState();
+    if (!state || !state.isActive) return;
+    
+    if (state.navigationAttempts >= state.maxNavigationAttempts) {
+      await this.stopCrawler('max_attempts_reached');
+      return;
+    }
+    
+    const nextItem = await this.queueManager.getNextUrl();
+    if (!nextItem) {
+      await this.stopCrawler('queue_complete');
+      return;
+    }
+    
+    const navigated = await this.navigateToUrl(nextItem.url);
+    if (navigated) {
+      setTimeout(() => this.processNavigationQueue(), 3000);
+    }
+  }
+  
+  async stopCrawler(reason = 'manual_stop') {
+    const state = await this.stateManager.loadState();
+    if (state) {
+      state.isActive = false;
+      state.endTime = Date.now();
+      state.completionStatus = reason === 'queue_complete' ? 'completed' : 'stopped';
+      await this.stateManager.saveState(state);
+    }
+    this.isNavigating = false;
+  }
+  
+  async buildInitialNavigationQueue(courseId) {
+    const baseUrl = `${window.location.origin}/courses/${courseId}`;
+    const priorityPages = [
+      { url: `${baseUrl}/modules`, priority: 1, phase: 'modules' },
+      { url: `${baseUrl}/files`, priority: 2, phase: 'files' },
+      { url: `${baseUrl}/assignments`, priority: 3, phase: 'assignments' },
+      { url: `${baseUrl}/pages`, priority: 4, phase: 'pages' }
+    ];
+    
+    let added = 0;
+    for (const page of priorityPages) {
+      const success = await this.queueManager.addToQueue(page.url, page.priority, page.phase);
+      if (success) added++;
+    }
+    
+    return added;
+  }
+  
+  isAlreadyOnPage(targetUrl) {
+    const currentUrl = window.location.href;
+    if (currentUrl === targetUrl) return true;
+    if (currentUrl.startsWith(targetUrl)) return true;
+    
+    try {
+      return new URL(currentUrl).pathname === new URL(targetUrl).pathname;
+    } catch {
+      return false;
+    }
+  }
+  
+  async getCrawlProgress() {
+    const state = await this.stateManager.loadState();
+    if (!state) return null;
+    
+    return {
+      isActive: state.isActive,
+      sessionId: state.sessionId,
+      pagesVisited: state.pagesVisited,
+      pdfsFound: state.pdfsFound,
+      completionStatus: state.completionStatus
+    };
+  }
+}
+
+/**
+ * Stateful page scanner
+ */
+class StatefulPageScanner {
+  constructor(stateManager, queueManager) {
+    this.stateManager = stateManager;
+    this.queueManager = queueManager;
+  }
+  
+  async scanCurrentPage() {
+    console.log(`🔍 Scanning page: ${window.location.href}`);
+    
+    await this.waitForPageLoad();
+    const pdfs = await this.findPDFsOnPage();
+    const newUrls = await this.findLinksToExplore();
+    await this.updateCrawlerState(pdfs, newUrls);
+    
+    return { pdfsFound: pdfs.length, urlsQueued: newUrls.length };
+  }
+  
+  async waitForPageLoad() {
+    return new Promise(resolve => {
+      if (document.readyState === 'complete') {
+        resolve();
+      } else {
+        const timeout = setTimeout(resolve, 3000);
+        document.addEventListener('readystatechange', () => {
+          if (document.readyState === 'complete') {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+      }
+    });
+  }
+  
+  async findPDFsOnPage() {
+    const pdfs = [];
+    const links = document.querySelectorAll('a[href]');
+    
+    links.forEach(link => {
+      const href = link.href;
+      if (href && (href.includes('.pdf') || 
+                   (href.includes('/files/') && link.textContent.toLowerCase().includes('pdf')))) {
+        pdfs.push({
+          url: href,
+          title: link.textContent?.trim() || 'Canvas PDF',
+          source: 'smart_navigation_scan'
+        });
+      }
+    });
+    
+    return pdfs;
+  }
+  
+  async findLinksToExplore() {
+    const links = [];
+    const currentUrl = window.location.href;
+    
+    // Module items
+    document.querySelectorAll('.context_module_item a[href*="/assignments/"], .context_module_item a[href*="/pages/"]').forEach(link => {
+      const href = link.href;
+      if (href && href !== currentUrl && href.includes('/courses/')) {
+        links.push({ url: href, priority: 2, phase: 'module_items' });
+      }
+    });
+    
+    return links;
+  }
+  
+  async updateCrawlerState(pdfs, newUrls) {
+    const state = await this.stateManager.loadState();
+    if (!state) return;
+    
+    pdfs.forEach(pdf => state.foundPDFs.add(pdf));
+    
+    for (const urlInfo of newUrls) {
+      await this.queueManager.addToQueue(urlInfo.url, urlInfo.priority, urlInfo.phase);
+    }
+    
+    await this.queueManager.markUrlVisited(window.location.href);
+    state.pdfsFound = state.foundPDFs.size;
+    await this.stateManager.saveState(state);
+  }
+}
+
+/**
+ * Navigation error handler
+ */
+class NavigationErrorHandler {
+  constructor(stateManager) {
+    this.stateManager = stateManager;
+  }
+  
+  async handleNavigationFailure(url, error) {
+    console.error(`❌ Navigation failed for ${url}:`, error);
+  }
+}
+
+/**
+ * Navigation detector
+ */
+class NavigationDetector {
+  constructor(callback) {
+    this.lastUrl = window.location.href;
+    this.callback = callback;
+    
+    setInterval(() => {
+      if (window.location.href !== this.lastUrl) {
+        const oldUrl = this.lastUrl;
+        this.lastUrl = window.location.href;
+        this.callback('url_changed', { from: oldUrl, to: this.lastUrl });
+      }
+    }, 500);
   }
 }
 

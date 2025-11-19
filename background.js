@@ -104,6 +104,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ received: true });
       break;
       
+    case 'SMART_CRAWL_COMPLETE':
+      // Handle smart navigation crawl completion
+      console.log('Smart navigation crawl completed:', request.report);
+      
+      // Store final results
+      if (request.report.foundPDFs && request.report.foundPDFs.length > 0) {
+        chrome.storage.local.set({
+          [`smart_pdfs_${request.report.courseId}`]: {
+            courseId: request.report.courseId,
+            courseName: request.report.courseName,
+            pdfs: request.report.foundPDFs,
+            lastScanned: new Date().toISOString(),
+            crawlReport: request.report,
+            source: 'smart_navigation'
+          }
+        });
+      }
+      
+      // Notify popup of completion
+      chrome.runtime.sendMessage({
+        type: 'SMART_CRAWL_COMPLETE',
+        report: request.report
+      }).catch(() => {}); // Ignore if popup not open
+      
+      sendResponse({ received: true });
+      break;
+      
     case 'DOWNLOAD_PDFS':
       // Download PDFs using authenticated requests
       downloadPDFsWithAuth(request.pdfs, request.courseId)
