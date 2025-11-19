@@ -235,8 +235,8 @@ function setupEventListeners() {
     scanBtn.textContent = 'Processing...';
     scanBtn.disabled = true;
     
-    status.textContent = '🚀 Starting enhanced course crawler...';
-    result.textContent = 'The crawler will automatically:\n• Expand all modules and content\n• Navigate through course sections\n• Visit assignments and files\n• Discover all PDFs in the course';
+    status.textContent = '🧭 Starting Smart Navigation System...';
+    result.textContent = 'Smart Navigation will intelligently:\n• Expand all modules and content\n• Navigate through course sections systematically\n• Visit pages, assignments, and files\n• Discover and download all PDFs in the course\n\n⚡ Using Smart Navigation (primary system)';
     
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -284,7 +284,7 @@ function setupEventListeners() {
         throw new Error(response.error);
       }
       
-      status.textContent = '🔍 Crawler active - navigating through course...';
+      status.textContent = '🧭 Smart Navigation active - intelligently exploring course...';
       
       // Monitor crawler progress
       let lastFoundCount = 0;
@@ -315,7 +315,8 @@ function setupEventListeners() {
             const visited = crawlerStatus.visitedUrls?.size || 0;
             const found = crawlerStatus.foundPDFs?.size || 0;
             
-            status.textContent = `🔍 ${step.replace(/_/g, ' ').toUpperCase()} - Visited: ${visited} pages, Found: ${found} PDFs`;
+            status.textContent = `🧭 ${step.replace(/_/g, ' ').toUpperCase()} - ${visited} pages, ${found} PDFs`;
+            result.textContent = `Smart Navigation Status:\n📍 Current: ${step.replace(/_/g, ' ')}\n📑 Pages scanned: ${visited}\n📎 PDFs found: ${found}\n\n💡 Opening pages in background tabs...`;
             
             // Only download when crawler actually completes
             if (!crawlerStatus.isRunning) {

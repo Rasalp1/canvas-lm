@@ -138,6 +138,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
       
+    case 'OPEN_AND_SCAN_TAB':
+      // Open URL in background tab and scan for PDFs
+      openAndScanTab(request.url, request.courseId)
+        .then(pdfs => sendResponse({ success: true, pdfs }))
+        .catch(error => sendResponse({ success: false, error: error.message, pdfs: [] }));
+      return true;
+      
     default:
       sendResponse({ error: 'Unknown action' });
   }
@@ -555,6 +562,78 @@ async function downloadPDFsWithAuth(pdfs, courseId) {
   }
   
   return results;
+}
+
+// Open URL in background tab, scan for PDFs, and close the tab
+async function openAndScanTab(url, courseId) {
+  console.log(`🔄 Opening background tab for: ${url}`);
+  
+  return new Promise((resolve) => {
+    // Create tab in background (not active)
+    chrome.tabs.create({ url: url, active: false }, async (newTab) => {
+      const tabId = newTab.id;
+      let resolved = false;
+      
+      // Set timeout to ensure we don't wait forever
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          console.log(`⏱️ Timeout scanning ${url}, closing tab`);
+          chrome.tabs.remove(tabId).catch(() => {});
+          resolved = true;
+          resolve([]);
+        }
+      }, 15000); // 15 second timeout
+      
+      // Wait for page to load
+      chrome.tabs.onUpdated.addListener(function listener(updatedTabId, changeInfo) {
+        if (updatedTabId === tabId && changeInfo.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          
+          // Wait a bit for content script to initialize
+          setTimeout(async () => {
+            try {
+              // Inject content script if needed
+              try {
+                await chrome.scripting.executeScript({
+                  target: { tabId: tabId },
+                  files: ['content-script.js']
+                });
+                
+                // Wait for initialization
+                await new Promise(r => setTimeout(r, 1000));
+              } catch (e) {
+                console.log('Content script already injected or error:', e.message);
+              }
+              
+              // Request PDF scan from the tab
+              chrome.tabs.sendMessage(tabId, { action: 'getPDFs' }, (response) => {
+                clearTimeout(timeout);
+                
+                if (!resolved) {
+                  resolved = true;
+                  const pdfs = response || [];
+                  console.log(`✅ Found ${pdfs.length} PDFs in background tab: ${url}`);
+                  
+                  // Close the background tab
+                  chrome.tabs.remove(tabId).catch(() => {});
+                  
+                  resolve(pdfs);
+                }
+              });
+            } catch (error) {
+              clearTimeout(timeout);
+              if (!resolved) {
+                resolved = true;
+                console.error(`❌ Error scanning background tab ${url}:`, error);
+                chrome.tabs.remove(tabId).catch(() => {});
+                resolve([]);
+              }
+            }
+          }, 2000); // Wait 2 seconds after page load
+        }
+      });
+    });
+  });
 }
 
 // Extension installation/update handler

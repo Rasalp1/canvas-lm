@@ -88,9 +88,9 @@ class CanvasContentScript {
         // Use setTimeout only for heavy operations to avoid blocking the main thread
         setTimeout(() => {
           try {
-            console.log('Canvas RAG Assistant: Starting initial PDF scan...');
-            // Scan for PDFs immediately
-            this.scanAndReportPDFs();
+            console.log('Canvas RAG Assistant: Course detected, waiting for user to start scan...');
+            // Don't scan automatically - wait for user to click the start button
+            // this.scanAndReportPDFs();
             
             // Set up mutation observer for single-page navigation
             this.setupNavigationObserver();
@@ -112,8 +112,9 @@ class CanvasContentScript {
     const observer = new MutationObserver(() => {
       if (location.href !== this.lastUrl) {
         this.lastUrl = location.href;
-        console.log('Canvas page navigation detected, re-scanning for PDFs...');
-        setTimeout(() => this.scanAndReportPDFs(), 1000); // Wait for content to load
+        console.log('Canvas page navigation detected, waiting for user to start scan...');
+        // Don't scan automatically on navigation
+        // setTimeout(() => this.scanAndReportPDFs(), 1000);
       }
     });
 
@@ -1165,7 +1166,8 @@ class CanvasContentScript {
   }
 
   async startDeepCrawl() {
-    console.log('🔮 Starting deep crawl for embedded PDFs...');
+    console.log('🔮 Starting LEGACY deep crawl for embedded PDFs...');
+    console.log('⚠️  Note: This is the legacy system. Smart navigation (startEnhancedCrawl) is now primary.');
     
     // Test authentication before starting deep crawl
     await this.testAuthentication();
@@ -1478,7 +1480,8 @@ class CanvasContentScript {
   // ============================================================================
 
   async scanAndReportPDFs() {
-    console.log('🔍 Starting comprehensive PDF scan (surface + deep)...'); 
+    console.log('🔍 [LEGACY] Starting surface PDF scan...');
+    console.log('⚠️  Note: For comprehensive scanning, use startEnhancedCrawl() instead'); 
     
     // Phase 1: Surface scan (existing functionality)
     const surfacePdfs = this.getAllPdfLinks();
@@ -1539,18 +1542,9 @@ class CanvasContentScript {
       console.log(`📄 No new surface PDFs found on ${location.href} (${surfacePdfs.length} already found on this page)`);
     }
     
-    // Phase 2: Deep crawl (only on course front page to avoid redundancy)
-    if (this.shouldPerformDeepCrawl()) {
-      console.log('🌊 Conditions met for deep crawl - starting enhanced PDF discovery...');
-      
-      try {
-        await this.startDeepCrawl();
-      } catch (error) {
-        console.error('❌ Deep crawl failed:', error);
-      }
-    } else {
-      console.log('🚫 Skipping deep crawl - not on course front page or already performed');
-    }
+    // Phase 2: Deep crawl is now handled by smart navigation system (startEnhancedCrawl)
+    // Legacy deep crawl can still be triggered manually via 'startDeepCrawl' message
+    console.log('ℹ️  Legacy deep crawl skipped - use smart navigation (startEnhancedCrawl) for comprehensive scanning');
   }
   
   shouldPerformDeepCrawl() {
@@ -1585,20 +1579,21 @@ class CanvasContentScript {
   
   // Method to manually trigger comprehensive PDF scanning (called from popup)
   async triggerPDFScan() {
-    console.log('📝 Manual PDF scan triggered from popup - starting comprehensive scan...');
-    await this.scanAndReportPDFs();
+    console.log('📝 Manual PDF scan triggered from popup - starting smart navigation scan...');
+    await this.startEnhancedCrawl();
   }
   
-  // Method to manually trigger deep crawl only
+  // Method to manually trigger legacy deep crawl only (alternative system)
   async triggerDeepCrawlOnly() {
-    console.log('🔮 Manual deep crawl triggered - bypassing normal restrictions...');
+    console.log('🔮 Manual LEGACY deep crawl triggered - bypassing normal restrictions...');
+    console.log('⚠️  Note: This uses the legacy deep crawl system, not the smart navigation system');
     
     try {
       const deepPdfs = await this.startDeepCrawl();
-      console.log(`🎆 Manual deep crawl complete! Found ${deepPdfs.length} PDFs`);
+      console.log(`🎆 Manual legacy deep crawl complete! Found ${deepPdfs.length} PDFs`);
       return deepPdfs;
     } catch (error) {
-      console.error('❌ Manual deep crawl failed:', error);
+      console.error('❌ Manual legacy deep crawl failed:', error);
       return [];
     }
   }
@@ -1762,39 +1757,40 @@ class CanvasContentScript {
         break;
 
       case 'startDeepCrawl':
-        console.log('🔮 Manual deep crawl requested from popup...');
+        console.log('🔮 Manual LEGACY deep crawl requested from popup...');
+        console.log('⚠️  Note: This uses the legacy system. For smart navigation, use startAutoCrawl instead.');
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page' });
           return;
         }
         
-        // Start deep crawl asynchronously
+        // Start legacy deep crawl asynchronously
         this.triggerDeepCrawlOnly()
           .then(pdfs => {
-            console.log(`✅ Deep crawl completed, found ${pdfs.length} PDFs`);
+            console.log(`✅ Legacy deep crawl completed, found ${pdfs.length} PDFs`);
             // Note: PDFs are already reported via chrome.runtime.sendMessage in startDeepCrawl
           })
           .catch(error => {
-            console.error('❌ Deep crawl failed:', error);
+            console.error('❌ Legacy deep crawl failed:', error);
           });
         
-        sendResponse({ started: true, message: 'Deep crawl started' });
+        sendResponse({ started: true, message: 'Legacy deep crawl started' });
         break;
 
       case 'triggerScan':
-        console.log('📄 Manual comprehensive scan requested from popup...');
+        console.log('📄 Manual comprehensive scan requested from popup (using smart navigation)...');
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page' });
           return;
         }
         
-        // Start comprehensive scan asynchronously
+        // Start comprehensive scan asynchronously using smart navigation
         this.triggerPDFScan()
           .then(() => {
-            console.log('✅ Comprehensive scan completed');
+            console.log('✅ Smart navigation scan completed');
           })
           .catch(error => {
-            console.error('❌ Comprehensive scan failed:', error);
+            console.error('❌ Smart navigation scan failed:', error);
           });
         
         sendResponse({ started: true, message: 'Comprehensive scan started' });
@@ -1898,7 +1894,8 @@ class CanvasContentScript {
       return;
     }
 
-    console.log('🚀 Starting enhanced auto-navigation crawler...');
+    console.log('🚀 Starting SMART NAVIGATION crawler (primary system)...');
+    console.log('ℹ️  This uses intelligent page navigation instead of legacy deep crawl');
     this.crawlerState.isRunning = true;
     this.crawlerState.visitedUrls.clear();
     this.crawlerState.foundPDFs.clear();
@@ -2065,8 +2062,14 @@ class CanvasContentScript {
       await this.expandAllFolders();
     }
     
-    // Scan current page after expansion
-    this.scanAndReportPDFs();
+    // Scan current page after expansion (smart navigation mode - surface scan only)
+    const pdfs = this.getAllPdfLinks();
+    pdfs.forEach(pdf => {
+      if (!this.crawlerState.foundPDFs.has(pdf.url)) {
+        this.crawlerState.foundPDFs.add(pdf.url);
+        console.log(`📎 Smart Navigation found: ${pdf.title}`);
+      }
+    });
   }
 
   async crawlCourseSections() {
@@ -2426,7 +2429,7 @@ class CanvasContentScript {
     this.crawlerState.visitedUrls.add(url);
     
     try {
-      console.log(`🧭 Navigating to: ${url}`);
+      console.log(`🧭 Smart Navigation opening: ${url}`);
       
       // Check if we're already on the target page
       if (window.location.href === url || 
@@ -2436,34 +2439,48 @@ class CanvasContentScript {
         await this.wait(1000);
         await this.performThoroughPageScan();
       } else {
-        // Store current URL to restore navigation state
-        const currentUrl = window.location.href;
-        
-        // Try to extract PDFs from the target URL without full navigation
-        console.log(`🎯 Analyzing target URL for PDFs: ${url}`);
-        
         // Check if URL itself is a PDF
         if (url.includes('.pdf') || url.includes('/download')) {
           console.log(`📄 Direct PDF URL detected: ${url}`);
-          
-          // Extract title from the URL or current page context
           const titleFromUrl = this.extractFilename(url) || 'Canvas PDF';
-          
-          // Add this PDF to our collection (reporting handled by scanAndReportPDFs)
           this.crawlerState.foundPDFs.add(url);
-          
-          console.log(`✅ Noted direct PDF URL: ${titleFromUrl} (${url})`);
-        } else {
-          // For non-PDF URLs, we'll mark them as visited but not navigate
-          // This prevents infinite loops while still tracking progress
-          console.log(`📝 Noted as visited (no navigation): ${url}`);
+          console.log(`✅ Added direct PDF: ${titleFromUrl}`);
+          return;
         }
+        
+        // Open URL in background tab and scan it
+        console.log(`🔄 Opening background tab for: ${url}`);
+        
+        return new Promise((resolve) => {
+          chrome.runtime.sendMessage({
+            action: 'OPEN_AND_SCAN_TAB',
+            url: url,
+            courseId: this.courseId
+          }, (response) => {
+            if (response && response.pdfs) {
+              console.log(`✅ Background tab scan found ${response.pdfs.length} PDFs from ${url}`);
+              response.pdfs.forEach(pdf => {
+                if (!this.crawlerState.foundPDFs.has(pdf.url)) {
+                  this.crawlerState.foundPDFs.add(pdf.url);
+                  console.log(`📎 Smart Navigation found: ${pdf.title}`);
+                }
+              });
+            }
+            resolve();
+          });
+        });
       }
       
     } catch (error) {
       console.error(`Error with ${url}:`, error);
-      // Just scan current page as fallback
-      this.scanAndReportPDFs();
+      // Just scan current page as fallback (smart navigation mode)
+      const pdfs = this.getAllPdfLinks();
+      pdfs.forEach(pdf => {
+        if (!this.crawlerState.foundPDFs.has(pdf.url)) {
+          this.crawlerState.foundPDFs.add(pdf.url);
+          console.log(`📎 Smart Navigation found: ${pdf.title}`);
+        }
+      });
     }
   }
 
@@ -2481,8 +2498,14 @@ class CanvasContentScript {
     // Get PDF count before scan
     const pdfsBeforeScan = this.crawlerState.foundPDFs.size;
     
-    // Scan for PDFs with current method
-    this.scanAndReportPDFs();
+    // Scan for PDFs (smart navigation mode - surface scan only)
+    const pdfs = this.getAllPdfLinks();
+    pdfs.forEach(pdf => {
+      if (!this.crawlerState.foundPDFs.has(pdf.url)) {
+        this.crawlerState.foundPDFs.add(pdf.url);
+        console.log(`📎 Smart Navigation found: ${pdf.title}`);
+      }
+    });
     
     // Additional scans for embedded content
     await this.scanPageForEmbeddedContent();
@@ -2713,8 +2736,14 @@ class CanvasContentScript {
       }
     }
     
-    // Also scan current page for any PDFs we might have missed
-    this.scanAndReportPDFs();
+    // Also scan current page for any PDFs we might have missed (smart navigation mode)
+    const pdfs = this.getAllPdfLinks();
+    pdfs.forEach(pdf => {
+      if (!this.crawlerState.foundPDFs.has(pdf.url)) {
+        this.crawlerState.foundPDFs.add(pdf.url);
+        console.log(`📎 Smart Navigation found: ${pdf.title}`);
+      }
+    });
   }
 
   stopCrawl() {
