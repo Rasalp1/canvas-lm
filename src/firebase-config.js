@@ -14,6 +14,7 @@ import {
   orderBy,
   Timestamp 
 } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -29,9 +30,12 @@ const firebaseConfig = {
 // Initialize Firebase (Firestore only - authentication uses Chrome Identity API)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const functions = getFunctions(app);
 
 // Make available globally for popup.js and other scripts
+window.firebaseApp = app;
 window.firebaseDb = db;
+window.firebaseFunctions = functions;
 window.firebaseModules = {
   // Basic operations
   doc,

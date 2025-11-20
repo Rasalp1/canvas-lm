@@ -10,6 +10,8 @@ module.exports = {
     'firebase-config': './src/firebase-config.js',
     'firestore-helpers': './src/firestore-helpers.js',
     'gemini-file-search': './src/gemini-file-search.js',
+    'gemini-file-search-cloud': './src/gemini-file-search-cloud.js',
+    'gemini-cloud-functions': './src/gemini-cloud-functions.js',
     settings: './src/settings.js'
   },
   output: {

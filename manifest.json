@@ -23,7 +23,7 @@
     "*://*.canvaslms.com/*",
     "https://*.googleapis.com/*",
     "https://*.firebaseapp.com/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://*.cloudfunctions.net/*"
   ],
   "content_scripts": [
     {

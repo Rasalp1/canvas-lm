@@ -11,6 +11,9 @@ let saveUser, getUser, saveCourse, getCourse, getUserCourses, updateCoursePdfCou
 let saveDocument, saveDocuments, getCourseDocuments, updateDocumentStatus;
 let getUserStats, getCourseStats, waitForFirebase, isFirebaseReady;
 let saveDocumentFileSearch, getCourseDocumentsWithFileSearch, getDocumentsNeedingFileSearchUpload, saveCourseFileSearchStore;
+// NEW: Enrollment and chat functions
+let enrollUserInCourse, isUserEnrolled, updateEnrollmentFavorite;
+let createChatSession, getUserChatSessions, addMessageToSession, getSessionMessages, deleteChatSession;
 
 // Gemini File Search Manager (will be initialized with API key)
 let fileSearchManager = null;
@@ -467,18 +470,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveDocumentFileSearch,
     getCourseDocumentsWithFileSearch,
     getDocumentsNeedingFileSearchUpload,
-    saveCourseFileSearchStore
+    saveCourseFileSearchStore,
+    // NEW: Enrollment and chat functions
+    enrollUserInCourse,
+    isUserEnrolled,
+    updateEnrollmentFavorite,
+    createChatSession,
+    getUserChatSessions,
+    addMessageToSession,
+    getSessionMessages,
+    deleteChatSession
   } = window.firestoreHelpers);
   
-  // Initialize Gemini File Search Manager with API key from storage
+  // Initialize Gemini File Search Manager with Cloud Functions
+  // Note: userId will be set after user authentication
   try {
-    const apiKeyResult = await chrome.storage.local.get(['geminiApiKey']);
-    if (apiKeyResult.geminiApiKey) {
-      fileSearchManager = new window.GeminiFileSearchManager(apiKeyResult.geminiApiKey);
-      console.log('✅ File Search Manager initialized');
-    } else {
-      console.warn('⚠️ No Gemini API key found. Please configure in settings.');
-    }
+    // No API key needed - uses Cloud Functions!
+    fileSearchManager = new window.GeminiFileSearchCloudClient(window.firebaseApp, null);
+    console.log('✅ File Search Manager initialized (using Cloud Functions - userId will be set after auth)');
   } catch (error) {
     console.error('❌ Error initializing File Search Manager:', error);
   }
@@ -586,8 +595,8 @@ async function saveFoundPDFsToFirestore() {
     // Check if File Search Manager is initialized
     if (!fileSearchManager) {
       console.warn('⚠️ File Search Manager not initialized');
-      status.textContent = '⚠️ Gemini API key not configured';
-      result.textContent = 'Please configure your Gemini API key in settings to upload PDFs to File Search.';
+      status.textContent = '⚠️ File Search not available';
+      result.textContent = 'File Search service is not available. Please check your internet connection.';
       resetScanButton();
       return;
     }
@@ -618,21 +627,26 @@ async function saveFoundPDFsToFirestore() {
     const courseStoreName = `course_${currentCourseData.courseId}`;
     let fileSearchStore;
     
-    // Check if course already has a store
-    const existingCourse = await getCourse(db, currentCourseData.courseId);
-    if (existingCourse.success && existingCourse.data.fileSearchStoreName) {
-      console.log('📦 Using existing File Search store:', existingCourse.data.fileSearchStoreName);
-      fileSearchStore = await fileSearchManager.getStore(existingCourse.data.fileSearchStoreName);
+    // Step 1: Get or create shared File Search store for this course
+    status.textContent = '🗄️ Setting up File Search store for course...';
+    console.log('🗄️ Getting or creating shared File Search store...');
+    
+    // NEW: Use createCourseStore which handles shared store logic
+    const storeResult = await fileSearchManager.createCourseStore(
+      currentCourseData.courseId,
+      `${currentCourseData.courseName} (${currentCourseData.courseId})`
+    );
+    
+    fileSearchStore = { name: storeResult.name };
+    
+    if (storeResult.alreadyExists) {
+      console.log('📦 Using existing shared store (created by another user or previous scan)');
     } else {
-      // Create new File Search store
-      status.textContent = '🗄️ Creating File Search store for course...';
-      console.log('🗄️ Creating new File Search store...');
-      fileSearchStore = await fileSearchManager.createStore(`${currentCourseData.courseName} (${currentCourseData.courseId})`);
-      console.log('✅ File Search store created:', fileSearchStore.name);
+      console.log('✅ New shared store created for course');
     }
     
-    // Step 2: Save course information to Firestore with File Search store name
-    console.log('💾 Saving course and PDFs to Firestore...');
+    // Step 2: Save course information to Firestore with File Search store name (SHARED)
+    console.log('💾 Saving shared course and creating enrollment...');
     
     const courseResult = await saveCourse(db, currentUser.id, {
       courseId: currentCourseData.courseId,
@@ -647,7 +661,19 @@ async function saveFoundPDFsToFirestore() {
       throw new Error(`Failed to save course: ${courseResult.error}`);
     }
     
-    console.log('✅ Course saved to Firestore');
+    console.log(`✅ ${courseResult.isNewCourse ? 'New shared course created' : 'Existing course updated'}`);
+    
+    // Step 2.5: Create user enrollment (PRIVATE)
+    const enrollmentResult = await enrollUserInCourse(db, currentUser.id, {
+      courseId: currentCourseData.courseId,
+      courseName: currentCourseData.courseName
+    });
+    
+    if (!enrollmentResult.success) {
+      throw new Error(`Failed to create enrollment: ${enrollmentResult.error}`);
+    }
+    
+    console.log(`✅ ${enrollmentResult.isNewEnrollment ? 'User enrolled in course' : 'Enrollment updated'}`);
     
     // Step 3: Save all PDF metadata to Firestore
     const saveResults = await saveDocuments(db, currentCourseData.courseId, pdfs);
@@ -765,6 +791,12 @@ async function checkUserSignedIn() {
       } else {
         console.error('Error saving user to Firestore:', result.error);
       }
+      
+      // Set userId in File Search Manager for user isolation
+      if (fileSearchManager) {
+        fileSearchManager.setUserId(userInfo.id);
+        console.log('✅ File Search Manager userId set:', userInfo.id);
+      }
     } else {
       // User not signed into Chrome or email not available
       console.warn('No email found in Chrome profile. User might need to grant permission.');
@@ -859,7 +891,7 @@ async function handleChatSend() {
   }
   
   if (!fileSearchManager) {
-    addChatMessage('system', '❌ Please configure your Gemini API key in settings');
+    addChatMessage('system', '❌ File Search service not available');
     return;
   }
   
@@ -887,37 +919,24 @@ async function handleChatSend() {
   const loadingId = addChatMessage('system', '🤔 Thinking...');
   
   try {
-    // Send message to File Search
-    const response = await fileSearchManager.chatWithFileSearch(
+    // Send message to File Search (Cloud Functions - simplified API)
+    const responseText = await fileSearchManager.chatWithFileSearch(
       fileSearchStoreName,
       message,
-      {
-        model: 'gemini-2.5-flash',
-        history: conversationHistory
-      }
+      conversationHistory,
+      'gemini-1.5-flash'
     );
     
     // Remove loading message
     removeChatMessage(loadingId);
     
     // Add AI response
-    let responseText = response.text;
-    
-    // Add citations if available
-    if (response.citations && response.citations.length > 0) {
-      responseText += '\n\n📚 Sources:';
-      response.citations.forEach((citation, idx) => {
-        const docName = citation.document?.split('/').pop() || 'Document';
-        responseText += `\n${idx + 1}. ${docName}`;
-      });
-    }
-    
     addChatMessage('assistant', responseText);
     
-    // Update conversation history
+    // Update conversation history for context
     conversationHistory.push(
-      { role: 'user', parts: [{ text: message }] },
-      { role: 'model', parts: [{ text: response.text }] }
+      { role: 'user', text: message },
+      { role: 'model', text: responseText }
     );
     
     // Limit history to last 10 exchanges
