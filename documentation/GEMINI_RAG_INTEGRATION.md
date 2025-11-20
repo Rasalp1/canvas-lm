@@ -1,8 +1,14 @@
 # Gemini File API (RAG) Integration Guide
 
+> ⚠️ **IMPORTANT UPDATE**: Google has released a newer, more powerful **File Search API** that is recommended for production use. This document covers the basic File API. For production applications, see:
+> - [File Search Migration Guide](./FILE_SEARCH_MIGRATION_GUIDE.md)
+> - [File API vs File Search Comparison](./FILE_API_VS_FILE_SEARCH.md)
+
 ## Overview
 
 This extension integrates Google's Gemini File API to provide RAG (Retrieval Augmented Generation) capabilities. This allows users to upload PDFs and chat with their course materials using AI.
+
+**Note**: The File API has a 48-hour expiration limit. For permanent storage and better performance, consider using the **File Search API** instead (see comparison document).
 
 ## How It Works
 
@@ -13,6 +19,7 @@ This extension integrates Google's Gemini File API to provide RAG (Retrieval Aug
 **Different Endpoint** - The File API uses a different endpoint:
 - Regular Gemini API: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
 - File API: `https://generativelanguage.googleapis.com/v1beta/files`
+- **File Search API**: `https://generativelanguage.googleapis.com/v1beta/fileSearchStores` (newer, recommended)
 
 ### Key Concepts
 

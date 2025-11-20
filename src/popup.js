@@ -10,11 +10,17 @@ let db;
 let saveUser, getUser, saveCourse, getCourse, getUserCourses, updateCoursePdfCount;
 let saveDocument, saveDocuments, getCourseDocuments, updateDocumentStatus;
 let getUserStats, getCourseStats, waitForFirebase, isFirebaseReady;
+let saveDocumentFileSearch, getCourseDocumentsWithFileSearch, getDocumentsNeedingFileSearchUpload, saveCourseFileSearchStore;
+
+// Gemini File Search Manager (will be initialized with API key)
+let fileSearchManager = null;
 
 // Global variables for DOM elements (will be initialized after DOM loads)
 let detectBtn, scanBtn, status, result, courseInfo, courseDetails;
 let loginBtn, logoutBtn, loggedInDiv, loggedOutDiv, userPhoto, userName, userEmail;
+let chatSection, chatMessages, chatInput, sendChatBtn;
 let currentUser = null;
+let conversationHistory = [];
 
 // Canvas URL detection and course extraction
 class CanvasDetector {
@@ -232,6 +238,15 @@ function setupEventListeners() {
     result.textContent = '';
     await checkCurrentPage();
   });
+  
+  // Chat functionality
+  sendChatBtn.addEventListener('click', handleChatSend);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSend();
+    }
+  });
 
   // Enhanced PDF scanning with auto-navigation crawler
   scanBtn.addEventListener('click', async () => {
@@ -448,8 +463,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     getUserStats,
     getCourseStats,
     waitForFirebase,
-    isFirebaseReady
+    isFirebaseReady,
+    saveDocumentFileSearch,
+    getCourseDocumentsWithFileSearch,
+    getDocumentsNeedingFileSearchUpload,
+    saveCourseFileSearchStore
   } = window.firestoreHelpers);
+  
+  // Initialize Gemini File Search Manager with API key from storage
+  try {
+    const apiKeyResult = await chrome.storage.local.get(['geminiApiKey']);
+    if (apiKeyResult.geminiApiKey) {
+      fileSearchManager = new window.GeminiFileSearchManager(apiKeyResult.geminiApiKey);
+      console.log('✅ File Search Manager initialized');
+    } else {
+      console.warn('⚠️ No Gemini API key found. Please configure in settings.');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing File Search Manager:', error);
+  }
   
   console.log('Firebase initialized and helpers loaded');
   
@@ -484,6 +516,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   result = document.getElementById('result');
   courseInfo = document.getElementById('course-info');
   courseDetails = document.getElementById('course-details');
+  chatSection = document.getElementById('chat-section');
+  chatMessages = document.getElementById('chat-messages');
+  chatInput = document.getElementById('chat-input');
+  sendChatBtn = document.getElementById('send-chat');
   
   console.log('DOM elements found:', {
     detectBtn: !!detectBtn,
@@ -491,7 +527,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     status: !!status,
     result: !!result,
     courseInfo: !!courseInfo,
-    courseDetails: !!courseDetails
+    courseDetails: !!courseDetails,
+    chatSection: !!chatSection,
+    chatMessages: !!chatMessages,
+    chatInput: !!chatInput,
+    sendChatBtn: !!sendChatBtn
   });
   
   // Check if all required elements exist
@@ -543,6 +583,15 @@ async function saveFoundPDFsToFirestore() {
       return;
     }
     
+    // Check if File Search Manager is initialized
+    if (!fileSearchManager) {
+      console.warn('⚠️ File Search Manager not initialized');
+      status.textContent = '⚠️ Gemini API key not configured';
+      result.textContent = 'Please configure your Gemini API key in settings to upload PDFs to File Search.';
+      resetScanButton();
+      return;
+    }
+    
     console.log('✅ User authenticated, fetching PDFs from storage...');
     console.log('Looking for key:', `pdfs_${currentCourseData.courseId}`);
     
@@ -561,11 +610,28 @@ async function saveFoundPDFsToFirestore() {
       return;
     }
     
-    console.log(`💾 Preparing to save ${pdfs.length} PDFs to Firestore...`);
+    console.log(`💾 Preparing to save ${pdfs.length} PDFs to Firestore and File Search...`);
     status.textContent = `💾 Saving ${pdfs.length} discovered PDFs to your knowledge base...`;
     result.textContent = `Crawler found PDFs:\n${pdfs.map(pdf => `• ${pdf.title} (${pdf.type})`).join('\n')}`;
     
-    // Save course information to Firestore
+    // Step 1: Get or create File Search store for this course
+    const courseStoreName = `course_${currentCourseData.courseId}`;
+    let fileSearchStore;
+    
+    // Check if course already has a store
+    const existingCourse = await getCourse(db, currentCourseData.courseId);
+    if (existingCourse.success && existingCourse.data.fileSearchStoreName) {
+      console.log('📦 Using existing File Search store:', existingCourse.data.fileSearchStoreName);
+      fileSearchStore = await fileSearchManager.getStore(existingCourse.data.fileSearchStoreName);
+    } else {
+      // Create new File Search store
+      status.textContent = '🗄️ Creating File Search store for course...';
+      console.log('🗄️ Creating new File Search store...');
+      fileSearchStore = await fileSearchManager.createStore(`${currentCourseData.courseName} (${currentCourseData.courseId})`);
+      console.log('✅ File Search store created:', fileSearchStore.name);
+    }
+    
+    // Step 2: Save course information to Firestore with File Search store name
     console.log('💾 Saving course and PDFs to Firestore...');
     
     const courseResult = await saveCourse(db, currentUser.id, {
@@ -573,37 +639,84 @@ async function saveFoundPDFsToFirestore() {
       courseName: currentCourseData.courseName,
       courseCode: currentCourseData.courseCode || '',
       canvasUrl: currentCourseData.url,
-      pdfCount: pdfs.length
+      pdfCount: pdfs.length,
+      fileSearchStoreName: fileSearchStore.name
     });
     
-    if (courseResult.success) {
-      console.log('✅ Course saved to Firestore');
-      
-      // Save all PDF metadata to Firestore (user's dedicated knowledge base)
-      const saveResults = await saveDocuments(db, currentCourseData.courseId, pdfs);
-      const savedCount = saveResults.filter(r => r.success).length;
-      const failedCount = saveResults.filter(r => !r.success).length;
-      
-      console.log(`✅ Saved ${savedCount}/${pdfs.length} PDF metadata to Firestore`);
-      
-      status.textContent = `✅ Course scan complete: ${savedCount} PDFs saved to your knowledge base`;
-      result.textContent = `📚 Successfully saved to your knowledge base:\n${pdfs.map(pdf => `• ${pdf.title}`).join('\n')}`;
-      
-      if (failedCount > 0) {
-        const failedPdfs = saveResults
-          .filter(r => !r.success)
-          .map(r => `• ${r.fileName}: ${r.error}`)
-          .join('\n');
-        result.textContent += `\n\n⚠️ Failed to save:\n${failedPdfs}`;
-      }
-      
-      result.textContent += `\n\n💡 Next: These PDFs will be uploaded to Gemini for AI-powered chat (coming soon!)`;
-      
-      // Refresh user stats display
-      await displayUserStats(currentUser.id);
-    } else {
+    if (!courseResult.success) {
       throw new Error(`Failed to save course: ${courseResult.error}`);
     }
+    
+    console.log('✅ Course saved to Firestore');
+    
+    // Step 3: Save all PDF metadata to Firestore
+    const saveResults = await saveDocuments(db, currentCourseData.courseId, pdfs);
+    const savedCount = saveResults.filter(r => r.success).length;
+    const failedCount = saveResults.filter(r => !r.success).length;
+    
+    console.log(`✅ Saved ${savedCount}/${pdfs.length} PDF metadata to Firestore`);
+    
+    // Step 4: Upload PDFs to File Search store
+    status.textContent = `📤 Uploading ${pdfs.length} PDFs to File Search...`;
+    result.textContent = `Uploading to permanent cloud storage:\n${pdfs.map(pdf => `• ${pdf.title}`).join('\n')}`;
+    
+    let uploadedCount = 0;
+    let uploadFailedCount = 0;
+    
+    for (let i = 0; i < pdfs.length; i++) {
+      const pdf = pdfs[i];
+      const docId = btoa(pdf.url).replace(/[/+=]/g, '_');
+      
+      try {
+        status.textContent = `📤 Uploading ${i + 1}/${pdfs.length}: ${pdf.title}...`;
+        
+        // Download PDF from Canvas
+        const pdfResponse = await fetch(pdf.url);
+        if (!pdfResponse.ok) {
+          throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
+        }
+        
+        const pdfBlob = await pdfResponse.blob();
+        
+        // Upload to File Search store with metadata
+        const uploadResult = await fileSearchManager.uploadToStore(
+          fileSearchStore.name,
+          pdfBlob,
+          pdf.title,
+          {
+            courseId: currentCourseData.courseId,
+            courseName: currentCourseData.courseName,
+            source: pdf.type,
+            originalUrl: pdf.url
+          }
+        );
+        
+        // Save File Search document reference to Firestore
+        await saveDocumentFileSearch(db, currentCourseData.courseId, docId, uploadResult.name);
+        
+        uploadedCount++;
+        console.log(`✅ [${uploadedCount}/${pdfs.length}] Uploaded: ${pdf.title}`);
+      } catch (uploadError) {
+        uploadFailedCount++;
+        console.error(`❌ Failed to upload ${pdf.title}:`, uploadError);
+        await updateDocumentStatus(db, currentCourseData.courseId, docId, 'failed');
+      }
+    }
+    
+    // Final status
+    if (uploadedCount > 0) {
+      status.textContent = `✅ Course setup complete: ${uploadedCount} PDFs uploaded to File Search`;
+      result.textContent = `📚 Successfully uploaded to permanent storage:\n${uploadedCount} PDFs ready for AI chat\n\n${uploadFailedCount > 0 ? `⚠️ ${uploadFailedCount} uploads failed\n\n` : ''}💬 Chat interface now available below!`;
+      
+      // Show chat interface
+      await showChatInterface();
+    } else {
+      status.textContent = `❌ Upload failed for all PDFs`;
+      result.textContent = `Failed to upload PDFs. Please check:\n• Your Gemini API key is valid\n• PDFs are accessible\n• You have internet connection`;
+    }
+    
+    // Refresh user stats display
+    await displayUserStats(currentUser.id);
     
   } catch (err) {
     status.textContent = '❌ Error saving PDFs to knowledge base';
@@ -731,5 +844,131 @@ function initializeAuth() {
   
   // Check if user is signed into Chrome
   checkUserSignedIn();
+}
+
+// ==================== CHAT FUNCTIONALITY ====================
+
+async function handleChatSend() {
+  const message = chatInput.value.trim();
+  if (!message) return;
+  
+  // Check prerequisites
+  if (!currentUser || !db) {
+    addChatMessage('system', '❌ Please sign in to use chat');
+    return;
+  }
+  
+  if (!fileSearchManager) {
+    addChatMessage('system', '❌ Please configure your Gemini API key in settings');
+    return;
+  }
+  
+  if (!currentCourseData) {
+    addChatMessage('system', '❌ Please navigate to a Canvas course first');
+    return;
+  }
+  
+  // Get course and check if File Search store exists
+  const courseResult = await getCourse(db, currentCourseData.courseId);
+  if (!courseResult.success || !courseResult.data.fileSearchStoreName) {
+    addChatMessage('system', '❌ Please scan the course first to build the knowledge base');
+    return;
+  }
+  
+  const fileSearchStoreName = courseResult.data.fileSearchStoreName;
+  
+  // Add user message to chat
+  addChatMessage('user', message);
+  chatInput.value = '';
+  chatInput.disabled = true;
+  sendChatBtn.disabled = true;
+  
+  // Add loading message
+  const loadingId = addChatMessage('system', '🤔 Thinking...');
+  
+  try {
+    // Send message to File Search
+    const response = await fileSearchManager.chatWithFileSearch(
+      fileSearchStoreName,
+      message,
+      {
+        model: 'gemini-2.5-flash',
+        history: conversationHistory
+      }
+    );
+    
+    // Remove loading message
+    removeChatMessage(loadingId);
+    
+    // Add AI response
+    let responseText = response.text;
+    
+    // Add citations if available
+    if (response.citations && response.citations.length > 0) {
+      responseText += '\n\n📚 Sources:';
+      response.citations.forEach((citation, idx) => {
+        const docName = citation.document?.split('/').pop() || 'Document';
+        responseText += `\n${idx + 1}. ${docName}`;
+      });
+    }
+    
+    addChatMessage('assistant', responseText);
+    
+    // Update conversation history
+    conversationHistory.push(
+      { role: 'user', parts: [{ text: message }] },
+      { role: 'model', parts: [{ text: response.text }] }
+    );
+    
+    // Limit history to last 10 exchanges
+    if (conversationHistory.length > 20) {
+      conversationHistory = conversationHistory.slice(-20);
+    }
+    
+  } catch (error) {
+    removeChatMessage(loadingId);
+    addChatMessage('system', `❌ Error: ${error.message}`);
+    console.error('Chat error:', error);
+  } finally {
+    chatInput.disabled = false;
+    sendChatBtn.disabled = false;
+    chatInput.focus();
+  }
+}
+
+function addChatMessage(role, text) {
+  const messageId = `msg-${Date.now()}-${Math.random()}`;
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-message ${role}`;
+  messageDiv.id = messageId;
+  
+  const icon = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : 'ℹ️';
+  messageDiv.innerHTML = `<span class="message-icon">${icon}</span><p>${text}</p>`;
+  
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  
+  return messageId;
+}
+
+function removeChatMessage(messageId) {
+  const messageEl = document.getElementById(messageId);
+  if (messageEl) {
+    messageEl.remove();
+  }
+}
+
+async function showChatInterface() {
+  if (!currentCourseData) return;
+  
+  // Check if course has uploaded documents
+  const courseResult = await getCourse(db, currentCourseData.courseId);
+  if (courseResult.success && courseResult.data.fileSearchStoreName) {
+    const docs = await getCourseDocumentsWithFileSearch(db, currentCourseData.courseId);
+    if (docs.success && docs.data.length > 0) {
+      chatSection.classList.remove('hidden');
+      conversationHistory = []; // Reset conversation
+    }
+  }
 }
 

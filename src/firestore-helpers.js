@@ -80,6 +80,7 @@ export async function saveCourse(db, userId, courseData) {
       canvasUrl: courseData.canvasUrl,
       lastScannedAt: Timestamp.now(),
       pdfCount: courseData.pdfCount || 0,
+      fileSearchStoreName: courseData.fileSearchStoreName || null,
       createdAt: Timestamp.now()
     }, { merge: true });
     
@@ -200,7 +201,7 @@ export async function saveDocument(db, courseId, pdfData) {
       fileType: pdfData.type || 'application/pdf',
       scannedFrom: pdfData.scannedFrom || pdfData.type || 'unknown',
       uploadedAt: Timestamp.now(),
-      geminiFileId: null,
+      fileSearchDocumentName: null,
       uploadStatus: 'pending'
     }, { merge: true });
     
@@ -273,7 +274,7 @@ export async function getCourseDocuments(db, courseId) {
  * @param {string|null} geminiFileId - Optional Gemini file ID after successful upload
  * @returns {Promise<Object>} Result object with success status
  */
-export async function updateDocumentStatus(db, courseId, docId, status, geminiFileId = null) {
+export async function updateDocumentStatus(db, courseId, docId, status, fileSearchDocumentName = null) {
   try {
     const { doc, updateDoc, Timestamp } = window.firebaseModules;
     
@@ -283,8 +284,8 @@ export async function updateDocumentStatus(db, courseId, docId, status, geminiFi
       lastUpdatedAt: Timestamp.now()
     };
     
-    if (geminiFileId) {
-      updateData.geminiFileId = geminiFileId;
+    if (fileSearchDocumentName) {
+      updateData.fileSearchDocumentName = fileSearchDocumentName;
     }
     
     await updateDoc(docRef, updateData);
@@ -322,47 +323,40 @@ export async function deleteDocument(db, courseId, docId) {
 // ==================== GEMINI RAG OPERATIONS ====================
 
 /**
- * Save Gemini file URI and metadata to a document
+ * Save File Search document metadata
  * @param {Object} db - Firestore database instance
  * @param {string} courseId - Canvas course ID
  * @param {string} docId - Document ID
- * @param {string} geminiUri - Gemini file URI
- * @param {string} geminiFileName - Gemini file name (e.g., "files/abc123")
- * @param {Date} expiresAt - Optional expiration date (defaults to 48 hours from now)
+ * @param {string} fileSearchDocumentName - File Search document resource name
  * @returns {Promise<Object>} Result object with success status
  */
-export async function saveDocumentGeminiUri(db, courseId, docId, geminiUri, geminiFileName, expiresAt = null) {
+export async function saveDocumentFileSearch(db, courseId, docId, fileSearchDocumentName) {
   try {
     const { doc, updateDoc, Timestamp } = window.firebaseModules;
     
     const docRef = doc(db, 'courses', courseId, 'documents', docId);
     
-    // Default expiration: 48 hours from now
-    const expiration = expiresAt || new Date(Date.now() + 48 * 60 * 60 * 1000);
-    
     await updateDoc(docRef, {
-      geminiUri: geminiUri,
-      geminiFileName: geminiFileName,
-      geminiUploadedAt: Timestamp.now(),
-      geminiExpiresAt: Timestamp.fromDate(expiration),
+      fileSearchDocumentName: fileSearchDocumentName,
+      uploadedToFileSearchAt: Timestamp.now(),
       uploadStatus: 'completed'
     });
     
-    console.log('✅ Gemini URI saved for document:', docId);
+    console.log('✅ File Search document saved:', docId);
     return { success: true };
   } catch (error) {
-    console.error('❌ Error saving Gemini URI:', error);
+    console.error('❌ Error saving File Search document:', error);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Get all documents with valid (non-expired) Gemini URIs for a course
+ * Get all documents with File Search references for a course
  * @param {Object} db - Firestore database instance
  * @param {string} courseId - Canvas course ID
- * @returns {Promise<Object>} Result object with array of documents with valid Gemini URIs
+ * @returns {Promise<Object>} Result object with array of documents with File Search references
  */
-export async function getCourseDocumentsWithGemini(db, courseId) {
+export async function getCourseDocumentsWithFileSearch(db, courseId) {
   try {
     const result = await getCourseDocuments(db, courseId);
     
@@ -370,32 +364,25 @@ export async function getCourseDocumentsWithGemini(db, courseId) {
       return result;
     }
     
-    const now = new Date();
     const validDocs = result.data.filter(doc => {
-      if (!doc.geminiUri || !doc.geminiExpiresAt) {
-        return false;
-      }
-      
-      // Check if not expired
-      const expiresAt = doc.geminiExpiresAt.toDate();
-      return expiresAt > now;
+      return doc.fileSearchDocumentName && doc.uploadStatus === 'completed';
     });
     
-    console.log(`✅ Found ${validDocs.length} documents with valid Gemini URIs`);
+    console.log(`✅ Found ${validDocs.length} documents in File Search`);
     return { success: true, data: validDocs };
   } catch (error) {
-    console.error('❌ Error getting documents with Gemini URIs:', error);
+    console.error('❌ Error getting File Search documents:', error);
     return { success: false, error: error.message };
   }
 }
 
 /**
- * Get all documents that need Gemini upload (no URI or expired)
+ * Get all documents that need File Search upload
  * @param {Object} db - Firestore database instance
  * @param {string} courseId - Canvas course ID
  * @returns {Promise<Object>} Result object with array of documents needing upload
  */
-export async function getDocumentsNeedingGeminiUpload(db, courseId) {
+export async function getDocumentsNeedingFileSearchUpload(db, courseId) {
   try {
     const result = await getCourseDocuments(db, courseId);
     
@@ -403,23 +390,11 @@ export async function getDocumentsNeedingGeminiUpload(db, courseId) {
       return result;
     }
     
-    const now = new Date();
     const needsUpload = result.data.filter(doc => {
-      // No Gemini URI
-      if (!doc.geminiUri) {
-        return true;
-      }
-      
-      // Expired URI
-      if (doc.geminiExpiresAt) {
-        const expiresAt = doc.geminiExpiresAt.toDate();
-        return expiresAt <= now;
-      }
-      
-      return false;
+      return !doc.fileSearchDocumentName || doc.uploadStatus !== 'completed';
     });
     
-    console.log(`✅ Found ${needsUpload.length} documents needing Gemini upload`);
+    console.log(`✅ Found ${needsUpload.length} documents needing File Search upload`);
     return { success: true, data: needsUpload };
   } catch (error) {
     console.error('❌ Error getting documents needing upload:', error);
@@ -428,44 +403,26 @@ export async function getDocumentsNeedingGeminiUpload(db, courseId) {
 }
 
 /**
- * Clear expired Gemini URIs for a course
+ * Save File Search store name to course
  * @param {Object} db - Firestore database instance
  * @param {string} courseId - Canvas course ID
- * @returns {Promise<Object>} Result object with count of cleared documents
+ * @param {string} fileSearchStoreName - File Search store resource name
+ * @returns {Promise<Object>} Result object with success status
  */
-export async function clearExpiredGeminiUris(db, courseId) {
+export async function saveCourseFileSearchStore(db, courseId, fileSearchStoreName) {
   try {
-    const { doc, updateDoc } = window.firebaseModules;
-    const result = await getCourseDocuments(db, courseId);
+    const { doc, updateDoc, Timestamp } = window.firebaseModules;
     
-    if (!result.success) {
-      return result;
-    }
+    const courseRef = doc(db, 'courses', courseId);
+    await updateDoc(courseRef, {
+      fileSearchStoreName: fileSearchStoreName,
+      fileSearchStoreCreatedAt: Timestamp.now()
+    });
     
-    const now = new Date();
-    let clearedCount = 0;
-    
-    for (const document of result.data) {
-      if (document.geminiExpiresAt) {
-        const expiresAt = document.geminiExpiresAt.toDate();
-        
-        if (expiresAt <= now) {
-          const docRef = doc(db, 'courses', courseId, 'documents', document.id);
-          await updateDoc(docRef, {
-            geminiUri: null,
-            geminiFileName: null,
-            geminiExpiresAt: null,
-            uploadStatus: 'expired'
-          });
-          clearedCount++;
-        }
-      }
-    }
-    
-    console.log(`✅ Cleared ${clearedCount} expired Gemini URIs`);
-    return { success: true, clearedCount };
+    console.log('✅ File Search store saved to course:', fileSearchStoreName);
+    return { success: true };
   } catch (error) {
-    console.error('❌ Error clearing expired URIs:', error);
+    console.error('❌ Error saving File Search store:', error);
     return { success: false, error: error.message };
   }
 }
@@ -657,11 +614,11 @@ if (typeof window !== 'undefined') {
     updateDocumentStatus,
     deleteDocument,
     
-    // Gemini RAG operations
-    saveDocumentGeminiUri,
-    getCourseDocumentsWithGemini,
-    getDocumentsNeedingGeminiUpload,
-    clearExpiredGeminiUris,
+    // File Search operations
+    saveDocumentFileSearch,
+    getCourseDocumentsWithFileSearch,
+    getDocumentsNeedingFileSearchUpload,
+    saveCourseFileSearchStore,
     
     // Statistics
     getUserStats,

@@ -9,7 +9,7 @@ module.exports = {
     'content-script': './src/content-script.js',
     'firebase-config': './src/firebase-config.js',
     'firestore-helpers': './src/firestore-helpers.js',
-    'gemini-rag': './src/gemini-rag.js',
+    'gemini-file-search': './src/gemini-file-search.js',
     settings: './src/settings.js'
   },
   output: {

@@ -64,14 +64,31 @@
     <div id="results" class="section">
       <pre id="result" aria-live="polite"></pre>
     </div>
+    
+    <!-- Chat Interface -->
+    <div id="chat-section" class="section hidden">
+      <h3>💬 Chat with Course Materials</h3>
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-message system">
+          <p>👋 Hello! I can answer questions about your course materials. Ask me anything!</p>
+        </div>
+      </div>
+      <div class="chat-input-container">
+        <textarea id="chat-input" placeholder="Ask a question about your course materials..." rows="2"></textarea>
+        <button id="send-chat" class="primary-btn">Send</button>
+      </div>
+      <div class="chat-info">
+        <small>💡 Powered by Gemini File Search with semantic search</small>
+      </div>
+    </div>
   </div>
 
   <!-- Load Firebase config first -->
   <script src="firebase-config.js"></script>
   <!-- Load Firestore helpers -->
   <script src="firestore-helpers.js"></script>
-  <!-- Load Gemini RAG manager -->
-  <script src="gemini-rag.js"></script>
+  <!-- Load Gemini File Search manager -->
+  <script src="gemini-file-search.js"></script>
   <!-- Then load popup.js -->
   <script src="popup.js"></script>
 </body>

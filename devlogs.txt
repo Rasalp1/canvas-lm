@@ -1,9 +1,4 @@
 Canvas RAG Assistant: Development mode detected
-background.js:1 Canvas RAG Assistant installed/updated: update
-background.js:1 Canvas RAG Assistant updated to version: 1.0
-background.js:1 Background received message: Object
-background.js:1 Storage changed in local : Object
-background.js:1 Course info stored: Object
 background.js:1 Background received message: Object
 background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507111
 background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507111
@@ -69,7 +64,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732272
+background.js:1 Canvas course detected: 36072 on tab 1790732328
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -80,7 +75,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732276
+background.js:1 Canvas course detected: 36072 on tab 1790732332
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -91,7 +86,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732280
+background.js:1 Canvas course detected: 36072 on tab 1790732336
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -102,7 +97,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732284
+background.js:1 Canvas course detected: 36072 on tab 1790732340
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -113,7 +108,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732288
+background.js:1 Canvas course detected: 36072 on tab 1790732344
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -124,7 +119,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732292
+background.js:1 Canvas course detected: 36072 on tab 1790732348
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -135,7 +130,7 @@ background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 36072 on tab 1790732296
+background.js:1 Canvas course detected: 36072 on tab 1790732352
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
@@ -173,42 +168,11 @@ background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/
 background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507120
 background.js:1 Background received message: Object
 background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507121
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507121
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507122
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507122
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507123
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507123
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507124
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507124
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507125
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507125
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507126
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507126
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507127
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507127
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507128
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507128
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507129
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507129
-background.js:1 Background received message: Object
-background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507130
-background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507130
-background.js:1 Background received message: Object
-background.js:1 Found 40 PDFs in course 36072: Array(40)
-background.js:1 Background received message: Object
-background.js:1 Crawler completed: Object
-background.js:1 Storage changed in local : Object
 firebase-config.js:2 ✅ Firebase initialized (Firestore only)
 firestore-helpers.js:1 ✅ Firestore helpers loaded and available at window.firestoreHelpers
 popup.js:1 DOMContentLoaded fired
+popup.js:1 ⚠️ No Gemini API key found. Please configure in settings.
+(anonymous) @ popup.js:1Understand this warning
 popup.js:1 Firebase initialized and helpers loaded
 popup.js:1 DOM elements found: Object
 popup.js:1 Setting up event listeners...
@@ -226,8 +190,64 @@ popup.js:1 Trying to get course info from content script...
 popup.js:1 Content script response: Object
 popup.js:1 Canvas course detected via content script!
 popup.js:1 checkCurrentPage completed
-firestore-helpers.js:1 ✅ Retrieved 1 courses for user: 108448961221190225241
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507121
+firestore-helpers.js:1 ✅ Retrieved 0 courses for user: 108448961221190225241
+firestore-helpers.js:1 ✅ User stats calculated: {totalCourses: 0, totalPDFs: 0, totalSize: 0}
 firestore-helpers.js:1 ✅ User saved to Firestore: 108448961221190225241
 popup.js:1 User data saved to Firestore via helper
-firestore-helpers.js:1 ✅ Retrieved 20 documents for course: 36072
-firestore-helpers.js:1 ✅ User stats calculated: {totalCourses: 1, totalPDFs: 20, totalSize: 0}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507122', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507122', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507122
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507122
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507123', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507123', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507123
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507123
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507124', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507124', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507124
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507124
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507125', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507125', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507125
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507125
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507126', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507126', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507126
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507126
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507127', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507127', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507127
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507127
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507128', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507128', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507128
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507128
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507129', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507129', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507129
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507129
+popup.js:1 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507130', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/36072/modules/items/1507130', options: {…}, referer: 'https://canvas.education.lu.se/courses/36072'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507130
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507130
+popup.js:1 📬 Popup received message: {type: 'FOUND_PDFS', courseId: '36072', courseName: 'MIOF30', pdfs: Array(40), pageUrl: 'https://canvas.education.lu.se/courses/36072', …}
+popup.js:1 📬 Popup received message: {type: 'CRAWL_COMPLETE', courseId: '36072', pagesVisited: 7, pdfsFound: 40, visitedUrls: Array(7)}
+background.js:1 Background received message: {type: 'FOUND_PDFS', courseId: '36072', courseName: 'MIOF30', pdfs: Array(40), pageUrl: 'https://canvas.education.lu.se/courses/36072', …}
+background.js:1 Found 40 PDFs in course 36072: (40) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+background.js:1 Background received message: {type: 'CRAWL_COMPLETE', courseId: '36072', pagesVisited: 7, pdfsFound: 40, visitedUrls: Array(7)}
+background.js:1 Crawler completed: {type: 'CRAWL_COMPLETE', courseId: '36072', pagesVisited: 7, pdfsFound: 40, visitedUrls: Array(7)}
+popup.js:1 📬 Popup received message: {type: 'PDF_SCAN_COMPLETE', courseId: '36072', pdfCount: 40}
+popup.js:1 🎉 PDF_SCAN_COMPLETE received! PDFs found: 40
+popup.js:1 🚀 Calling saveFoundPDFsToFirestore()...
+popup.js:1 📥 saveFoundPDFsToFirestore() called
+popup.js:1 🔍 Checking user sign-in status...
+popup.js:1 Current user: {email: 'rasmus.alpsten@gmail.com', id: '108448961221190225241', displayName: 'rasmus.alpsten', photoURL: null}
+popup.js:1 Database: initialized
+popup.js:1 ⚠️ File Search Manager not initialized
+W @ popup.js:1
+(anonymous) @ popup.js:1Understand this warning
+popup.js:1 ✅ saveFoundPDFsToFirestore() completed successfully
+popup.js:1 📬 Popup received message: {type: 'CRAWL_COMPLETE', courseId: '36072', pagesVisited: 7, pdfsFound: 40, visitedUrls: Array(7)}
+background.js:1 Storage changed in local : {pdfs_36072: {…}}
+background.js:1 Popup not open, cannot forward CRAWL_COMPLETE
