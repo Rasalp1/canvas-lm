@@ -1,7 +1,28 @@
 // popup.js - Canvas RAG Assistant popup functionality
 
+// Wait for Firebase to initialize
+let db, doc, setDoc, getDoc, Timestamp;
+
+// Helper to wait for Firebase
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    const checkFirebase = () => {
+      if (window.firebaseDb && window.firebaseModules) {
+        db = window.firebaseDb;
+        ({ doc, setDoc, getDoc, Timestamp } = window.firebaseModules);
+        resolve();
+      } else {
+        setTimeout(checkFirebase, 50);
+      }
+    };
+    checkFirebase();
+  });
+}
+
 // Global variables for DOM elements (will be initialized after DOM loads)
 let detectBtn, scanBtn, status, result, courseInfo, courseDetails;
+let loginBtn, logoutBtn, loggedInDiv, loggedOutDiv, userPhoto, userName, userEmail;
+let currentUser = null;
 
 // Canvas URL detection and course extraction
 class CanvasDetector {
@@ -407,6 +428,13 @@ let currentCourseData = null;
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded fired');
   
+  // Wait for Firebase to be ready
+  await waitForFirebase();
+  console.log('Firebase initialized');
+  
+  // Initialize Firebase Auth first
+  initializeAuth();
+  
   // Initialize DOM elements
   detectBtn = document.getElementById('detectCanvas');
   scanBtn = document.getElementById('scanPDFs');
@@ -505,3 +533,102 @@ async function downloadFoundPDFs() {
     resetScanButton();
   }
 }
+
+// ==================== Chrome Identity Authentication ====================
+
+async function getUserProfile() {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getProfileUserInfo((userInfo) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(userInfo);
+      }
+    });
+  });
+}
+
+async function checkUserSignedIn() {
+  try {
+    const userInfo = await getUserProfile();
+    console.log('Chrome profile info:', userInfo);
+    
+    if (userInfo && userInfo.email) {
+      // User is signed into Chrome
+      currentUser = {
+        email: userInfo.email,
+        id: userInfo.id,
+        displayName: userInfo.email.split('@')[0], // Use email prefix as name
+        photoURL: null // Chrome identity doesn't provide photo URL
+      };
+      
+      updateUIForUser(currentUser);
+      
+      // Save/update user in Firestore
+      try {
+        await setDoc(doc(db, 'users', userInfo.id), {
+          email: userInfo.email,
+          lastSeenAt: Timestamp.now(),
+          createdAt: Timestamp.now()
+        }, { merge: true });
+        console.log('User data saved to Firestore');
+      } catch (error) {
+        console.error('Error saving user to Firestore:', error);
+      }
+    } else {
+      // User not signed into Chrome or email not available
+      console.warn('No email found in Chrome profile. User might need to grant permission.');
+      updateUIForUser(null);
+    }
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    updateUIForUser(null);
+  }
+}
+
+function updateUIForUser(user) {
+  if (user) {
+    // User is signed in to Chrome
+    currentUser = user;
+    loggedInDiv.classList.remove('hidden');
+    loggedOutDiv.classList.add('hidden');
+    
+    userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
+    userName.textContent = user.displayName || 'User';
+    userEmail.textContent = user.email;
+    
+    console.log('UI updated for signed-in user:', user.email);
+  } else {
+    // User is not signed in to Chrome
+    currentUser = null;
+    loggedInDiv.classList.add('hidden');
+    loggedOutDiv.classList.remove('hidden');
+    
+    console.log('UI updated for signed-out state');
+  }
+}
+
+function initializeAuth() {
+  // Get auth UI elements
+  loginBtn = document.getElementById('login-btn');
+  logoutBtn = document.getElementById('logout-btn');
+  loggedInDiv = document.getElementById('logged-in');
+  loggedOutDiv = document.getElementById('logged-out');
+  userPhoto = document.getElementById('user-photo');
+  userName = document.getElementById('user-name');
+  userEmail = document.getElementById('user-email');
+  
+  // Update login button text
+  loginBtn.textContent = 'Sign in to Chrome';
+  loginBtn.addEventListener('click', () => {
+    alert('Please sign in to Chrome by clicking your profile icon in the top-right corner of Chrome, then reload this extension.');
+  });
+  
+  logoutBtn.addEventListener('click', () => {
+    alert('Please sign out of Chrome by clicking your profile icon in the top-right corner of Chrome.');
+  });
+  
+  // Check if user is signed into Chrome
+  checkUserSignedIn();
+}
+

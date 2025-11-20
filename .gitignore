@@ -67,3 +67,6 @@ Desktop.ini
 *.crx
 *.pem
 *.zip
+
+# Build output
+dist/

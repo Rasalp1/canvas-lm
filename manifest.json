@@ -11,13 +11,19 @@
     "activeTab",
     "storage",
     "downloads",
-    "tabs"
+    "tabs",
+    "identity",
+    "identity.email"
   ],
+
   "host_permissions": [
     "*://*.instructure.com/*",
     "*://canvas.education.lu.se/*",
     "*://*.canvas.com/*",
-    "*://*.canvaslms.com/*"
+    "*://*.canvaslms.com/*",
+    "https://*.googleapis.com/*",
+    "https://*.firebaseapp.com/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "content_scripts": [
     {
@@ -27,7 +33,12 @@
         "*://*.canvas.com/*",
         "*://*.canvaslms.com/*"
       ],
-      "js": ["content-script.js"]
+      "js": [
+        "state-management.js",
+        "smart-navigator.js",
+        "stateful-page-scanner.js",
+        "content-script.js"
+      ]
     }
   ],
   "background": {

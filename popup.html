@@ -10,6 +10,24 @@
   <div class="container">
     <h1>Canvas RAG Assistant</h1>
     
+    <!-- Authentication Section -->
+    <div id="auth-section" class="section">
+      <div id="logged-out" class="auth-state">
+        <p>Sign in to save PDFs and chat with your course materials</p>
+        <button id="login-btn" class="primary-btn">🔐 Sign in with Google</button>
+      </div>
+      <div id="logged-in" class="auth-state hidden">
+        <div class="user-info">
+          <img id="user-photo" src="" alt="User" class="user-avatar">
+          <div>
+            <p class="user-name" id="user-name"></p>
+            <p class="user-email" id="user-email"></p>
+          </div>
+          <button id="logout-btn" class="secondary-btn">Logout</button>
+        </div>
+      </div>
+    </div>
+    
     <div id="canvas-detection" class="section">
       <h3>Canvas Course Detection <button id="detectCanvas" class="retry-btn" title="Re-detect Canvas Course">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -44,6 +62,9 @@
     </div>
   </div>
 
+  <!-- Load Firebase config first -->
+  <script src="firebase-config.js"></script>
+  <!-- Then load popup.js -->
   <script src="popup.js"></script>
 </body>
 </html>
