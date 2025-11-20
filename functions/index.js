@@ -82,34 +82,46 @@ async function getSharedStore(courseId) {
 }
 
 /**
+ * Get courseId from store name
+ * Maps a Gemini store back to its course
+ */
+async function getCourseIdFromStore(storeName) {
+  const coursesSnapshot = await db.collection('courses')
+    .where('fileSearchStoreName', '==', storeName)
+    .limit(1)
+    .get();
+  
+  if (coursesSnapshot.empty) {
+    throw new Error('Store not associated with any course');
+  }
+  
+  return coursesSnapshot.docs[0].id;
+}
+
+/**
  * Link Gemini store to shared course
  * NEW: Store is attached to course, not user
+ * Also auto-enrolls the user who creates the store
  */
 async function linkStoreToCourse(courseId, storeName, userId) {
+  // Update course with store info
   await db.collection('courses').doc(courseId).update({
     fileSearchStoreName: storeName,
     storeCreatedAt: admin.firestore.FieldValue.serverTimestamp(),
     storeCreatedBy: userId  // Track who created it
   });
   
-  logger.info('Store linked to course', { courseId, storeName, userId });
-}
-
-/**
- * DEPRECATED: Old user-owned store verification
- * Kept for backward compatibility during migration
- */
-async function verifyStoreOwnership(userId, storeName) {
-  const storeDoc = await db
+  // Auto-enroll user who creates the store (implicit enrollment)
+  await db
     .collection('users').doc(userId)
-    .collection('fileSearchStores').doc(storeName)
-    .get();
+    .collection('enrollments').doc(courseId)
+    .set({
+      enrolledAt: admin.firestore.FieldValue.serverTimestamp(),
+      enrolledBy: 'system', // Auto-enrolled when creating store
+      role: 'creator'
+    }, { merge: true });
   
-  if (!storeDoc.exists) {
-    throw new Error('Unauthorized: Store not found or you do not have access');
-  }
-  
-  return storeDoc.data();
+  logger.info('Store linked to course and user auto-enrolled', { courseId, storeName, userId });
 }
 
 // ==================== FILE SEARCH STORE MANAGEMENT ====================
@@ -118,23 +130,31 @@ async function verifyStoreOwnership(userId, storeName) {
  * Create a File Search store for a course (SHARED)
  * NEW: Creates ONE shared store per course, not per user
  * First user to request creates it, subsequent users use the same store
+ * Auto-enrolls user and creates course document if needed
  */
 exports.createCourseStore = onCall(async (request) => {
   try {
-    const { courseId, userId, displayName } = request.data;
+    const { courseId, userId, displayName, courseName } = request.data;
 
     if (!courseId || !userId) {
       throw new Error('courseId and userId are required');
     }
 
-    // Verify user is enrolled in this course
-    await verifyEnrollment(userId, courseId);
-    
-    // Check if store already exists for this course
-    const courseDoc = await db.collection('courses').doc(courseId).get();
+    // Check if course exists, create if not
+    let courseDoc = await db.collection('courses').doc(courseId).get();
     
     if (!courseDoc.exists) {
-      throw new Error('Course not found');
+      // Create course document
+      await db.collection('courses').doc(courseId).set({
+        courseId: courseId,
+        courseName: courseName || displayName || `Course ${courseId}`,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdBy: userId,
+        pdfCount: 0,
+        totalSize: 0
+      });
+      logger.info('Course document created', { courseId, userId });
+      courseDoc = await db.collection('courses').doc(courseId).get();
     }
     
     const existingStore = courseDoc.data().fileSearchStoreName;
@@ -190,51 +210,8 @@ exports.createCourseStore = onCall(async (request) => {
 });
 
 /**
- * DEPRECATED: Old user-owned store creation
- * Kept for backward compatibility
- */
-exports.createStore = onCall(async (request) => {
-  logger.warn('createStore is deprecated, use createCourseStore instead');
-  
-  try {
-    const { displayName, userId } = request.data;
-
-    if (!displayName || !userId) {
-      throw new Error('displayName and userId are required');
-    }
-
-    const response = await fetch(
-      `${GEMINI_API_ENDPOINT}/fileSearchStores?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName })
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Create store failed: ${error}`);
-    }
-
-    const store = await response.json();
-    
-    logger.info('File Search store created (legacy)', { storeName: store.name, userId });
-
-    return {
-      success: true,
-      store: store
-    };
-
-  } catch (error) {
-    logger.error('Create store error:', error);
-    throw new Error(error.message);
-  }
-});
-
-/**
  * Get a File Search store by name
- * Verifies user owns the store
+ * Verifies user is enrolled in the course
  */
 exports.getStore = onCall(async (request) => {
   try {
@@ -244,8 +221,9 @@ exports.getStore = onCall(async (request) => {
       throw new Error('storeName and userId are required');
     }
 
-    // Verify ownership
-    await verifyStoreOwnership(userId, storeName);
+    // Get courseId from store and verify enrollment
+    const courseId = await getCourseIdFromStore(storeName);
+    await verifyEnrollment(userId, courseId);
 
     const response = await fetch(
       `${GEMINI_API_ENDPOINT}/${storeName}?key=${GEMINI_API_KEY}`,
@@ -271,8 +249,8 @@ exports.getStore = onCall(async (request) => {
 });
 
 /**
- * List all File Search stores owned by user
- * Returns stores from Firestore (user's stores only)
+ * List all courses user is enrolled in
+ * Returns course stores based on enrollment
  */
 exports.listStores = onCall(async (request) => {
   try {
@@ -282,21 +260,33 @@ exports.listStores = onCall(async (request) => {
       throw new Error('userId is required');
     }
 
-    // Get user's stores from Firestore
-    const storesSnapshot = await db
+    // Get user's enrollments
+    const enrollmentsSnapshot = await db
       .collection('users').doc(userId)
-      .collection('fileSearchStores')
+      .collection('enrollments')
       .get();
 
     const stores = [];
-    storesSnapshot.forEach(doc => {
-      stores.push({
-        name: doc.id,
-        ...doc.data()
-      });
-    });
+    
+    // Get course data for each enrollment
+    for (const enrollDoc of enrollmentsSnapshot.docs) {
+      const courseId = enrollDoc.id;
+      const courseDoc = await db.collection('courses').doc(courseId).get();
+      
+      if (courseDoc.exists) {
+        const courseData = courseDoc.data();
+        if (courseData.fileSearchStoreName) {
+          stores.push({
+            courseId: courseId,
+            courseName: courseData.courseName,
+            storeName: courseData.fileSearchStoreName,
+            createdAt: courseData.storeCreatedAt
+          });
+        }
+      }
+    }
 
-    logger.info('User stores retrieved', { userId, count: stores.length });
+    logger.info('User course stores retrieved', { userId, count: stores.length });
 
     return {
       success: true,
@@ -311,7 +301,7 @@ exports.listStores = onCall(async (request) => {
 
 /**
  * Delete a File Search store
- * Verifies user owns the store
+ * Verifies user is enrolled in the course (only course creator can delete)
  */
 exports.deleteStore = onCall(async (request) => {
   try {
@@ -321,8 +311,15 @@ exports.deleteStore = onCall(async (request) => {
       throw new Error('storeName and userId are required');
     }
 
-    // Verify ownership
-    await verifyStoreOwnership(userId, storeName);
+    // Get courseId and verify enrollment
+    const courseId = await getCourseIdFromStore(storeName);
+    await verifyEnrollment(userId, courseId);
+    
+    // Verify user is course creator
+    const courseDoc = await db.collection('courses').doc(courseId).get();
+    if (courseDoc.data().createdBy !== userId) {
+      throw new Error('Only course creator can delete the store');
+    }
 
     const response = await fetch(
       `${GEMINI_API_ENDPOINT}/${storeName}?key=${GEMINI_API_KEY}`,
@@ -334,11 +331,12 @@ exports.deleteStore = onCall(async (request) => {
       throw new Error(`Delete store failed: ${error}`);
     }
 
-    // Remove ownership record from Firestore
-    await db
-      .collection('users').doc(userId)
-      .collection('fileSearchStores').doc(storeName)
-      .delete();
+    // Remove store reference from course
+    await db.collection('courses').doc(courseId).update({
+      fileSearchStoreName: admin.firestore.FieldValue.delete(),
+      storeCreatedAt: admin.firestore.FieldValue.delete(),
+      storeCreatedBy: admin.firestore.FieldValue.delete()
+    });
 
     logger.info('Store deleted', { storeName, userId });
 
@@ -355,7 +353,7 @@ exports.deleteStore = onCall(async (request) => {
 /**
  * Upload a PDF directly to File Search store
  * Automatically chunks, embeds, and indexes the document
- * Verifies user owns the store
+ * Verifies user is enrolled in the course
  */
 exports.uploadToStore = onCall(async (request) => {
   try {
@@ -365,8 +363,9 @@ exports.uploadToStore = onCall(async (request) => {
       throw new Error('storeName, fileData, fileName, and userId are required');
     }
 
-    // Verify ownership
-    await verifyStoreOwnership(userId, storeName);
+    // Get courseId and verify enrollment
+    const courseId = await getCourseIdFromStore(storeName);
+    await verifyEnrollment(userId, courseId);
 
     // Step 1: Initialize resumable upload
     const uploadMetadata = {
@@ -449,12 +448,11 @@ exports.uploadToStore = onCall(async (request) => {
       throw new Error(`Document processing failed or timed out. State: ${document.state}`);
     }
 
-    // Update document count in Firestore
+    // Update document count in course document
     await db
-      .collection('users').doc(userId)
-      .collection('fileSearchStores').doc(storeName)
+      .collection('courses').doc(courseId)
       .update({
-        documentCount: admin.firestore.FieldValue.increment(1),
+        pdfCount: admin.firestore.FieldValue.increment(1),
         lastUploadAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
@@ -477,7 +475,7 @@ exports.uploadToStore = onCall(async (request) => {
 
 /**
  * List documents in a File Search store
- * Verifies user owns the store
+ * Verifies user is enrolled in the course
  */
 exports.listDocuments = onCall(async (request) => {
   try {
@@ -487,8 +485,9 @@ exports.listDocuments = onCall(async (request) => {
       throw new Error('storeName and userId are required');
     }
 
-    // Verify ownership
-    await verifyStoreOwnership(userId, storeName);
+    // Get courseId and verify enrollment
+    const courseId = await getCourseIdFromStore(storeName);
+    await verifyEnrollment(userId, courseId);
 
     let url = `${GEMINI_API_ENDPOINT}/${storeName}/documents?pageSize=${pageSize}&key=${GEMINI_API_KEY}`;
     if (pageToken) {
@@ -518,7 +517,7 @@ exports.listDocuments = onCall(async (request) => {
 
 /**
  * Delete a document from File Search store
- * Verifies user owns the store
+ * Verifies user is enrolled in the course
  */
 exports.deleteDocument = onCall(async (request) => {
   try {
@@ -528,8 +527,9 @@ exports.deleteDocument = onCall(async (request) => {
       throw new Error('documentName, storeName, and userId are required');
     }
 
-    // Verify ownership
-    await verifyStoreOwnership(userId, storeName);
+    // Get courseId and verify enrollment
+    const courseId = await getCourseIdFromStore(storeName);
+    await verifyEnrollment(userId, courseId);
 
     const response = await fetch(
       `${GEMINI_API_ENDPOINT}/${documentName}?key=${GEMINI_API_KEY}`,
@@ -541,12 +541,11 @@ exports.deleteDocument = onCall(async (request) => {
       throw new Error(`Delete document failed: ${error}`);
     }
 
-    // Update document count in Firestore
+    // Update document count in course document
     await db
-      .collection('users').doc(userId)
-      .collection('fileSearchStores').doc(storeName)
+      .collection('courses').doc(courseId)
       .update({
-        documentCount: admin.firestore.FieldValue.increment(-1)
+        pdfCount: admin.firestore.FieldValue.increment(-1)
       });
 
     logger.info('Document deleted', { documentName, storeName, userId });
@@ -718,8 +717,9 @@ exports.queryWithFileSearch = onCall(async (request) => {
       throw new Error('question, storeName, and userId are required');
     }
 
-    // Use old verification for backward compatibility
-    await verifyStoreOwnership(userId, storeName);
+    // Get courseId and verify enrollment
+    const courseId = await getCourseIdFromStore(storeName);
+    await verifyEnrollment(userId, courseId);
 
     // Build request with File Search tool
     const requestBody = {

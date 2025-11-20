@@ -10,7 +10,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
  */
 class GeminiCloudClient {
   constructor(firebaseApp) {
-    this.functions = getFunctions(firebaseApp);
+    this.functions = getFunctions(firebaseApp, 'europe-north1');
   }
 
   /**

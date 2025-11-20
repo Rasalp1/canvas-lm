@@ -25,6 +25,17 @@ let chatSection, chatMessages, chatInput, sendChatBtn;
 let currentUser = null;
 let conversationHistory = [];
 
+// Helper function to convert base64 to blob
+function base64ToBlob(base64, mimeType = 'application/pdf') {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+}
+
 // Canvas URL detection and course extraction
 class CanvasDetector {
   static isCanvasURL(url) {
@@ -696,13 +707,20 @@ async function saveFoundPDFsToFirestore() {
       try {
         status.textContent = `📤 Uploading ${i + 1}/${pdfs.length}: ${pdf.title}...`;
         
-        // Download PDF from Canvas
-        const pdfResponse = await fetch(pdf.url);
-        if (!pdfResponse.ok) {
-          throw new Error(`Failed to download PDF: ${pdfResponse.status}`);
+        // Download PDF from Canvas via background script (avoids CORS)
+        console.log(`📥 Requesting PDF blob from background: ${pdf.url}`);
+        const blobResponse = await chrome.runtime.sendMessage({
+          action: 'FETCH_PDF_BLOB',
+          url: pdf.url
+        });
+        
+        if (!blobResponse.success) {
+          throw new Error(`Failed to download PDF: ${blobResponse.error}`);
         }
         
-        const pdfBlob = await pdfResponse.blob();
+        // Convert base64 back to blob
+        const pdfBlob = base64ToBlob(blobResponse.base64Data, blobResponse.mimeType);
+        console.log(`✅ Received PDF blob: ${pdfBlob.size} bytes`);
         
         // Upload to File Search store with metadata
         const uploadResult = await fileSearchManager.uploadToStore(

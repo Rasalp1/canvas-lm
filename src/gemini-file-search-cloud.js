@@ -15,7 +15,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
  */
 class GeminiFileSearchCloudClient {
   constructor(firebaseApp, userId) {
-    this.functions = getFunctions(firebaseApp);
+    this.functions = getFunctions(firebaseApp, 'europe-north1');
     this.userId = userId;
     
     if (!userId) {

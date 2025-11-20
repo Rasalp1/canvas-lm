@@ -30,7 +30,7 @@ const firebaseConfig = {
 // Initialize Firebase (Firestore only - authentication uses Chrome Identity API)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const functions = getFunctions(app);
+const functions = getFunctions(app, 'europe-north1');
 
 // Make available globally for popup.js and other scripts
 window.firebaseApp = app;

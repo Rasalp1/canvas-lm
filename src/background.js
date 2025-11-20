@@ -159,6 +159,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
       
+    case 'FETCH_PDF_BLOB':
+      // Fetch PDF as binary data (blob) with authentication
+      fetchPDFAsBlob(request.url, sender.tab?.id)
+        .then(result => sendResponse({ success: true, ...result }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+      
     case 'OPEN_AND_SCAN_TAB':
       // Open URL in background tab and scan for PDFs
       openAndScanTab(request.url, request.courseId)
@@ -691,6 +698,56 @@ async function openAndScanTab(url, courseId) {
         }
       });
     });
+  });
+}
+
+// Fetch PDF as blob with authentication through background script
+async function fetchPDFAsBlob(url, tabId) {
+  try {
+    console.log(`📥 Background script fetching PDF blob: ${url}`);
+    
+    // Use Chrome's fetch with credentials to access Canvas authenticated resources
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/pdf,application/octet-stream,*/*',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    // Get the blob
+    const blob = await response.blob();
+    
+    // Convert blob to base64 for transfer
+    const base64 = await blobToBase64(blob);
+    
+    console.log(`✅ PDF blob fetched: ${blob.size} bytes`);
+    
+    return {
+      base64Data: base64,
+      mimeType: blob.type || 'application/pdf',
+      size: blob.size
+    };
+  } catch (error) {
+    console.error(`❌ Error fetching PDF blob:`, error);
+    throw error;
+  }
+}
+
+// Helper function to convert blob to base64
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // Result includes "data:mime/type;base64," prefix, we only want the base64 part
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
 }
 
