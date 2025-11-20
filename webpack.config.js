@@ -7,7 +7,10 @@ module.exports = {
     popup: './src/popup.js',
     background: './src/background.js',
     'content-script': './src/content-script.js',
-    'firebase-config': './src/firebase-config.js'
+    'firebase-config': './src/firebase-config.js',
+    'firestore-helpers': './src/firestore-helpers.js',
+    'gemini-rag': './src/gemini-rag.js',
+    settings: './src/settings.js'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -19,6 +22,7 @@ module.exports = {
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
         { from: 'popup.html', to: 'popup.html' },
+        { from: 'settings.html', to: 'settings.html' },
         { from: 'styles.css', to: 'styles.css' },
         { from: 'smart-navigator.js', to: 'smart-navigator.js' },
         { from: 'state-management.js', to: 'state-management.js' },

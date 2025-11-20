@@ -25,6 +25,10 @@
           </div>
           <button id="logout-btn" class="secondary-btn">Logout</button>
         </div>
+        <!-- User stats section -->
+        <div id="user-stats" class="info-box" style="margin-top: 10px;">
+          <small id="stats-text">📊 Loading your stats...</small>
+        </div>
       </div>
     </div>
     
@@ -47,13 +51,13 @@
       
       <div id="scan-section" class="scan-section">
         <h4>🧭 Smart Navigation System</h4>
-        <p class="scan-help">Intelligently navigates through your entire course structure to discover ALL PDFs!</p>
-        <p class="scan-features">✅ Expands all modules ✅ Visits pages & assignments ✅ Explores file sections ✅ Automatic download</p>
+        <p class="scan-help">Intelligently navigates through your entire course structure to discover and save ALL PDFs to your knowledge base!</p>
+        <p class="scan-features">✅ Expands all modules ✅ Visits pages & assignments ✅ Explores file sections ✅ Saves to cloud database</p>
         <div class="system-badge">
           <span class="badge-active">ACTIVE SYSTEM</span>
           <span class="badge-info">Smart Navigation</span>
         </div>
-        <button id="scanPDFs">🚀 Start Smart Navigation</button>
+        <button id="scanPDFs">🚀 Scan Course & Build Knowledge Base</button>
       </div>
     </div>
     
@@ -64,6 +68,10 @@
 
   <!-- Load Firebase config first -->
   <script src="firebase-config.js"></script>
+  <!-- Load Firestore helpers -->
+  <script src="firestore-helpers.js"></script>
+  <!-- Load Gemini RAG manager -->
+  <script src="gemini-rag.js"></script>
   <!-- Then load popup.js -->
   <script src="popup.js"></script>
 </body>

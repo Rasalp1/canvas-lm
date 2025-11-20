@@ -15,15 +15,15 @@ A Chrome extension that automatically downloads PDFs from Canvas courses and cre
 
 ### System Components (Updated)
 1. **Chrome Extension Frontend** (current minimal structure needs expansion)
-2. **Firebase Authentication** (Google OAuth, user management)
-3. **Firestore Database** (metadata storage, chat history)
+2. **Chrome Identity API** (Chrome profile authentication, user identification)
+3. **Firestore Database** (metadata storage, chat history, user data)
 4. **Google Gemini File Search** (PDF storage, indexing, RAG queries)
 5. **Cloud Functions** (optional, for complex operations only)
 6. **Canvas API Integration** (course detection, PDF extraction)
 
 ### Data Flow (Updated)
 ```
-Canvas Page → Extension Detects PDFs → Firebase Auth Check → 
+Canvas Page → Extension Detects PDFs → Chrome Identity Check → 
 → Direct Gemini API Calls → Upload PDFs → 
 → Store Metadata in Firestore → Enable RAG Chat Interface
 ```
@@ -34,12 +34,11 @@ Canvas Page → Extension Detects PDFs → Firebase Auth Check →
 - [ ] Create new Google Cloud project
 - [ ] Enable required APIs:
   - [ ] Gemini API (AI Platform)
-  - [ ] Firebase Authentication API
   - [ ] Firestore API
   - [ ] Cloud Storage API (if needed for temporary files)
 - [ ] Set up Firebase project (can be same as GCloud project)
-- [ ] Enable Google OAuth in Firebase Authentication
-- [ ] Configure OAuth consent screen
+- [ ] Configure Chrome extension with identity permissions
+- [ ] Note: Authentication uses Chrome Identity API, not Firebase Auth
 
 ### 1.2 Firestore Database Schema
 ```javascript
@@ -172,11 +171,18 @@ class CanvasScanner {
 
 ## 📦 Phase 3: Direct API Integration (Week 3-4)
 
-### 3.1 Firebase Authentication Setup
+### 3.1 Chrome Identity Authentication Setup
+
+**Important: Chrome extensions cannot use Firebase Authentication** because:
+- Firebase Auth requires popup-based OAuth flows
+- Chrome extension popups close when focus is lost
+- OAuth redirects don't work in extension context
+
+**Solution: Use Chrome Identity API instead**
+
 ```javascript
-// firebase-config.js
+// firebase-config.js (Firestore only - no auth)
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -184,9 +190,39 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
+export const db = getFirestore(app); // Only Firestore, no auth
+```
+
+```javascript
+// popup.js - Chrome Identity authentication
+async function getUserProfile() {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getProfileUserInfo((userInfo) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(userInfo);
+      }
+    });
+  });
+}
+
+async function checkUserSignedIn() {
+  const userInfo = await getUserProfile();
+  if (userInfo && userInfo.email) {
+    // User is signed into Chrome - use their profile
+    currentUser = {
+      email: userInfo.email,
+      id: userInfo.id,
+      displayName: userInfo.email.split('@')[0]
+    };
+    // Store user info in Firestore
+    await setDoc(doc(db, 'users', userInfo.id), {
+      email: userInfo.email,
+      lastSeenAt: Timestamp.now()
+    }, { merge: true });
+  }
+}
 ```
 
 ### 3.2 Direct Gemini API Calls from Extension
@@ -212,22 +248,24 @@ class GeminiService {
 
 ### 3.3 Chrome Extension API Management
 
-- [ ] Create authentication flow with Firebase
+- [ ] Create authentication flow with Chrome Identity API
 - [ ] Handle Canvas API token encryption
 - [ ] Implement automatic token refresh
 - [ ] Add offline capability with local storage fallback
+- [ ] Note: User must be signed into Chrome browser for authentication to work
 
 ### 3.4 Why This Approach is Better
 
 #### Simplified Architecture
-- **Fewer moving parts**: Chrome Extension ↔ Firebase ↔ Gemini API
+- **Fewer moving parts**: Chrome Extension ↔ Firestore ↔ Gemini API
 - **No custom backend code** to maintain
 - **Single vendor ecosystem** (Google) for better integration
+- **Chrome Identity API** - no separate auth server needed
 
 #### Performance Benefits
 - **Direct API calls** = lower latency
 - **No proxy overhead** from edge functions
-- **Built-in Firebase caching** for auth and data
+- **Built-in Firebase caching** for Firestore data
 
 #### Cost Optimization
 - **No server costs** for Supabase edge functions
@@ -236,8 +274,9 @@ class GeminiService {
 
 #### Security Advantages
 - **Firebase Security Rules** for data access control
-- **Built-in Google OAuth** with robust security
+- **Chrome Identity API** leverages existing Chrome authentication
 - **Client-side encryption** for sensitive data before storage
+- **No OAuth popup issues** - uses browser's built-in authentication
 
 ## 📦 Phase 4: Extension UI Overhaul (Week 4-5)
 
@@ -478,7 +517,7 @@ const firebaseConfig = {
 
 ### Phase 3: Firebase & Gemini API Integration
 1. **Set up Firebase project** - Create Google Cloud/Firebase project
-2. **Enable required APIs** - Firebase Auth, Firestore, Gemini API
+2. **Enable required APIs** - Firestore, Gemini API (Auth uses Chrome Identity, not Firebase)
 3. **Configure Firestore database** - Set up collections and security rules
 4. **Update extension manifest** - Add Firebase/Gemini permissions
 5. **Implement authentication** - Google OAuth sign-in flow
@@ -489,7 +528,7 @@ const firebaseConfig = {
 ### Simplified Development
 - **Single vendor ecosystem** - All Google services work seamlessly together
 - **No backend server code** - Direct API calls from extension
-- **Built-in integrations** - Firebase Auth + Firestore + Gemini API
+- **Built-in integrations** - Chrome Identity + Firestore + Gemini API
 - **Faster development** - Fewer dependencies and moving parts
 
 ### Better Performance  

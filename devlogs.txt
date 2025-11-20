@@ -1,0 +1,233 @@
+Canvas RAG Assistant: Development mode detected
+background.js:1 Canvas RAG Assistant installed/updated: update
+background.js:1 Canvas RAG Assistant updated to version: 1.0
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507111
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507111
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507112
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507112
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507113
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507113
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507114
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507114
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507115
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507115
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507116
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507116
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507117
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507117
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507118
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507118
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507119
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507119
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507120
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507120
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507121
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507121
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507122
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507122
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507123
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507123
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507124
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507124
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507125
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507125
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507126
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507126
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507127
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507127
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507128
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507128
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507129
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507129
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507130
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507130
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/modules
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732272
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 20 PDFs in background tab: https://canvas.education.lu.se/courses/36072/modules
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/files
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732276
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 20 PDFs in background tab: https://canvas.education.lu.se/courses/36072/files
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/pages
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732280
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/36072/pages
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/assignments
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732284
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/36072/assignments
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/assignments/syllabus
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732288
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/36072/assignments/syllabus
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/assignments/247039
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732292
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 1 PDFs in background tab: https://canvas.education.lu.se/courses/36072/assignments/247039
+background.js:1 Background received message: Object
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/36072/syllabus
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 Canvas course detected: 36072 on tab 1790732296
+background.js:1 Background received message: Object
+background.js:1 Storage changed in local : Object
+background.js:1 Course info stored: Object
+background.js:1 ✓ Content script ready on background tab
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/36072/syllabus
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507111
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507111
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507112
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507112
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507113
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507113
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507114
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507114
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507115
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507115
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507116
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507116
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507117
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507117
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507118
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507118
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507119
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507119
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507120
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507120
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507121
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507121
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507122
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507122
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507123
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507123
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507124
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507124
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507125
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507125
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507126
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507126
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507127
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507127
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507128
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507128
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507129
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507129
+background.js:1 Background received message: Object
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/36072/modules/items/1507130
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/36072/modules/items/1507130
+background.js:1 Background received message: Object
+background.js:1 Found 40 PDFs in course 36072: Array(40)
+background.js:1 Background received message: Object
+background.js:1 Crawler completed: Object
+background.js:1 Storage changed in local : Object
+firebase-config.js:2 ✅ Firebase initialized (Firestore only)
+firestore-helpers.js:1 ✅ Firestore helpers loaded and available at window.firestoreHelpers
+popup.js:1 DOMContentLoaded fired
+popup.js:1 Firebase initialized and helpers loaded
+popup.js:1 DOM elements found: Object
+popup.js:1 Setting up event listeners...
+popup.js:1 Calling checkCurrentPage...
+popup.js:1 checkCurrentPage called
+popup.js:1 Status element: <p id=​"status">​✅ Canvas course detected!​</p>​
+popup.js:1 Starting chrome.tabs.query...
+popup.js:1 Chrome profile info: Object
+popup.js:1 UI updated for signed-in user: rasmus.alpsten@gmail.com
+popup.js:1 chrome.tabs.query result: Array(1)
+popup.js:1 Got tab: Object
+popup.js:1 Tab URL: https://canvas.education.lu.se/courses/36072
+popup.js:1 Tab title: MIOF30 - Optimering och simulering HT25 LP1
+popup.js:1 Trying to get course info from content script...
+popup.js:1 Content script response: Object
+popup.js:1 Canvas course detected via content script!
+popup.js:1 checkCurrentPage completed
+firestore-helpers.js:1 ✅ Retrieved 1 courses for user: 108448961221190225241
+firestore-helpers.js:1 ✅ User saved to Firestore: 108448961221190225241
+popup.js:1 User data saved to Firestore via helper
+firestore-helpers.js:1 ✅ Retrieved 20 documents for course: 36072
+firestore-helpers.js:1 ✅ User stats calculated: {totalCourses: 1, totalPDFs: 20, totalSize: 0}

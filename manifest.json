@@ -6,11 +6,11 @@
   "action": {
     "default_popup": "popup.html"
   },
+  "options_page": "settings.html",
   "permissions": [
     "scripting",
     "activeTab",
     "storage",
-    "downloads",
     "tabs",
     "identity",
     "identity.email"

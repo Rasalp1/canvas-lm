@@ -1,6 +1,19 @@
 // Import Firebase from npm
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  Timestamp 
+} from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -13,15 +26,29 @@ const firebaseConfig = {
   measurementId: "G-3C6JSYRG67"
 };
 
-// Initialize Firebase (Firestore only for storing PDFs and data)
+// Initialize Firebase (Firestore only - authentication uses Chrome Identity API)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Make available globally for popup.js
+// Make available globally for popup.js and other scripts
 window.firebaseDb = db;
 window.firebaseModules = {
+  // Basic operations
   doc,
   setDoc,
   getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  
+  // Query operations
+  collection,
+  query,
+  where,
+  orderBy,
+  
+  // Utilities
   Timestamp
 };
+
+console.log('✅ Firebase initialized (Firestore only)');

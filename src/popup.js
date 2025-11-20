@@ -1,23 +1,15 @@
 // popup.js - Canvas RAG Assistant popup functionality
 
-// Wait for Firebase to initialize
-let db, doc, setDoc, getDoc, Timestamp;
+// Firestore helpers will be accessed via window.firestoreHelpers after scripts load
+// We'll destructure them after Firebase initializes
 
-// Helper to wait for Firebase
-function waitForFirebase() {
-  return new Promise((resolve) => {
-    const checkFirebase = () => {
-      if (window.firebaseDb && window.firebaseModules) {
-        db = window.firebaseDb;
-        ({ doc, setDoc, getDoc, Timestamp } = window.firebaseModules);
-        resolve();
-      } else {
-        setTimeout(checkFirebase, 50);
-      }
-    };
-    checkFirebase();
-  });
-}
+// Get Firebase db reference
+let db;
+
+// Helper functions (will be assigned after firestore-helpers.js loads)
+let saveUser, getUser, saveCourse, getCourse, getUserCourses, updateCoursePdfCount;
+let saveDocument, saveDocuments, getCourseDocuments, updateDocumentStatus;
+let getUserStats, getCourseStats, waitForFirebase, isFirebaseReady;
 
 // Global variables for DOM elements (will be initialized after DOM loads)
 let detectBtn, scanBtn, status, result, courseInfo, courseDetails;
@@ -346,26 +338,26 @@ function setupEventListeners() {
               if (step === 'complete' || step === 'Completed' || step.includes('Completing')) {
                 // Crawler finished, now download PDFs
                 status.textContent = '✅ Crawler completed successfully - downloading PDFs...';
-                await downloadFoundPDFs();
+                await saveFoundPDFsToFirestore();
               } else if (step.includes('error') || step.includes('Error')) {
                 status.textContent = '❌ Crawler encountered an error';
                 // Still try to download any PDFs found
                 if (found > 0) {
-                  await downloadFoundPDFs();
+                  await saveFoundPDFsToFirestore();
                 }
                 resetScanButton();
               } else if (step === 'stopped') {
                 status.textContent = '⏹️ Crawler was stopped';
                 // Still try to download any PDFs found
                 if (found > 0) {
-                  await downloadFoundPDFs();
+                  await saveFoundPDFsToFirestore();
                 }
                 resetScanButton();
               } else {
                 // Unknown completion state, but if we found PDFs, download them
                 if (found > 0) {
                   status.textContent = `✅ Crawler finished - downloading ${found} PDFs...`;
-                  await downloadFoundPDFs();
+                  await saveFoundPDFsToFirestore();
                 } else {
                   status.textContent = '⚠️ Crawler finished but found no PDFs';
                   resetScanButton();
@@ -384,7 +376,7 @@ function setupEventListeners() {
             console.log('Content script communication lost, checking for PDFs...');
             clearInterval(monitorInterval);
             status.textContent = '🔍 Crawler completed - checking for PDFs...';
-            await downloadFoundPDFs();
+            await saveFoundPDFsToFirestore();
             resetScanButton();
           } else {
             // Other error - wait a bit and try again (up to 3 times)
@@ -392,7 +384,7 @@ function setupEventListeners() {
             if (monitorErrorCount >= 3) {
               clearInterval(monitorInterval);
               status.textContent = '❌ Lost connection to crawler';
-              await downloadFoundPDFs();
+              await saveFoundPDFsToFirestore();
               resetScanButton();
             }
           }
@@ -405,7 +397,7 @@ function setupEventListeners() {
           await chrome.tabs.sendMessage(tab.id, { action: 'stopAutoCrawl' });
           clearInterval(monitorInterval);
           status.textContent = '⏰ Crawler timed out - downloading found PDFs...';
-          await downloadFoundPDFs();
+          await saveFoundPDFsToFirestore();
         } catch (err) {
           console.error('Timeout error:', err);
         }
@@ -428,9 +420,59 @@ let currentCourseData = null;
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded fired');
   
-  // Wait for Firebase to be ready
-  await waitForFirebase();
-  console.log('Firebase initialized');
+  // Wait for Firebase to be ready (using temporary function)
+  await (async function waitForFirebaseTemp() {
+    const startTime = Date.now();
+    while (!window.firebaseDb || !window.firestoreHelpers) {
+      if (Date.now() - startTime > 5000) {
+        throw new Error('Firebase initialization timeout');
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  })();
+  
+  db = window.firebaseDb;
+  
+  // Destructure Firestore helper functions
+  ({
+    saveUser,
+    getUser,
+    saveCourse,
+    getCourse,
+    getUserCourses,
+    updateCoursePdfCount,
+    saveDocument,
+    saveDocuments,
+    getCourseDocuments,
+    updateDocumentStatus,
+    getUserStats,
+    getCourseStats,
+    waitForFirebase,
+    isFirebaseReady
+  } = window.firestoreHelpers);
+  
+  console.log('Firebase initialized and helpers loaded');
+  
+  // Listen for crawl completion messages from background script
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('📬 Popup received message:', message);
+    
+    if (message.type === 'PDF_SCAN_COMPLETE') {
+      console.log('🎉 PDF_SCAN_COMPLETE received! PDFs found:', message.pdfCount);
+      console.log('🚀 Calling saveFoundPDFsToFirestore()...');
+      
+      // PDFs are now stored in chrome.storage, safe to save to Firestore
+      saveFoundPDFsToFirestore().then(() => {
+        console.log('✅ saveFoundPDFsToFirestore() completed successfully');
+      }).catch(err => {
+        console.error('❌ Error in saveFoundPDFsToFirestore:', err);
+      });
+      
+      sendResponse({ received: true });
+    }
+    
+    return true; // Keep listener active for async response
+  });
   
   // Initialize Firebase Auth first
   initializeAuth();
@@ -472,64 +514,103 @@ document.addEventListener('DOMContentLoaded', async () => {
 function resetScanButton() {
   if (scanBtn) {
     scanBtn.classList.remove('loading');
-    scanBtn.textContent = 'Start Enhanced Course Crawl';
+    scanBtn.textContent = '🚀 Scan Course & Build Knowledge Base';
     scanBtn.disabled = false;
   }
 }
 
-async function downloadFoundPDFs() {
-  // Prevent multiple simultaneous downloads
-  if (downloadFoundPDFs.isDownloading) {
-    console.log('Download already in progress, skipping...');
+async function saveFoundPDFsToFirestore() {
+  console.log('📥 saveFoundPDFsToFirestore() called');
+  
+  // Prevent multiple simultaneous saves
+  if (saveFoundPDFsToFirestore.isSaving) {
+    console.log('⚠️ Save already in progress, skipping...');
     return;
   }
-  downloadFoundPDFs.isDownloading = true;
+  saveFoundPDFsToFirestore.isSaving = true;
   
   try {
+    console.log('🔍 Checking user sign-in status...');
+    console.log('Current user:', currentUser);
+    console.log('Database:', db ? 'initialized' : 'NOT initialized');
+    
+    // Check if user is signed in
+    if (!currentUser || !db) {
+      console.log('❌ User not signed in or DB not initialized');
+      status.textContent = '❌ Please sign in to Chrome to save PDFs';
+      result.textContent = 'You need to be signed into Chrome browser to save PDFs to your knowledge base.';
+      resetScanButton();
+      return;
+    }
+    
+    console.log('✅ User authenticated, fetching PDFs from storage...');
+    console.log('Looking for key:', `pdfs_${currentCourseData.courseId}`);
+    
     // Get all PDFs found during crawling
     const storedData = await chrome.storage.local.get([`pdfs_${currentCourseData.courseId}`]);
+    console.log('📦 Storage data retrieved:', storedData);
+    
     const pdfs = storedData[`pdfs_${currentCourseData.courseId}`]?.pdfs || [];
+    console.log(`📄 Found ${pdfs.length} PDFs in storage`);
     
     if (pdfs.length === 0) {
+      console.log('⚠️ No PDFs found in storage');
       status.textContent = '❌ No PDFs found during crawl';
       result.textContent = 'The crawler completed but found no PDFs. This could mean:\n• Course has no PDF files\n• PDFs are in restricted areas\n• Course uses external links';
       resetScanButton();
       return;
     }
     
-    status.textContent = `📥 Downloading ${pdfs.length} discovered PDFs...`;
+    console.log(`💾 Preparing to save ${pdfs.length} PDFs to Firestore...`);
+    status.textContent = `💾 Saving ${pdfs.length} discovered PDFs to your knowledge base...`;
     result.textContent = `Crawler found PDFs:\n${pdfs.map(pdf => `• ${pdf.title} (${pdf.type})`).join('\n')}`;
     
-    // Download all PDFs using background script
-    const downloadResult = await chrome.runtime.sendMessage({
-      type: 'DOWNLOAD_PDFS',
-      pdfs: pdfs,
-      courseId: currentCourseData.courseId
+    // Save course information to Firestore
+    console.log('💾 Saving course and PDFs to Firestore...');
+    
+    const courseResult = await saveCourse(db, currentUser.id, {
+      courseId: currentCourseData.courseId,
+      courseName: currentCourseData.courseName,
+      courseCode: currentCourseData.courseCode || '',
+      canvasUrl: currentCourseData.url,
+      pdfCount: pdfs.length
     });
     
-    if (downloadResult.success) {
-      const successful = downloadResult.results.filter(r => r.status === 'success').length;
-      const failed = downloadResult.results.filter(r => r.status === 'failed').length;
+    if (courseResult.success) {
+      console.log('✅ Course saved to Firestore');
       
-      status.textContent = `✅ Enhanced crawl complete: ${successful} PDFs downloaded, ${failed} failed`;
+      // Save all PDF metadata to Firestore (user's dedicated knowledge base)
+      const saveResults = await saveDocuments(db, currentCourseData.courseId, pdfs);
+      const savedCount = saveResults.filter(r => r.success).length;
+      const failedCount = saveResults.filter(r => !r.success).length;
       
-      if (failed > 0) {
-        const failedPdfs = downloadResult.results
-          .filter(r => r.status === 'failed')
-          .map(r => `• ${r.pdf.title}: ${r.error}`)
+      console.log(`✅ Saved ${savedCount}/${pdfs.length} PDF metadata to Firestore`);
+      
+      status.textContent = `✅ Course scan complete: ${savedCount} PDFs saved to your knowledge base`;
+      result.textContent = `📚 Successfully saved to your knowledge base:\n${pdfs.map(pdf => `• ${pdf.title}`).join('\n')}`;
+      
+      if (failedCount > 0) {
+        const failedPdfs = saveResults
+          .filter(r => !r.success)
+          .map(r => `• ${r.fileName}: ${r.error}`)
           .join('\n');
-        result.textContent += `\n\n❌ Failed downloads:\n${failedPdfs}`;
+        result.textContent += `\n\n⚠️ Failed to save:\n${failedPdfs}`;
       }
+      
+      result.textContent += `\n\n💡 Next: These PDFs will be uploaded to Gemini for AI-powered chat (coming soon!)`;
+      
+      // Refresh user stats display
+      await displayUserStats(currentUser.id);
     } else {
-      throw new Error(downloadResult.error);
+      throw new Error(`Failed to save course: ${courseResult.error}`);
     }
     
   } catch (err) {
-    status.textContent = '❌ Error downloading PDFs';
-    result.textContent = `Download error: ${err.message}`;
+    status.textContent = '❌ Error saving PDFs to knowledge base';
+    result.textContent = `Save error: ${err.message}`;
     console.error(err);
   } finally {
-    downloadFoundPDFs.isDownloading = false;
+    saveFoundPDFsToFirestore.isSaving = false;
     resetScanButton();
   }
 }
@@ -564,16 +645,12 @@ async function checkUserSignedIn() {
       
       updateUIForUser(currentUser);
       
-      // Save/update user in Firestore
-      try {
-        await setDoc(doc(db, 'users', userInfo.id), {
-          email: userInfo.email,
-          lastSeenAt: Timestamp.now(),
-          createdAt: Timestamp.now()
-        }, { merge: true });
-        console.log('User data saved to Firestore');
-      } catch (error) {
-        console.error('Error saving user to Firestore:', error);
+      // Save/update user in Firestore using helper function
+      const result = await saveUser(db, userInfo.id, currentUser);
+      if (result.success) {
+        console.log('User data saved to Firestore via helper');
+      } else {
+        console.error('Error saving user to Firestore:', result.error);
       }
     } else {
       // User not signed into Chrome or email not available
@@ -586,7 +663,7 @@ async function checkUserSignedIn() {
   }
 }
 
-function updateUIForUser(user) {
+async function updateUIForUser(user) {
   if (user) {
     // User is signed in to Chrome
     currentUser = user;
@@ -598,6 +675,9 @@ function updateUIForUser(user) {
     userEmail.textContent = user.email;
     
     console.log('UI updated for signed-in user:', user.email);
+    
+    // Load and display user stats
+    await displayUserStats(user.id);
   } else {
     // User is not signed in to Chrome
     currentUser = null;
@@ -605,6 +685,27 @@ function updateUIForUser(user) {
     loggedOutDiv.classList.remove('hidden');
     
     console.log('UI updated for signed-out state');
+  }
+}
+
+async function displayUserStats(userId) {
+  const statsText = document.getElementById('stats-text');
+  if (!statsText || !db) return;
+  
+  try {
+    statsText.textContent = '📊 Loading stats...';
+    
+    const stats = await getUserStats(db, userId);
+    
+    if (stats.success) {
+      const { totalCourses, totalPDFs, totalSizeMB } = stats.data;
+      statsText.textContent = `📊 ${totalCourses} courses • ${totalPDFs} PDFs saved • ${totalSizeMB} MB`;
+    } else {
+      statsText.textContent = '📊 No data yet - scan a course to get started!';
+    }
+  } catch (error) {
+    console.error('Error loading user stats:', error);
+    statsText.textContent = '📊 Stats unavailable';
   }
 }
 

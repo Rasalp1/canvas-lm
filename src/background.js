@@ -104,6 +104,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ received: true });
       break;
       
+    case 'CRAWL_COMPLETE':
+      // Handle crawler completion from content script
+      console.log('🎯 Background received CRAWL_COMPLETE:', request);
+      
+      // Forward to popup so it can save to Firestore
+      console.log('📤 Forwarding CRAWL_COMPLETE to popup...');
+      chrome.runtime.sendMessage({
+        type: 'CRAWL_COMPLETE',
+        courseId: request.courseId,
+        pagesVisited: request.pagesVisited,
+        pdfsFound: request.pdfsFound,
+        visitedUrls: request.visitedUrls
+      }).then(() => {
+        console.log('✅ CRAWL_COMPLETE forwarded to popup successfully');
+      }).catch((err) => {
+        console.log('⚠️ Could not forward to popup (popup may be closed):', err.message);
+      });
+      
+      sendResponse({ received: true });
+      break;
+      
     case 'SMART_CRAWL_COMPLETE':
       // Handle smart navigation crawl completion
       console.log('Smart navigation crawl completed:', request.report);
