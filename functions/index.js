@@ -19,6 +19,7 @@ const {setGlobalOptions} = require('firebase-functions/v2');
 const logger = require('firebase-functions/logger');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
+const https = require('https');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -779,5 +780,91 @@ exports.queryWithFileSearch = onCall(async (request) => {
   } catch (error) {
     logger.error('Query error:', error);
     throw new Error(error.message);
+  }
+});
+
+// ==================== PDF DOWNLOAD PROXY ====================
+
+/**
+ * Proxy function to download PDFs from Canvas
+ * Bypasses CORS by making server-side request with user's session cookies
+ * 
+ * This is the industry-standard solution for cross-origin authenticated downloads:
+ * - Extension passes Canvas session cookies to backend
+ * - Backend makes authenticated request to Canvas
+ * - Backend streams PDF back as base64
+ * - Extension uploads to Google File Search
+ */
+exports.downloadCanvasPdf = onCall(async (request) => {
+  try {
+    const { url, cookies } = request.data;
+
+    if (!url) {
+      throw new Error('url is required');
+    }
+
+    if (!cookies || typeof cookies !== 'object') {
+      throw new Error('cookies object is required');
+    }
+
+    // Validate Canvas URL
+    if (!url.includes('canvas.education.lu.se')) {
+      throw new Error('Invalid Canvas URL');
+    }
+
+    logger.info('Downloading PDF via proxy', { 
+      url: url.substring(0, 100), // Log partial URL for debugging
+      hasCookies: Object.keys(cookies).length > 0 
+    });
+
+    // Convert cookies object to Cookie header string
+    const cookieHeader = Object.entries(cookies)
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; ');
+
+    // Make authenticated request to Canvas
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Cookie': cookieHeader,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        'Accept': 'application/pdf,*/*',
+        'Referer': 'https://canvas.education.lu.se/',
+        'Accept-Language': 'en-US,en;q=0.9'
+      },
+      redirect: 'follow' // Follow redirects automatically
+    });
+
+    if (!response.ok) {
+      throw new Error(`Canvas returned ${response.status}: ${response.statusText}`);
+    }
+
+    // Check content type
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('pdf') && !contentType.includes('octet-stream')) {
+      logger.warn('Unexpected content type', { contentType, url });
+    }
+
+    // Get PDF as buffer
+    const buffer = await response.buffer();
+    
+    // Convert to base64
+    const base64Data = buffer.toString('base64');
+
+    logger.info('PDF downloaded successfully', { 
+      size: buffer.length,
+      contentType 
+    });
+
+    return {
+      success: true,
+      base64Data: base64Data,
+      mimeType: contentType.includes('pdf') ? 'application/pdf' : contentType,
+      size: buffer.length
+    };
+
+  } catch (error) {
+    logger.error('PDF download error:', error);
+    throw new Error(`Failed to download PDF: ${error.message}`);
   }
 });

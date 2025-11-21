@@ -160,8 +160,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
       
     case 'FETCH_PDF_BLOB':
-      // Fetch PDF as binary data (blob) with authentication
-      fetchPDFAsBlob(request.url, sender.tab?.id)
+      // Download PDF using chrome.downloads API (bypasses CORS)
+      downloadPDFAsBlob(request.url)
         .then(result => sendResponse({ success: true, ...result }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
@@ -701,39 +701,65 @@ async function openAndScanTab(url, courseId) {
   });
 }
 
-// Fetch PDF as blob with authentication through background script
-async function fetchPDFAsBlob(url, tabId) {
+// Fetch PDF via Cloud Function proxy (bypasses CORS)
+async function downloadPDFAsBlob(url) {
+  console.log(`📥 Background script requesting PDF via Cloud Function: ${url}`);
+  
   try {
-    console.log(`📥 Background script fetching PDF blob: ${url}`);
+    // Get Canvas cookies to pass to Cloud Function
+    const cookies = await chrome.cookies.getAll({ domain: 'canvas.education.lu.se' });
     
-    // Use Chrome's fetch with credentials to access Canvas authenticated resources
-    const response = await fetch(url, {
-      credentials: 'include',
+    if (cookies.length === 0) {
+      throw new Error('No Canvas cookies found - please make sure you are logged into Canvas');
+    }
+    
+    // Convert cookies array to object
+    const cookiesObj = {};
+    cookies.forEach(cookie => {
+      cookiesObj[cookie.name] = cookie.value;
+    });
+    
+    console.log(`🍪 Found ${cookies.length} Canvas cookies`);
+    
+    // Call Cloud Function using direct HTTP fetch (service worker compatible)
+    const cloudFunctionUrl = 'https://europe-north1-canvas-lm.cloudfunctions.net/downloadCanvasPdf';
+    
+    console.log(`☁️ Calling Cloud Function to download PDF...`);
+    
+    const response = await fetch(cloudFunctionUrl, {
+      method: 'POST',
       headers: {
-        'Accept': 'application/pdf,application/octet-stream,*/*',
-      }
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        data: {
+          url: url,
+          cookies: cookiesObj
+        }
+      })
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Cloud Function HTTP ${response.status}: ${errorText}`);
     }
     
-    // Get the blob
-    const blob = await response.blob();
+    const result = await response.json();
     
-    // Convert blob to base64 for transfer
-    const base64 = await blobToBase64(blob);
+    if (!result.result.success) {
+      throw new Error(result.result.error || 'Cloud Function failed');
+    }
     
-    console.log(`✅ PDF blob fetched: ${blob.size} bytes`);
+    console.log(`✅ PDF downloaded via Cloud Function: ${result.result.size} bytes`);
     
     return {
-      base64Data: base64,
-      mimeType: blob.type || 'application/pdf',
-      size: blob.size
+      base64Data: result.result.base64Data,
+      mimeType: result.result.mimeType,
+      size: result.result.size
     };
   } catch (error) {
-    console.error(`❌ Error fetching PDF blob:`, error);
-    throw error;
+    console.error(`❌ Failed to download PDF from ${url}:`, error);
+    throw new Error(`Failed to download PDF: ${error.message}`);
   }
 }
 
