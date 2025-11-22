@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Canvas RAG Assistant",
+  "name": "Canvas LM",
   "version": "1.0",
   "description": "Extract PDFs from Canvas courses and chat with course materials using AI.",
   "action": {
@@ -45,5 +45,11 @@
   ],
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

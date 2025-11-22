@@ -55,6 +55,181 @@ class CanvasDetector {
 
 // This DOMContentLoaded listener is removed - we use the comprehensive one below
 
+// Detect if we're in tab mode or popup mode
+async function detectViewMode() {
+  try {
+    // Check if the URL is a chrome-extension:// URL
+    // When opened as a tab, the URL will be chrome-extension://...
+    // When opened as a popup, the URL is also chrome-extension but we can check other factors
+    
+    // Most reliable way: check if we're in a popup view
+    const views = chrome.extension.getViews({ type: 'popup' });
+    const isPopupView = views.includes(window);
+    
+    console.log('View detection:', {
+      url: window.location.href,
+      isPopupView,
+      popupViewsCount: views.length,
+      windowWidth: window.innerWidth
+    });
+    
+    // If we're explicitly a popup view, return false
+    if (isPopupView) {
+      return false; // popup mode
+    }
+    
+    // If we're not a popup view, we must be in a tab
+    return true; // tab mode
+  } catch (error) {
+    console.error('Error detecting view mode:', error);
+    return false;
+  }
+}
+
+// Show course selector for tab mode
+async function showCourseSelector() {
+  const courseSelector = document.getElementById('course-selector');
+  const canvasDetection = document.getElementById('canvas-detection');
+  const courseList = document.getElementById('course-list');
+  
+  if (!courseSelector || !canvasDetection || !courseList) {
+    console.error('Course selector elements not found');
+    return;
+  }
+  
+  // Hide canvas detection, show course selector
+  canvasDetection.classList.add('hidden');
+  courseSelector.classList.remove('hidden');
+  
+  if (!currentUser) {
+    courseList.innerHTML = '<p class="loading-courses">Please sign in to view your courses.</p>';
+    return;
+  }
+  
+  try {
+    // Get user's enrolled courses
+    const courses = await getUserCourses(currentUser.uid);
+    
+    if (!courses || courses.length === 0) {
+      courseList.innerHTML = `
+        <div class="alert alert-info">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <small>No courses found. Visit a Canvas course page and scan it first to add courses to your library.</small>
+        </div>
+      `;
+      return;
+    }
+    
+    // Render course items
+    courseList.innerHTML = courses.map(course => `
+      <div class="course-item" data-course-id="${course.courseId}">
+        <div class="course-item-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 3H8C9.06087 3 10.0783 3.42143 10.8284 4.17157C11.5786 4.92172 12 5.93913 12 7V21C12 20.2044 11.6839 19.4413 11.1213 18.8787C10.5587 18.3161 9.79565 18 9 18H2V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 3H16C14.9391 3 13.9217 3.42143 13.1716 4.17157C12.4214 4.92172 12 5.93913 12 7V21C12 20.2044 12.3161 19.4413 12.8787 18.8787C13.4413 18.3161 14.2044 18 15 18H22V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="course-item-details">
+          <div class="course-item-name">${course.courseName || 'Untitled Course'}</div>
+          <div class="course-item-meta">
+            <span class="course-item-badge">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              ${course.pdfCount || 0} PDFs
+            </span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Add click handlers
+    document.querySelectorAll('.course-item').forEach(item => {
+      item.addEventListener('click', async () => {
+        const courseId = item.dataset.courseId;
+        const course = courses.find(c => c.courseId === courseId);
+        if (course) {
+          await selectCourse(course);
+        }
+      });
+    });
+    
+  } catch (error) {
+    console.error('Error loading courses:', error);
+    courseList.innerHTML = `
+      <div class="alert alert-error">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <small>Error loading courses. Please try again.</small>
+      </div>
+    `;
+  }
+}
+
+// Select a course from the selector
+async function selectCourse(course) {
+  console.log('Course selected:', course);
+  
+  // Hide course selector
+  const courseSelector = document.getElementById('course-selector');
+  if (courseSelector) {
+    courseSelector.classList.add('hidden');
+  }
+  
+  // Set current course data
+  currentCourseData = {
+    courseId: course.courseId,
+    courseName: course.courseName,
+    url: course.url || `https://canvas.instructure.com/courses/${course.courseId}`
+  };
+  
+  // Show course info
+  if (courseInfo) {
+    courseInfo.classList.remove('hidden');
+  }
+  
+  if (courseDetails) {
+    courseDetails.innerHTML = `
+      <p><strong>Course:</strong> ${course.courseName}</p>
+      <p><strong>Course ID:</strong> ${course.courseId}</p>
+      <p><strong>PDFs:</strong> ${course.pdfCount || 0}</p>
+    `;
+  }
+  
+  // Show chat section if there are PDFs
+  if (course.pdfCount > 0) {
+    if (chatSection) {
+      chatSection.classList.remove('hidden');
+    }
+    
+    // Initialize chat for this course
+    conversationHistory = [];
+    if (chatMessages) {
+      chatMessages.innerHTML = `
+        <div class="chat-message system">
+          <div class="message-content">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M8 14C8 14 9.5 16 12 16C14.5 16 16 14 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9 9H9.01M15 9H15.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p>Hello! I'm ready to answer questions about ${course.courseName}. Ask me anything!</p>
+          </div>
+        </div>
+      `;
+    }
+  }
+  
+  if (status) {
+    status.textContent = `✅ Selected: ${course.courseName}`;
+  }
+}
+
 // Auto-detect Canvas page on popup open  
 async function checkCurrentPage() {
   console.log('checkCurrentPage called');
@@ -715,6 +890,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   chatInput = document.getElementById('chat-input');
   sendChatBtn = document.getElementById('send-chat');
   
+  // Add expand window button handler
+  const expandWindowBtn = document.getElementById('expand-window-btn');
+  if (expandWindowBtn) {
+    expandWindowBtn.addEventListener('click', () => {
+      // Open popup.html in a new tab
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('popup.html')
+      });
+    });
+  }
+  
   console.log('DOM elements found:', {
     detectBtn: !!detectBtn,
     scanBtn: !!scanBtn,
@@ -725,7 +911,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatSection: !!chatSection,
     chatMessages: !!chatMessages,
     chatInput: !!chatInput,
-    sendChatBtn: !!sendChatBtn
+    sendChatBtn: !!sendChatBtn,
+    expandWindowBtn: !!expandWindowBtn
   });
   
   // Check if all required elements exist
@@ -739,10 +926,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Add event listeners
   setupEventListeners();
   
-  console.log('Calling checkCurrentPage...');
-  // Initialize
-  await checkCurrentPage();
-  console.log('checkCurrentPage completed');
+  // Detect if we're in tab mode or popup mode
+  const isTabMode = await detectViewMode();
+  console.log('View mode:', isTabMode ? 'TAB' : 'POPUP');
+  
+  if (isTabMode) {
+    // In tab mode, show course selector instead of auto-detection
+    console.log('Tab mode detected - showing course selector');
+    
+    if (currentUser) {
+      await showCourseSelector();
+    } else {
+      // Show course selector anyway, it will show a message to sign in
+      const courseSelector = document.getElementById('course-selector');
+      const canvasDetection = document.getElementById('canvas-detection');
+      if (courseSelector && canvasDetection) {
+        canvasDetection.classList.add('hidden');
+        courseSelector.classList.remove('hidden');
+      }
+    }
+  } else {
+    // In popup mode, do auto-detection
+    console.log('Popup mode detected - calling checkCurrentPage...');
+    await checkCurrentPage();
+    console.log('checkCurrentPage completed');
+  }
 });
 
 function resetScanButton() {
@@ -1007,9 +1215,16 @@ async function updateUIForUser(user) {
     loggedInDiv.classList.remove('hidden');
     loggedOutDiv.classList.add('hidden');
     
-    userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
-    userName.textContent = user.displayName || 'User';
-    userEmail.textContent = user.email;
+    // Update header user info
+    const headerUserInfo = document.getElementById('header-user-info');
+    const headerUserPhoto = document.getElementById('header-user-photo');
+    const headerUserName = document.getElementById('header-user-name');
+    
+    if (headerUserInfo && headerUserPhoto && headerUserName) {
+      headerUserInfo.classList.remove('hidden');
+      headerUserPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
+      headerUserName.textContent = user.displayName || 'User';
+    }
     
     console.log('UI updated for signed-in user:', user.email);
     
@@ -1020,6 +1235,12 @@ async function updateUIForUser(user) {
     currentUser = null;
     loggedInDiv.classList.add('hidden');
     loggedOutDiv.classList.remove('hidden');
+    
+    // Hide header user info
+    const headerUserInfo = document.getElementById('header-user-info');
+    if (headerUserInfo) {
+      headerUserInfo.classList.add('hidden');
+    }
     
     console.log('UI updated for signed-out state');
   }
@@ -1049,21 +1270,13 @@ async function displayUserStats(userId) {
 function initializeAuth() {
   // Get auth UI elements
   loginBtn = document.getElementById('login-btn');
-  logoutBtn = document.getElementById('logout-btn');
   loggedInDiv = document.getElementById('logged-in');
   loggedOutDiv = document.getElementById('logged-out');
-  userPhoto = document.getElementById('user-photo');
-  userName = document.getElementById('user-name');
-  userEmail = document.getElementById('user-email');
   
   // Update login button text
   loginBtn.textContent = 'Sign in to Chrome';
   loginBtn.addEventListener('click', () => {
     alert('Please sign in to Chrome by clicking your profile icon in the top-right corner of Chrome, then reload this extension.');
-  });
-  
-  logoutBtn.addEventListener('click', () => {
-    alert('Please sign out of Chrome by clicking your profile icon in the top-right corner of Chrome.');
   });
   
   // Check if user is signed into Chrome

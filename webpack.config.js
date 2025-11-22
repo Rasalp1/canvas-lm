@@ -1,17 +1,13 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   mode: 'production',
   entry: {
-    popup: './src/popup.js',
+    popup: './src/popup-entry.jsx',
     background: './src/background.js',
     'content-script': './src/content-script.js',
-    'firebase-config': './src/firebase-config.js',
-    'firestore-helpers': './src/firestore-helpers.js',
-    'gemini-file-search': './src/gemini-file-search.js',
-    'gemini-file-search-cloud': './src/gemini-file-search-cloud.js',
-    'gemini-cloud-functions': './src/gemini-cloud-functions.js',
     settings: './src/settings.js'
   },
   output: {
@@ -19,13 +15,39 @@ module.exports = {
     filename: '[name].js',
     clean: true
   },
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+        },
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
+      },
+    ],
+  },
   plugins: [
+    new HtmlWebpackPlugin({
+      template: './popup.html',
+      filename: 'popup.html',
+      chunks: ['popup'],
+      inject: 'body',
+      scriptLoading: 'blocking'
+    }),
+    new HtmlWebpackPlugin({
+      template: './settings.html',
+      filename: 'settings.html',
+      chunks: ['settings'],
+      inject: 'body',
+      scriptLoading: 'blocking'
+    }),
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
-        { from: 'popup.html', to: 'popup.html' },
-        { from: 'settings.html', to: 'settings.html' },
-        { from: 'styles.css', to: 'styles.css' },
         { from: 'smart-navigator.js', to: 'smart-navigator.js' },
         { from: 'state-management.js', to: 'state-management.js' },
         { from: 'stateful-page-scanner.js', to: 'stateful-page-scanner.js' }
@@ -33,6 +55,6 @@ module.exports = {
     })
   ],
   resolve: {
-    extensions: ['.js']
+    extensions: ['.js', '.jsx']
   }
 };
