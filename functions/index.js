@@ -161,13 +161,29 @@ exports.createCourseStore = onCall(async (request) => {
     const existingStore = courseDoc.data().fileSearchStoreName;
     
     if (existingStore) {
-      logger.info('Store already exists for course', { courseId, storeName: existingStore });
-      return {
-        success: true,
-        message: 'Store already exists for this course',
-        storeName: existingStore,
-        alreadyExists: true
-      };
+      // Verify the store actually exists in Google's API
+      logger.info('Checking if existing store is valid', { courseId, storeName: existingStore });
+      
+      const verifyResponse = await fetch(
+        `${GEMINI_API_ENDPOINT}/${existingStore}?key=${GEMINI_API_KEY}`
+      );
+      
+      if (verifyResponse.ok) {
+        logger.info('Store already exists and is valid', { courseId, storeName: existingStore });
+        return {
+          success: true,
+          message: 'Store already exists for this course',
+          storeName: existingStore,
+          alreadyExists: true
+        };
+      } else {
+        logger.warn('Existing store not found in API, will create new one', { 
+          courseId, 
+          oldStore: existingStore,
+          status: verifyResponse.status
+        });
+        // Continue to create new store
+      }
     }
 
     // Create new Gemini store
@@ -279,8 +295,8 @@ exports.listStores = onCall(async (request) => {
         if (courseData.fileSearchStoreName) {
           stores.push({
             courseId: courseId,
-            courseName: courseData.courseName,
-            storeName: courseData.fileSearchStoreName,
+            name: courseData.fileSearchStoreName,
+            displayName: courseData.courseName,
             createdAt: courseData.storeCreatedAt
           });
         }
@@ -370,37 +386,57 @@ exports.uploadToStore = onCall(async (request) => {
 
     // Step 1: Initialize resumable upload
     const uploadMetadata = {
-      parent: storeName,
-      file: {
-        display_name: fileName,
-        mime_type: mimeType || 'application/pdf'
-      }
+      displayName: fileName,
+      mimeType: mimeType || 'application/pdf'
     };
 
+    // Convert metadata to CustomMetadata array format required by API
     if (metadata && Object.keys(metadata).length > 0) {
-      uploadMetadata.file.metadata = metadata;
+      uploadMetadata.customMetadata = Object.entries(metadata).map(([key, value]) => {
+        // Convert each key-value pair to CustomMetadata format
+        if (typeof value === 'number') {
+          return { key, numericValue: value };
+        } else if (Array.isArray(value)) {
+          return { key, stringListValue: { values: value } };
+        } else {
+          return { key, stringValue: String(value) };
+        }
+      });
     }
 
     const fileSize = Buffer.byteLength(fileData, 'base64');
 
-    const initResponse = await fetch(
-      `${GEMINI_API_ENDPOINT}/${storeName}/documents:upload?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Goog-Upload-Protocol': 'resumable',
-          'X-Goog-Upload-Command': 'start',
-          'X-Goog-Upload-Header-Content-Length': fileSize,
-          'X-Goog-Upload-Header-Content-Type': mimeType || 'application/pdf',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(uploadMetadata)
-      }
-    );
+    // CORRECT ENDPOINT: uploadToFileSearchStore (not documents:upload)
+    const initUrl = `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${GEMINI_API_KEY}`;
+    
+    logger.info('Initializing resumable upload', { 
+      url: initUrl.replace(GEMINI_API_KEY, 'REDACTED'),
+      fileSize,
+      fileName,
+      storeName 
+    });
+
+    const initResponse = await fetch(initUrl, {
+      method: 'POST',
+      headers: {
+        'X-Goog-Upload-Protocol': 'resumable',
+        'X-Goog-Upload-Command': 'start',
+        'X-Goog-Upload-Header-Content-Length': fileSize.toString(),
+        'X-Goog-Upload-Header-Content-Type': mimeType || 'application/pdf',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(uploadMetadata)
+    });
 
     if (!initResponse.ok) {
-      const error = await initResponse.text();
-      throw new Error(`Upload init failed: ${error}`);
+      const errorText = await initResponse.text();
+      logger.error('Upload init failed', {
+        status: initResponse.status,
+        statusText: initResponse.statusText,
+        errorBody: errorText,
+        url: initUrl.replace(GEMINI_API_KEY, 'REDACTED')
+      });
+      throw new Error(`Upload init failed [${initResponse.status}]: ${errorText || initResponse.statusText}`);
     }
 
     const uploadUrl = initResponse.headers.get('x-goog-upload-url');
@@ -420,34 +456,76 @@ exports.uploadToStore = onCall(async (request) => {
 
     if (!uploadResponse.ok) {
       const error = await uploadResponse.text();
-      throw new Error(`Upload failed: ${error}`);
+      logger.error('Upload failed', { 
+        status: uploadResponse.status, 
+        error 
+      });
+      throw new Error(`Upload failed [${uploadResponse.status}]: ${error}`);
     }
 
-    const documentData = await uploadResponse.json();
+    // uploadToFileSearchStore returns a long-running operation
+    const operationData = await uploadResponse.json();
+    
+    logger.info('Upload operation started', { 
+      operationName: operationData.name,
+      done: operationData.done 
+    });
 
-    // Step 3: Wait for processing
-    let document = documentData.document;
+    // Step 3: Poll operation until done
+    let operation = operationData;
     let attempts = 0;
     const maxAttempts = 30;
 
-    while (document.state === 'PROCESSING' && attempts < maxAttempts) {
+    while (!operation.done && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Poll the operation status
       const statusResponse = await fetch(
-        `${GEMINI_API_ENDPOINT}/${document.name}?key=${GEMINI_API_KEY}`
+        `${GEMINI_API_ENDPOINT}/${operation.name}?key=${GEMINI_API_KEY}`
       );
       
       if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        document = statusData;
+        operation = await statusResponse.json();
+        logger.info('Operation status', { 
+          done: operation.done, 
+          attempt: attempts + 1 
+        });
       }
       
       attempts++;
     }
 
-    if (document.state !== 'ACTIVE') {
-      throw new Error(`Document processing failed or timed out. State: ${document.state}`);
+    if (!operation.done) {
+      throw new Error(`Upload operation timed out after ${maxAttempts} attempts`);
     }
+
+    if (operation.error) {
+      logger.error('Upload operation failed', { error: operation.error });
+      throw new Error(`Upload operation failed: ${JSON.stringify(operation.error)}`);
+    }
+
+    // Extract document info from operation response
+    const document = operation.response;
+    
+    // Log the full response structure for debugging
+    logger.info('Operation response structure', { 
+      responseKeys: document ? Object.keys(document) : 'null',
+      hasName: !!document?.name,
+      hasDisplayName: !!document?.displayName,
+      documentName: document?.name
+    });
+
+    // Get the full document resource name from the response
+    // Format: fileSearchStores/{store}/documents/{documentId}
+    const documentName = document?.name;
+    
+    if (!documentName) {
+      logger.error('No document name in operation response', { operation });
+      throw new Error('Document name not found in upload response');
+    }
+
+    // Extract just the document ID from the full resource name
+    const documentId = documentName.split('/').pop();
 
     // Update document count in course document
     await db
@@ -459,13 +537,19 @@ exports.uploadToStore = onCall(async (request) => {
 
     logger.info('Document uploaded to File Search store', { 
       storeName,
-      documentName: document.name,
+      documentId,
+      documentName,
+      fileName,
       userId 
     });
 
+    // Return full document resource name for Firestore tracking
     return {
       success: true,
-      document: document
+      name: documentName,           // Full resource name
+      documentId,                   // Just the ID
+      fileName,
+      operationName: operation.name
     };
 
   } catch (error) {
@@ -480,7 +564,7 @@ exports.uploadToStore = onCall(async (request) => {
  */
 exports.listDocuments = onCall(async (request) => {
   try {
-    const { storeName, pageSize = 100, pageToken, userId } = request.data;
+    const { storeName, pageSize = 20, pageToken, userId } = request.data;
 
     if (!storeName || !userId) {
       throw new Error('storeName and userId are required');
@@ -490,7 +574,10 @@ exports.listDocuments = onCall(async (request) => {
     const courseId = await getCourseIdFromStore(storeName);
     await verifyEnrollment(userId, courseId);
 
-    let url = `${GEMINI_API_ENDPOINT}/${storeName}/documents?pageSize=${pageSize}&key=${GEMINI_API_KEY}`;
+    // Gemini API requires pageSize between 1 and 20
+    const validPageSize = Math.max(1, Math.min(20, pageSize));
+
+    let url = `${GEMINI_API_ENDPOINT}/${storeName}/documents?pageSize=${validPageSize}&key=${GEMINI_API_KEY}`;
     if (pageToken) {
       url += `&pageToken=${pageToken}`;
     }

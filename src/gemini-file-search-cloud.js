@@ -224,8 +224,13 @@ class GeminiFileSearchCloudClient {
         throw new Error('Upload failed');
       }
 
-      console.log('✅ PDF uploaded and indexed:', result.data.document.name);
-      return result.data.document;
+      console.log('✅ PDF uploaded and indexed:', result.data.fileName);
+      return {
+        name: result.data.name,           // Full document resource name
+        documentId: result.data.documentId,
+        fileName: result.data.fileName,
+        operationName: result.data.operationName
+      };
     } catch (error) {
       console.error('❌ Error uploading to File Search store:', error);
       throw error;
@@ -235,11 +240,11 @@ class GeminiFileSearchCloudClient {
   /**
    * List documents in a File Search store
    * @param {string} storeName - Store resource name
-   * @param {number} pageSize - Number of documents per page
+   * @param {number} pageSize - Number of documents per page (max 20)
    * @param {string} pageToken - Token for pagination
    * @returns {Promise<Object>} List of documents with nextPageToken
    */
-  async listDocuments(storeName, pageSize = 100, pageToken = null) {
+  async listDocuments(storeName, pageSize = 20, pageToken = null) {
     try {
       if (!this.userId) {
         throw new Error('userId not set. Call setUserId() first.');

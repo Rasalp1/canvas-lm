@@ -222,7 +222,7 @@ async function checkCurrentPage() {
 }
 
 // Show course information
-function showCourseInfo(courseData) {
+async function showCourseInfo(courseData) {
   currentCourseData = courseData; // Store globally for API calls
   
   courseDetails.innerHTML = `
@@ -233,6 +233,12 @@ function showCourseInfo(courseData) {
   
   courseInfo.classList.remove('hidden');
   
+  // Show debug section
+  const debugSection = document.getElementById('debug-section');
+  if (debugSection) {
+    debugSection.classList.remove('hidden');
+  }
+  
   // Store course data for later use (with error handling)
   try {
     if (chrome && chrome.storage && chrome.storage.local) {
@@ -240,6 +246,11 @@ function showCourseInfo(courseData) {
     }
   } catch (err) {
     console.log('Storage not available:', err);
+  }
+  
+  // Check if this course has documents and show chat interface if available
+  if (currentUser && db) {
+    await showChatInterface();
   }
 }
 
@@ -261,6 +272,147 @@ function setupEventListeners() {
       handleChatSend();
     }
   });
+
+  // Debug: List all stores button
+  const listStoresBtn = document.getElementById('listStoresBtn');
+  if (listStoresBtn) {
+    listStoresBtn.addEventListener('click', async () => {
+      const debugOutput = document.getElementById('debugOutput');
+      debugOutput.innerHTML = '<p style="color: #666;">Loading stores...</p>';
+      
+      try {
+        if (!fileSearchManager || !currentUser) {
+          debugOutput.innerHTML = '<p style="color: red;">❌ Not signed in or File Search not initialized</p>';
+          return;
+        }
+        
+        const result = await fileSearchManager.listStores();
+        
+        if (result.stores && result.stores.length > 0) {
+          debugOutput.innerHTML = `<p><strong>✅ Found ${result.stores.length} store(s):</strong></p>` +
+            result.stores.map((store, i) => 
+              `<div style="padding: 8px; border-bottom: 1px solid #ddd; margin-bottom: 5px;">
+                <strong>${i+1}. Store:</strong> ${store.name}<br>
+                <small style="color: #666;">Display: ${store.displayName || 'N/A'}</small>
+              </div>`
+            ).join('');
+        } else {
+          debugOutput.innerHTML = '<p style="color: orange;">⚠️ No stores found</p>';
+        }
+      } catch (error) {
+        console.error('Error listing stores:', error);
+        debugOutput.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+      }
+    });
+  }
+
+  // Debug: List documents button
+  const listDocumentsBtn = document.getElementById('listDocumentsBtn');
+  if (listDocumentsBtn) {
+    listDocumentsBtn.addEventListener('click', async () => {
+      const debugOutput = document.getElementById('debugOutput');
+      debugOutput.innerHTML = '<p style="color: #666;">Loading documents...</p>';
+      
+      try {
+        if (!fileSearchManager || !currentUser) {
+          debugOutput.innerHTML = '<p style="color: red;">❌ Not signed in or File Search not initialized</p>';
+          return;
+        }
+        
+        if (!currentCourseData || !currentCourseData.courseId) {
+          debugOutput.innerHTML = '<p style="color: red;">❌ No course detected</p>';
+          return;
+        }
+        
+        // Get the store name from Firestore using helper function
+        const courseResult = await window.firestoreHelpers.getCourse(db, currentCourseData.courseId);
+        const storeName = courseResult.success ? courseResult.data.fileSearchStoreName : null;
+        
+        if (!storeName) {
+          debugOutput.innerHTML = '<p style="color: orange;">⚠️ No File Search store found for this course. Try scanning first.</p>';
+          return;
+        }
+        
+        // Call the listDocuments function
+        const result = await fileSearchManager.listDocuments(storeName);
+        
+        if (result.documents && result.documents.length > 0) {
+          debugOutput.innerHTML = `<p><strong>✅ Found ${result.documents.length} documents in ${storeName}:</strong></p>` +
+            result.documents.map((doc, i) => 
+              `<div style="padding: 5px; border-bottom: 1px solid #ddd;">
+                ${i+1}. ${doc.displayName || doc.name || 'Unnamed'}<br>
+                <small style="color: #666;">${doc.name}</small>
+              </div>`
+            ).join('');
+        } else {
+          debugOutput.innerHTML = '<p style="color: orange;">⚠️ No documents found in store</p>';
+        }
+      } catch (error) {
+        console.error('Error listing documents:', error);
+        debugOutput.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+      }
+    });
+  }
+
+  // Debug: System reset button
+  const systemResetBtn = document.getElementById('systemResetBtn');
+  if (systemResetBtn) {
+    systemResetBtn.addEventListener('click', async () => {
+      const debugOutput = document.getElementById('debugOutput');
+      
+      const confirmed = confirm('⚠️ WARNING: This will delete ALL File Search stores and documents for your account. This cannot be undone. Continue?');
+      if (!confirmed) {
+        debugOutput.innerHTML = '<p style="color: #666;">Reset cancelled</p>';
+        return;
+      }
+      
+      debugOutput.innerHTML = '<p style="color: #666;">Deleting all stores...</p>';
+      
+      try {
+        if (!fileSearchManager || !currentUser) {
+          debugOutput.innerHTML = '<p style="color: red;">❌ Not signed in or File Search not initialized</p>';
+          return;
+        }
+        
+        // First, list all stores
+        const listResult = await fileSearchManager.listStores();
+        
+        if (!listResult.stores || listResult.stores.length === 0) {
+          debugOutput.innerHTML = '<p style="color: orange;">⚠️ No stores to delete</p>';
+          return;
+        }
+        
+        let output = `<p><strong>Found ${listResult.stores.length} store(s). Deleting...</strong></p>`;
+        debugOutput.innerHTML = output;
+        
+        // Delete each store
+        let deleted = 0;
+        let failed = 0;
+        for (const store of listResult.stores) {
+          try {
+            output += `<p style="color: #666;">Deleting: ${store.name}...</p>`;
+            debugOutput.innerHTML = output;
+            
+            await fileSearchManager.deleteStore(store.name);
+            deleted++;
+            output += `<p style="color: green;">✅ Deleted: ${store.name}</p>`;
+            debugOutput.innerHTML = output;
+          } catch (err) {
+            failed++;
+            output += `<p style="color: red;">❌ Failed to delete ${store.name}: ${err.message}</p>`;
+            debugOutput.innerHTML = output;
+          }
+        }
+        
+        output += `<p><strong>Complete! Deleted: ${deleted}, Failed: ${failed}</strong></p>`;
+        debugOutput.innerHTML = output;
+        
+      } catch (error) {
+        console.error('Error during system reset:', error);
+        debugOutput.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+      }
+    });
+  }
 
   // Enhanced PDF scanning with auto-navigation crawler
   scanBtn.addEventListener('click', async () => {
@@ -505,11 +657,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   console.log('Firebase initialized and helpers loaded');
   
+  // Track processed crawl completions to prevent duplicates
+  const processedCrawls = new Set();
+  
   // Listen for crawl completion messages from background script
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('📬 Popup received message:', message);
     
     if (message.type === 'PDF_SCAN_COMPLETE') {
+      // Create unique key for this crawl
+      const crawlKey = `${message.courseId}_${message.pdfCount}`;
+      
+      // Check if we've already processed this crawl
+      if (processedCrawls.has(crawlKey)) {
+        console.log('⏭️ Duplicate PDF_SCAN_COMPLETE ignored for:', crawlKey);
+        sendResponse({ received: true, duplicate: true });
+        return true;
+      }
+      
+      // Mark as processed
+      processedCrawls.add(crawlKey);
+      
       console.log('🎉 PDF_SCAN_COMPLETE received! PDFs found:', message.pdfCount);
       console.log('🚀 Calling saveFoundPDFsToFirestore()...');
       
@@ -1001,11 +1169,14 @@ async function showChatInterface() {
   // Check if course has uploaded documents
   const courseResult = await getCourse(db, currentCourseData.courseId);
   if (courseResult.success && courseResult.data.fileSearchStoreName) {
-    const docs = await getCourseDocumentsWithFileSearch(db, currentCourseData.courseId);
-    if (docs.success && docs.data.length > 0) {
+    // Check if course has documents (simpler and more reliable than querying individual docs)
+    const pdfCount = courseResult.data.pdfCount || 0;
+    if (pdfCount > 0) {
       chatSection.classList.remove('hidden');
       conversationHistory = []; // Reset conversation
+      console.log(`✅ Chat interface shown - ${pdfCount} documents in store`);
+    } else {
+      console.log('⚠️ Store exists but no documents yet');
     }
   }
 }
-
