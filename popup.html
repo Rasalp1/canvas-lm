@@ -78,15 +78,18 @@
     
     <!-- Chat Interface -->
     <div id="chat-section" class="section hidden">
-      <h3>💬 Chat with Course Materials</h3>
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px; border-radius: 12px; margin-bottom: 16px; text-align: center;">
+        <h3 style="margin: 0; color: white; font-size: 18px;">💬 Chat with Course Materials</h3>
+        <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.9); font-size: 12px;">Ask questions about your PDFs - AI will search and answer</p>
+      </div>
       <div id="chat-messages" class="chat-messages">
         <div class="chat-message system">
           <p>👋 Hello! I can answer questions about your course materials. Ask me anything!</p>
         </div>
       </div>
       <div class="chat-input-container">
-        <textarea id="chat-input" placeholder="Ask a question about your course materials..." rows="2"></textarea>
-        <button id="send-chat" class="primary-btn">Send</button>
+        <textarea id="chat-input" placeholder="Type your question here... (Press Enter to send, Shift+Enter for new line)" rows="2"></textarea>
+        <button id="send-chat" class="primary-btn">📤 Send</button>
       </div>
       <div class="chat-info">
         <small>💡 Powered by Gemini File Search with semantic search</small>

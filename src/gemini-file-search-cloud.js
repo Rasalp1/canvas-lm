@@ -304,12 +304,12 @@ class GeminiFileSearchCloudClient {
    * This is the main RAG endpoint
    * @param {string} question - The question to ask
    * @param {string} storeName - Store resource name to search
-   * @param {string} model - Model to use (default: gemini-1.5-flash)
+   * @param {string} model - Model to use (default: gemini-2.5-flash)
    * @param {string} metadataFilter - Optional metadata filter
    * @param {number} topK - Number of chunks to retrieve (default: 5)
    * @returns {Promise<Object>} Answer with citations
    */
-  async queryWithFileSearch(question, storeName, model = 'gemini-1.5-flash', metadataFilter = null, topK = 5) {
+  async queryWithFileSearch(question, storeName, model = 'gemini-2.5-flash', metadataFilter = null, topK = 5) {
     try {
       if (!this.userId) {
         throw new Error('userId not set. Call setUserId() first.');

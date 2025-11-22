@@ -796,7 +796,7 @@ exports.queryWithFileSearch = onCall(async (request) => {
       question, 
       storeName,
       userId,
-      model = 'gemini-1.5-flash',
+      model = 'gemini-2.5-flash',
       metadataFilter,
       topK = 5
     } = request.data;
@@ -809,8 +809,13 @@ exports.queryWithFileSearch = onCall(async (request) => {
     const courseId = await getCourseIdFromStore(storeName);
     await verifyEnrollment(userId, courseId);
 
-    // Build request with File Search tool
+    // Build request with File Search tool and system instructions
     const requestBody = {
+      system_instruction: {
+        parts: [{ 
+          text: 'You are a Canvas LM, a helpful AI assistant that answers questions based on the provided course materials. Always use the File Search tool to find relevant information from the documents before answering. Provide detailed, accurate answers with citations when possible.'
+        }]
+      },
       contents: [{
         parts: [{ text: question }]
       }],

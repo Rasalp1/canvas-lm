@@ -272,6 +272,12 @@ function setupEventListeners() {
       handleChatSend();
     }
   });
+  
+  // Auto-resize textarea as user types
+  chatInput.addEventListener('input', () => {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 150) + 'px';
+  });
 
   // Debug: List all stores button
   const listStoresBtn = document.getElementById('listStoresBtn');
@@ -1105,24 +1111,23 @@ async function handleChatSend() {
   const loadingId = addChatMessage('system', '🤔 Thinking...');
   
   try {
-    // Send message to File Search (Cloud Functions - simplified API)
-    const responseText = await fileSearchManager.chatWithFileSearch(
-      fileSearchStoreName,
+    // Send message to File Search (Cloud Functions)
+    const response = await fileSearchManager.queryWithFileSearch(
       message,
-      conversationHistory,
-      'gemini-1.5-flash'
+      fileSearchStoreName,
+      'gemini-2.5-flash'
     );
     
     // Remove loading message
     removeChatMessage(loadingId);
     
     // Add AI response
-    addChatMessage('assistant', responseText);
+    addChatMessage('assistant', response.answer);
     
     // Update conversation history for context
     conversationHistory.push(
       { role: 'user', text: message },
-      { role: 'model', text: responseText }
+      { role: 'model', text: response.answer }
     );
     
     // Limit history to last 10 exchanges
@@ -1148,10 +1153,26 @@ function addChatMessage(role, text) {
   messageDiv.id = messageId;
   
   const icon = role === 'user' ? '👤' : role === 'assistant' ? '🤖' : 'ℹ️';
-  messageDiv.innerHTML = `<span class="message-icon">${icon}</span><p>${text}</p>`;
+  
+  // Escape HTML and preserve line breaks
+  const escapedText = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+  
+  messageDiv.innerHTML = `<span class="message-icon">${icon}</span><p>${escapedText}</p>`;
   
   chatMessages.appendChild(messageDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  
+  // Smooth scroll to bottom
+  setTimeout(() => {
+    chatMessages.scrollTo({
+      top: chatMessages.scrollHeight,
+      behavior: 'smooth'
+    });
+  }, 100);
   
   return messageId;
 }
