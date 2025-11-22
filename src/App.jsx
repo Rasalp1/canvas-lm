@@ -8,6 +8,31 @@ import { CourseSelector } from './components/CourseSelector';
 import { AllCoursesView } from './components/AllCoursesView';
 import './styles.css';
 
+const CSS_VARS = `
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.75rem;
+  }
+`;
+
 export const App = ({ 
   popupLogic 
 }) => {
@@ -97,52 +122,71 @@ export const App = ({
   };
 
   return (
-    <div className="w-[420px] min-h-[500px] bg-white p-4">
-      <Header user={user} onExpandWindow={handleExpandWindow} />
-      
-      <div className="space-y-4">
-        <AuthSection 
-          isLoggedIn={isLoggedIn}
-          userStats={userStats}
-          onLogin={handleLogin}
-        />
+    <>
+      <style>{CSS_VARS}</style>
+      <div className="w-[420px] min-h-[600px] bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden">
+        {/* Animated background gradient orbs - Arcade style */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-200/40 to-fuchsia-200/40 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         
-        {showCourseSelector && (
-          <CourseSelector 
-            courses={courseList}
-            onSelectCourse={handleSelectCourse}
-          />
-        )}
-        
-        {!showCourseInfo && !showCourseSelector && (
-          <CourseDetection 
-            status={status}
-            onDetect={handleDetect}
-          />
-        )}
-        
-        {showCourseInfo && (
-          <CourseInfo 
-            courseDetails={courseDetails}
-            onScan={handleScan}
-            isScanning={isScanning}
-          />
-        )}
-        
-        {isLoggedIn && showCourseInfo && (
-          <ChatSection 
-            messages={chatMessages}
-            inputValue={chatInput}
-            onInputChange={setChatInput}
-            onSend={handleChatSend}
-            isLoading={isChatLoading}
-          />
-        )}
-        
-        {isLoggedIn && !isExtensionPage && (
-          <AllCoursesView onLoadCourses={handleLoadAllCourses} />
-        )}
+        <div className="relative z-10 p-6">
+          <Header user={user} onExpandWindow={handleExpandWindow} />
+          
+          <div className="space-y-4 mt-6">
+            <AuthSection 
+              isLoggedIn={isLoggedIn}
+              userStats={userStats}
+              onLogin={handleLogin}
+            />
+            
+            {showCourseSelector && (
+              <div className="animate-fade-in">
+                <CourseSelector 
+                  courses={courseList}
+                  onSelectCourse={handleSelectCourse}
+                />
+              </div>
+            )}
+            
+            {!showCourseInfo && !showCourseSelector && (
+              <div className="animate-fade-in">
+                <CourseDetection 
+                  status={status}
+                  onDetect={handleDetect}
+                />
+              </div>
+            )}
+            
+            {showCourseInfo && (
+              <div className="animate-fade-in">
+                <CourseInfo 
+                  courseDetails={courseDetails}
+                  onScan={handleScan}
+                  isScanning={isScanning}
+                />
+              </div>
+            )}
+            
+            {isLoggedIn && showCourseInfo && (
+              <div className="animate-fade-in">
+                <ChatSection 
+                  messages={chatMessages}
+                  inputValue={chatInput}
+                  onInputChange={setChatInput}
+                  onSend={handleChatSend}
+                  isLoading={isChatLoading}
+                />
+              </div>
+            )}
+            
+            {isLoggedIn && !isExtensionPage && (
+              <div className="animate-fade-in">
+                <AllCoursesView onLoadCourses={handleLoadAllCourses} />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 };

@@ -1,45 +1,50 @@
 import React from 'react';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { Button } from './ui/button';
+import { Maximize2, Layers } from 'lucide-react';
 
 export const Header = ({ user, onExpandWindow }) => {
   return (
-    <div className="bg-white border-2 border-gray-900 rounded-xl p-4 mb-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center text-white">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 17L12 22L22 17" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <div className="w-11 h-11 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-violet-500/30">
+            <Layers className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Canvas LM</h1>
+          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
         </div>
+        <div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+            Canvas LM
+          </h1>
+          <p className="text-xs text-slate-500 font-medium">AI-Powered Learning Assistant</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {user && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-full border border-slate-200">
+            <Avatar className="w-7 h-7">
+              <AvatarImage src={user.photoURL} alt={user.displayName} />
+              <AvatarFallback className="text-xs">
+                {user.displayName?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs font-semibold text-slate-700 max-w-[80px] truncate">
+              {user.displayName?.split(' ')[0]}
+            </span>
+          </div>
+        )}
         
-        <div className="flex items-center gap-3">
-          {user && (
-            <div className="flex items-center gap-2">
-              <img 
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`}
-                alt="User"
-                className="w-8 h-8 rounded-full border-2 border-gray-900"
-              />
-              <span className="text-sm font-semibold text-gray-900">{user.displayName}</span>
-            </div>
-          )}
-          
-          <button 
-            onClick={onExpandWindow}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Open in new window"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 3H21V9" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M9 21H3V15" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M21 3L14 10" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3 21L10 14" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
+        <Button
+          onClick={onExpandWindow}
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full hover:bg-slate-100"
+          title="Open in new window"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </Button>
       </div>
     </div>
   );

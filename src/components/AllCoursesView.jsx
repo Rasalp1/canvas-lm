@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { Card, CardHeader } from './Card';
+import { Card, CardHeader, CardContent, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Separator } from './ui/separator';
+import { ScrollArea } from './ui/scroll-area';
+import { Database, ChevronDown, ChevronUp, FileText, Users, Clock } from 'lucide-react';
 
 export const AllCoursesView = ({ onLoadCourses }) => {
   const [courses, setCourses] = useState([]);
@@ -16,93 +21,111 @@ export const AllCoursesView = ({ onLoadCourses }) => {
 
   if (!isExpanded) {
     return (
-      <Card className="!p-4">
-        <button
-          onClick={handleLoadCourses}
-          disabled={isLoading}
-          className="w-full flex items-center justify-between text-left text-sm text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <span className="flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {isLoading ? 'Loading...' : 'View all courses & documents in database'}
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="6 9 12 15 18 9" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </Card>
+      <Button
+        onClick={handleLoadCourses}
+        disabled={isLoading}
+        variant="outline"
+        className="w-full justify-between h-auto py-3"
+      >
+        <span className="flex items-center gap-2 text-sm">
+          <Database className="w-4 h-4" />
+          {isLoading ? 'Loading database...' : 'View all courses in database'}
+        </span>
+        <ChevronDown className="w-4 h-4" />
+      </Button>
     );
   }
 
+  const totalDocs = courses.reduce((sum, c) => sum + c.documentCount, 0);
+  const totalUsers = courses.reduce((sum, c) => sum + (c.totalEnrollments || 0), 0);
+
   return (
     <Card>
-      <div className="flex items-center justify-between mb-4">
-        <CardHeader 
-          title="All Courses in Database"
-          icon={
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          }
-        />
-        <button
-          onClick={() => setIsExpanded(false)}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="18 15 12 9 6 15" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div className="space-y-3 max-h-80 overflow-y-auto">
-        {courses.length > 0 ? (
-          courses.map((course) => (
-            <div
-              key={course.id}
-              className="p-3 bg-white border border-gray-300 rounded-lg"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900 text-sm">{course.name}</p>
-                  <p className="text-xs text-gray-500 mt-1">ID: {course.id}</p>
-                  {course.canvasInstance && (
-                    <p className="text-xs text-gray-500">{course.canvasInstance}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium text-green-600">
-                    📄 {course.documentCount} docs
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    👥 {course.totalEnrollments || 0} users
-                  </p>
-                </div>
-              </div>
-              
-              {course.lastScannedAt && (
-                <p className="text-xs text-gray-400 mt-2">
-                  Last scan: {new Date(course.lastScannedAt.seconds * 1000).toLocaleDateString()}
-                </p>
-              )}
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
+              <Database className="w-5 h-5 text-white" />
             </div>
-          ))
-        ) : (
-          <p className="text-sm text-gray-500 text-center py-4">
-            No courses in database yet
-          </p>
-        )}
-      </div>
+            <CardTitle className="text-lg">Database Overview</CardTitle>
+          </div>
+          <Button
+            onClick={() => setIsExpanded(false)}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
       
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500 text-center">
-          Total: {courses.length} courses • {courses.reduce((sum, c) => sum + c.documentCount, 0)} documents
-        </p>
-      </div>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 rounded-xl p-3 border border-violet-200/60">
+            <p className="text-xs text-slate-600 mb-1">Courses</p>
+            <p className="text-2xl font-bold text-slate-900">{courses.length}</p>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-200/60">
+            <p className="text-xs text-slate-600 mb-1">Documents</p>
+            <p className="text-2xl font-bold text-slate-900">{totalDocs}</p>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-3 border border-blue-200/60">
+            <p className="text-xs text-slate-600 mb-1">Users</p>
+            <p className="text-2xl font-bold text-slate-900">{totalUsers}</p>
+          </div>
+        </div>
+
+        <Separator />
+        
+        <ScrollArea className="h-[240px]">
+          <div className="space-y-2 pr-4">
+            {courses.length > 0 ? (
+              courses.map((course) => (
+                <div
+                  key={course.id}
+                  className="p-3 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-900 text-sm mb-1 line-clamp-2">
+                        {course.name}
+                      </p>
+                      <p className="text-xs text-slate-500 mb-2">ID: {course.id}</p>
+                      {course.canvasInstance && (
+                        <p className="text-xs text-slate-500 mb-2">{course.canvasInstance}</p>
+                      )}
+                      {course.lastScannedAt && (
+                        <div className="flex items-center gap-1 text-xs text-slate-400">
+                          <Clock className="w-3 h-3" />
+                          {new Date(course.lastScannedAt.seconds * 1000).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Badge variant="success" className="text-xs whitespace-nowrap">
+                        <FileText className="w-3 h-3 mr-1" />
+                        {course.documentCount}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        <Users className="w-3 h-3 mr-1" />
+                        {course.totalEnrollments || 0}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Database className="w-8 h-8 text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-600 font-medium">No courses yet</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
     </Card>
   );
 };
