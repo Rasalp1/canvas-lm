@@ -148,7 +148,6 @@ export async function getCourse(db, courseId) {
       console.log('✅ Course retrieved from Firestore:', courseId);
       return { success: true, data: courseSnap.data() };
     } else {
-      console.warn('⚠️ Course not found in Firestore:', courseId);
       return { success: false, error: 'Course not found' };
     }
   } catch (error) {

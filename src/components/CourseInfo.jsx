@@ -83,7 +83,7 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, hasDocuments, on
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3">
+                  {/* <div className="flex items-start gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-sky-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Zap className="w-6 h-6 text-blue-600" />
                     </div>
@@ -112,7 +112,7 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, hasDocuments, on
                       <Cloud className="w-3 h-3 mr-1" />
                       <span className="text-xs">Cloud sync</span>
                     </Badge>
-                  </div>
+                  </div> */}
                 </div>
                 
                 <Button
@@ -129,8 +129,8 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, hasDocuments, on
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-5 h-5 mr-2" />
-                        Start Course Scan
+                        <Sparkles className="w-5 h-5 mr-2 text-white" />
+                        <span className="text-white">Start Course Scan</span>
                       </>
                     )}
                   </span>

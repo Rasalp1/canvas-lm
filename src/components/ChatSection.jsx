@@ -20,10 +20,11 @@ const formatAIResponse = (text) => {
   const lines = text.split('\n');
   
   return lines.map((line, lineIndex) => {
-    // Check if line starts with * (bullet point) or numbered list
+    // Check if line starts with ### (heading), * (bullet point) or numbered list
+    const isHeading = line.trim().startsWith('### ');
     const isBullet = line.trim().startsWith('* ');
     const isNumbered = /^\d+\./.test(line.trim());
-    let content = isBullet ? line.trim().substring(2) : line;
+    let content = isBullet ? line.trim().substring(2) : isHeading ? line.trim().substring(4) : line;
     
     // Process the content for LaTeX and bold
     const processContent = (text) => {
@@ -86,7 +87,13 @@ const formatAIResponse = (text) => {
     };
     
     // Render based on line type
-    if (isBullet) {
+    if (isHeading) {
+      return (
+        <h3 key={lineIndex} className="text-lg font-bold text-slate-900 mt-4 mb-2">
+          {processContent(content)}
+        </h3>
+      );
+    } else if (isBullet) {
       return (
         <div key={lineIndex} className="flex gap-2 ml-2">
           <span className="text-slate-600 flex-shrink-0">•</span>
@@ -117,12 +124,36 @@ export const ChatSection = ({
   isLoading,
   isFullScreen = false
 }) => {
+  const scrollContainerRef = useRef(null);
+  const scrollAreaRef = useRef(null);
+
+  // Auto-scroll to bottom when messages change or when loading
+  useEffect(() => {
+    // For fullscreen view
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+    // For popup view with ScrollArea
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [messages, isLoading]);
+
   if (isFullScreen) {
     // Full-screen layout for extended page
     return (
       <div className="flex-1 flex flex-col h-full">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           <div className="w-full px-8 py-8">
             <div className="space-y-6">
               {messages.length === 0 ? (
@@ -187,7 +218,7 @@ export const ChatSection = ({
                           stroke-length="0.15"
                           bg-opacity="0.1"
                           speed="1.4"
-                          color="#7c3aed"
+                          color="#3b82f6"
                         />
                         <span className="text-sm text-slate-500">Thinking...</span>
                       </div>
@@ -245,7 +276,7 @@ export const ChatSection = ({
       </CardHeader>
       
       <CardContent className="space-y-3">
-        <ScrollArea className="h-[320px] pr-4">
+        <ScrollArea ref={scrollAreaRef} className="h-[320px] pr-4">
           <div className="space-y-3">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">

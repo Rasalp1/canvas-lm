@@ -202,12 +202,12 @@ export const App = ({
                         </div>
                       ) : (
                         <>
-                          <div className="flex items-start gap-2">
+                          <div className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-500 rounded-lg flex items-center justify-center flex-shrink-0 text-xs">
                               📚
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm text-slate-900 leading-snug">{course.name}</p>
+                              <p className="font-medium text-sm text-slate-900 leading-tight">{course.name}</p>
                             </div>
                           </div>
                           <button
@@ -278,19 +278,19 @@ export const App = ({
             ) : (
               /* Welcome Screen */
               <div className="flex-1 flex items-center justify-center p-8">
-                <div className="text-center max-w-2xl">
+                <div className="text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-sky-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
                     <span className="text-4xl">💬</span>
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-3">Welcome to Canvas LM</h2>
-                  <p className="text-slate-600 mb-8">
+                  <p className="text-slate-600">
                     Select a course from the sidebar to start chatting with your course materials
                   </p>
                   
-                  {/* DB Overview Card */}
-                  <div className="mt-12">
+                  {/* DB Overview Card - Commented out for now */}
+                  {/* <div className="mt-12">
                     <AllCoursesView onLoadCourses={handleLoadAllCourses} isStandalone={true} />
-                  </div>
+                  </div> */}
                 </div>
               </div>
             )}

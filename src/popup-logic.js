@@ -307,19 +307,22 @@ export class PopupLogic {
   }
 
   async selectCourse(course) {
+    // Use full course name from courseName field
+    const displayName = course.courseName || course.name || `Course ${course.id}`;
+    
     this.currentCourseData = {
       id: course.id,
-      name: course.name,
+      name: displayName,
       url: course.url || `Course ${course.id}`
     };
     
-    this.uiCallbacks.setStatus?.(`✅ Selected: ${course.name}`);
+    this.uiCallbacks.setStatus?.(`✅ Selected: ${displayName}`);
     
     const docCount = course.actualPdfCount || 0;
     
     const courseHtml = `
       <div class="text-sm space-y-2">
-        <p><strong class="font-semibold">Course:</strong> ${course.name}</p>
+        <p><strong class="font-semibold">Course:</strong> ${displayName}</p>
         <p><strong class="font-semibold">ID:</strong> ${course.id}</p>
         ${docCount > 0 ? `<p class="text-slate-900"><strong class="font-semibold">Documents:</strong> ${docCount} PDFs indexed</p>` : ''}
       </div>
