@@ -49,6 +49,7 @@ export const App = ({
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isExtensionPage, setIsExtensionPage] = useState(false);
+  const [currentCourseDocCount, setCurrentCourseDocCount] = useState(0);
 
   useEffect(() => {
     // Check if we're on an extension page
@@ -71,7 +72,8 @@ export const App = ({
         setCourseList,
         setIsScanning,
         setChatMessages,
-        setIsChatLoading
+        setIsChatLoading,
+        setCurrentCourseDocCount
       });
       popupLogic.initialize();
     }
@@ -114,6 +116,18 @@ export const App = ({
     }
   };
 
+  const handleRemoveEnrollment = async (courseId) => {
+    if (popupLogic) {
+      await popupLogic.removeEnrollment(courseId);
+    }
+  };
+
+  const handleBackToCourseSelector = () => {
+    if (popupLogic) {
+      popupLogic.backToCourseSelector();
+    }
+  };
+
   const handleLoadAllCourses = async () => {
     if (popupLogic) {
       return await popupLogic.loadAllCourses();
@@ -124,13 +138,13 @@ export const App = ({
   return (
     <>
       <style>{CSS_VARS}</style>
-      <div className="w-[420px] min-h-[600px] bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden">
+      <div className={isExtensionPage ? "w-screen min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-y-auto" : "w-[420px] min-h-[600px] bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden"}>
         {/* Animated background gradient orbs - Arcade style */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-200/40 to-fuchsia-200/40 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/40 to-sky-200/40 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         
-        <div className="relative z-10 p-6">
-          <Header user={user} onExpandWindow={handleExpandWindow} />
+        <div className={isExtensionPage ? "relative z-10 p-8 max-w-7xl mx-auto" : "relative z-10 p-6"}>
+          <Header user={user} onExpandWindow={handleExpandWindow} isExtensionPage={isExtensionPage} />
           
           <div className="space-y-4 mt-6">
             <AuthSection 
@@ -144,6 +158,8 @@ export const App = ({
                 <CourseSelector 
                   courses={courseList}
                   onSelectCourse={handleSelectCourse}
+                  onRemoveEnrollment={handleRemoveEnrollment}
+                  isExtensionPage={isExtensionPage}
                 />
               </div>
             )}
@@ -163,6 +179,9 @@ export const App = ({
                   courseDetails={courseDetails}
                   onScan={handleScan}
                   isScanning={isScanning}
+                  hasDocuments={currentCourseDocCount > 0}
+                  onBack={handleBackToCourseSelector}
+                  showBackButton={isExtensionPage && showCourseSelector === false}
                 />
               </div>
             )}
@@ -179,9 +198,9 @@ export const App = ({
               </div>
             )}
             
-            {isLoggedIn && !isExtensionPage && (
+            {isLoggedIn && isExtensionPage && (
               <div className="animate-fade-in">
-                <AllCoursesView onLoadCourses={handleLoadAllCourses} />
+                <AllCoursesView onLoadCourses={handleLoadAllCourses} isStandalone={true} />
               </div>
             )}
           </div>

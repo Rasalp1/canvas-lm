@@ -9,7 +9,7 @@ const Badge = React.forwardRef(({ className, variant = "default", ...props }, re
     outline: "border-2 border-input text-foreground",
     success: "bg-emerald-100 text-emerald-800 border border-emerald-200",
     warning: "bg-amber-100 text-amber-800 border border-amber-200",
-    gradient: "bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white border-0",
+    gradient: "bg-gradient-to-r from-blue-500 to-sky-500 text-white border-0",
   }
 
   return (

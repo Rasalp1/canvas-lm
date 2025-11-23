@@ -17,10 +17,6 @@ class GeminiFileSearchCloudClient {
   constructor(firebaseApp, userId) {
     this.functions = getFunctions(firebaseApp, 'europe-north1');
     this.userId = userId;
-    
-    if (!userId) {
-      console.warn('⚠️ GeminiFileSearchCloudClient initialized without userId - operations will fail');
-    }
   }
   
   /**

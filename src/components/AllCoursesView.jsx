@@ -6,10 +6,10 @@ import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { Database, ChevronDown, ChevronUp, FileText, Users, Clock } from 'lucide-react';
 
-export const AllCoursesView = ({ onLoadCourses }) => {
+export const AllCoursesView = ({ onLoadCourses, isStandalone = false }) => {
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isStandalone);
 
   const handleLoadCourses = async () => {
     setIsLoading(true);
@@ -18,6 +18,13 @@ export const AllCoursesView = ({ onLoadCourses }) => {
     setIsLoading(false);
     setIsExpanded(true);
   };
+
+  // Auto-load in standalone mode
+  React.useEffect(() => {
+    if (isStandalone && courses.length === 0) {
+      handleLoadCourses();
+    }
+  }, [isStandalone]);
 
   if (!isExpanded) {
     return (
@@ -40,33 +47,35 @@ export const AllCoursesView = ({ onLoadCourses }) => {
   const totalUsers = courses.reduce((sum, c) => sum + (c.totalEnrollments || 0), 0);
 
   return (
-    <Card>
+    <Card className={isStandalone ? "h-[calc(100vh-12rem)]" : ""}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
               <Database className="w-5 h-5 text-white" />
             </div>
-            <CardTitle className="text-lg">Database Overview</CardTitle>
+            <CardTitle className={isStandalone ? "text-2xl" : "text-lg"}>Database Overview</CardTitle>
           </div>
-          <Button
-            onClick={() => setIsExpanded(false)}
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-          >
-            <ChevronUp className="w-4 h-4" />
-          </Button>
+          {!isStandalone && (
+            <Button
+              onClick={() => setIsExpanded(false)}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+            >
+              <ChevronUp className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-gradient-to-br from-violet-50 to-fuchsia-50 rounded-xl p-3 border border-violet-200/60">
+          <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl p-3 border border-blue-200/60">
             <p className="text-xs text-slate-600 mb-1">Courses</p>
             <p className="text-2xl font-bold text-slate-900">{courses.length}</p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-200/60">
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
             <p className="text-xs text-slate-600 mb-1">Documents</p>
             <p className="text-2xl font-bold text-slate-900">{totalDocs}</p>
           </div>
@@ -78,7 +87,7 @@ export const AllCoursesView = ({ onLoadCourses }) => {
 
         <Separator />
         
-        <ScrollArea className="h-[240px]">
+        <ScrollArea className={isStandalone ? "h-[calc(100vh-28rem)]" : "h-[240px]"}>
           <div className="space-y-2 pr-4">
             {courses.length > 0 ? (
               courses.map((course) => (

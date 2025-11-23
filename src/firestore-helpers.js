@@ -15,15 +15,24 @@
  */
 export async function saveUser(db, userId, userData) {
   try {
-    const { doc, setDoc, Timestamp } = window.firebaseModules;
+    const { doc, setDoc, Timestamp, getDoc } = window.firebaseModules;
     
     const userRef = doc(db, 'users', userId);
-    await setDoc(userRef, {
+    const userSnap = await getDoc(userRef);
+    
+    const updateData = {
       email: userData.email,
       displayName: userData.displayName || userData.email.split('@')[0],
-      lastSeenAt: Timestamp.now(),
-      createdAt: Timestamp.now()
-    }, { merge: true }); // merge: true prevents overwriting existing data
+      lastSeenAt: Timestamp.now()
+    };
+    
+    // Only set createdAt and isAdmin on first creation
+    if (!userSnap.exists()) {
+      updateData.createdAt = Timestamp.now();
+      updateData.isAdmin = false; // Default to non-admin
+    }
+    
+    await setDoc(userRef, updateData, { merge: true }); // merge: true prevents overwriting existing data
     
     console.log('✅ User saved to Firestore:', userId);
     return { success: true };
@@ -772,8 +781,9 @@ export async function createChatSession(db, userId, sessionData) {
   try {
     const { collection, addDoc, Timestamp } = window.firebaseModules;
     
-    const sessionsRef = collection(db, 'users', userId, 'chatSessions');
+    const sessionsRef = collection(db, 'chatSessions');
     const docRef = await addDoc(sessionsRef, {
+      userId: userId,
       courseId: sessionData.courseId,
       title: sessionData.title || 'New Chat',
       createdAt: Timestamp.now(),
@@ -798,15 +808,15 @@ export async function createChatSession(db, userId, sessionData) {
  */
 export async function getUserChatSessions(db, userId, courseId = null) {
   try {
-    const { collection, query, where, getDocs, orderBy } = window.firebaseModules;
+    const { collection, query, where, getDocs } = window.firebaseModules;
     
-    const sessionsRef = collection(db, 'users', userId, 'chatSessions');
+    const sessionsRef = collection(db, 'chatSessions');
     let q;
     
     if (courseId) {
-      q = query(sessionsRef, where('courseId', '==', courseId));
+      q = query(sessionsRef, where('userId', '==', userId), where('courseId', '==', courseId));
     } else {
-      q = sessionsRef;
+      q = query(sessionsRef, where('userId', '==', userId));
     }
     
     const snapshot = await getDocs(q);
@@ -844,7 +854,7 @@ export async function addMessageToSession(db, userId, sessionId, messageData) {
     const { collection, addDoc, doc, updateDoc, Timestamp, getDoc } = window.firebaseModules;
     
     // Add message
-    const messagesRef = collection(db, 'users', userId, 'chatSessions', sessionId, 'messages');
+    const messagesRef = collection(db, 'chatSessions', sessionId, 'messages');
     const messageRef = await addDoc(messagesRef, {
       role: messageData.role, // 'user' or 'assistant'
       content: messageData.content,
@@ -852,7 +862,7 @@ export async function addMessageToSession(db, userId, sessionId, messageData) {
     });
     
     // Update session metadata
-    const sessionRef = doc(db, 'users', userId, 'chatSessions', sessionId);
+    const sessionRef = doc(db, 'chatSessions', sessionId);
     const sessionSnap = await getDoc(sessionRef);
     const currentCount = sessionSnap.exists() ? (sessionSnap.data().messageCount || 0) : 0;
     
@@ -880,7 +890,7 @@ export async function getSessionMessages(db, userId, sessionId) {
   try {
     const { collection, getDocs } = window.firebaseModules;
     
-    const messagesRef = collection(db, 'users', userId, 'chatSessions', sessionId, 'messages');
+    const messagesRef = collection(db, 'chatSessions', sessionId, 'messages');
     const snapshot = await getDocs(messagesRef);
     
     const messages = [];
@@ -915,7 +925,7 @@ export async function deleteChatSession(db, userId, sessionId) {
     const { collection, getDocs, doc, deleteDoc } = window.firebaseModules;
     
     // Delete all messages first
-    const messagesRef = collection(db, 'users', userId, 'chatSessions', sessionId, 'messages');
+    const messagesRef = collection(db, 'chatSessions', sessionId, 'messages');
     const messagesSnap = await getDocs(messagesRef);
     
     for (const messageDoc of messagesSnap.docs) {
@@ -923,13 +933,274 @@ export async function deleteChatSession(db, userId, sessionId) {
     }
     
     // Delete the session
-    const sessionRef = doc(db, 'users', userId, 'chatSessions', sessionId);
+    const sessionRef = doc(db, 'chatSessions', sessionId);
     await deleteDoc(sessionRef);
     
     console.log('✅ Chat session deleted:', sessionId);
     return { success: true };
   } catch (error) {
     console.error('❌ Error deleting chat session:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Remove user enrollment from a course (deletes enrollment and all chat sessions)
+ * @param {Object} db - Firestore database instance
+ * @param {string} userId - Chrome Identity user ID
+ * @param {string} courseId - Course ID to unenroll from
+ * @returns {Promise<Object>} Result object with success status
+ */
+export async function removeUserEnrollment(db, userId, courseId) {
+  try {
+    const { collection, query, where, getDocs, doc, deleteDoc } = window.firebaseModules;
+    
+    // Delete all chat sessions for this user and course
+    const sessionsRef = collection(db, 'chatSessions');
+    const q = query(
+      sessionsRef, 
+      where('userId', '==', userId),
+      where('courseId', '==', courseId)
+    );
+    const sessionsSnap = await getDocs(q);
+    
+    let deletedSessions = 0;
+    for (const sessionDoc of sessionsSnap.docs) {
+      // Delete all messages in the session
+      const messagesRef = collection(db, 'chatSessions', sessionDoc.id, 'messages');
+      const messagesSnap = await getDocs(messagesRef);
+      
+      for (const messageDoc of messagesSnap.docs) {
+        await deleteDoc(messageDoc.ref);
+      }
+      
+      // Delete the session
+      await deleteDoc(sessionDoc.ref);
+      deletedSessions++;
+    }
+    
+    // Delete the enrollment
+    const enrollmentRef = doc(db, 'users', userId, 'enrollments', courseId);
+    await deleteDoc(enrollmentRef);
+    
+    console.log(`✅ Removed enrollment for course ${courseId}, deleted ${deletedSessions} chat sessions`);
+    return { success: true, deletedSessions };
+  } catch (error) {
+    console.error('❌ Error removing enrollment:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ==================== ADMIN OPERATIONS ====================
+
+/**
+ * Set admin status for a user
+ * @param {Object} db - Firestore database instance
+ * @param {string} userId - Chrome Identity user ID
+ * @param {boolean} isAdmin - Admin status
+ * @returns {Promise<Object>} Result object with success status
+ */
+export async function setUserAdminStatus(db, userId, isAdmin) {
+  try {
+    const { doc, updateDoc } = window.firebaseModules;
+    
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      isAdmin: isAdmin
+    });
+    
+    console.log(`✅ User ${userId} admin status set to:`, isAdmin);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error setting admin status:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Check if user is an admin
+ * @param {Object} db - Firestore database instance
+ * @param {string} userId - Chrome Identity user ID
+ * @returns {Promise<Object>} Result object with isAdmin status
+ */
+export async function isUserAdmin(db, userId) {
+  try {
+    const { doc, getDoc } = window.firebaseModules;
+    
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (userSnap.exists()) {
+      const isAdmin = userSnap.data().isAdmin || false;
+      console.log(`✅ User ${userId} admin status:`, isAdmin);
+      return { success: true, isAdmin: isAdmin };
+    } else {
+      return { success: false, error: 'User not found', isAdmin: false };
+    }
+  } catch (error) {
+    console.error('❌ Error checking admin status:', error);
+    return { success: false, error: error.message, isAdmin: false };
+  }
+}
+
+/**
+ * Get all users (admin only)
+ * @param {Object} db - Firestore database instance
+ * @returns {Promise<Object>} Result object with array of all users
+ */
+export async function getAllUsers(db) {
+  try {
+    const { collection, getDocs } = window.firebaseModules;
+    
+    const usersRef = collection(db, 'users');
+    const snapshot = await getDocs(usersRef);
+    
+    const users = [];
+    snapshot.forEach((doc) => {
+      users.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`✅ Retrieved ${users.length} users`);
+    return { success: true, data: users };
+  } catch (error) {
+    console.error('❌ Error getting all users:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all courses (admin only)
+ * @param {Object} db - Firestore database instance
+ * @returns {Promise<Object>} Result object with array of all courses
+ */
+export async function getAllCourses(db) {
+  try {
+    const { collection, getDocs } = window.firebaseModules;
+    
+    const coursesRef = collection(db, 'courses');
+    const snapshot = await getDocs(coursesRef);
+    
+    const courses = [];
+    snapshot.forEach((doc) => {
+      courses.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`✅ Retrieved ${courses.length} courses`);
+    return { success: true, data: courses };
+  } catch (error) {
+    console.error('❌ Error getting all courses:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all chat sessions for a specific course (admin only)
+ * @param {Object} db - Firestore database instance
+ * @param {string} courseId - Course ID
+ * @returns {Promise<Object>} Result object with array of chat sessions
+ */
+export async function getAllChatSessionsForCourse(db, courseId) {
+  try {
+    const { collection, query, where, getDocs } = window.firebaseModules;
+    
+    const sessionsRef = collection(db, 'chatSessions');
+    const q = query(sessionsRef, where('courseId', '==', courseId));
+    const snapshot = await getDocs(q);
+    
+    const sessions = [];
+    snapshot.forEach((doc) => {
+      sessions.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`✅ Retrieved ${sessions.length} chat sessions for course ${courseId}`);
+    return { success: true, data: sessions };
+  } catch (error) {
+    console.error('❌ Error getting chat sessions for course:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get all chat sessions across all users (admin only)
+ * @param {Object} db - Firestore database instance
+ * @returns {Promise<Object>} Result object with array of all chat sessions
+ */
+export async function getAllChatSessions(db) {
+  try {
+    const { collection, getDocs } = window.firebaseModules;
+    
+    const sessionsRef = collection(db, 'chatSessions');
+    const snapshot = await getDocs(sessionsRef);
+    
+    const sessions = [];
+    snapshot.forEach((doc) => {
+      sessions.push({ id: doc.id, ...doc.data() });
+    });
+    
+    console.log(`✅ Retrieved ${sessions.length} total chat sessions`);
+    return { success: true, data: sessions };
+  } catch (error) {
+    console.error('❌ Error getting all chat sessions:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete a course and all associated chat sessions (admin only, cascading delete)
+ * @param {Object} db - Firestore database instance
+ * @param {string} courseId - Course ID to delete
+ * @returns {Promise<Object>} Result object with success status and deletion counts
+ */
+export async function deleteCourseWithCascade(db, courseId) {
+  try {
+    const { collection, getDocs, doc, deleteDoc, query, where } = window.firebaseModules;
+    
+    let deletedSessions = 0;
+    let deletedMessages = 0;
+    let deletedDocuments = 0;
+    
+    // 1. Delete all chat sessions for this course
+    const sessionsRef = collection(db, 'chatSessions');
+    const sessionsQuery = query(sessionsRef, where('courseId', '==', courseId));
+    const sessionsSnap = await getDocs(sessionsQuery);
+    
+    for (const sessionDoc of sessionsSnap.docs) {
+      // Delete all messages in this session
+      const messagesRef = collection(db, 'chatSessions', sessionDoc.id, 'messages');
+      const messagesSnap = await getDocs(messagesRef);
+      
+      for (const messageDoc of messagesSnap.docs) {
+        await deleteDoc(messageDoc.ref);
+        deletedMessages++;
+      }
+      
+      // Delete the session
+      await deleteDoc(sessionDoc.ref);
+      deletedSessions++;
+    }
+    
+    // 2. Delete all documents for this course
+    const documentsRef = collection(db, 'courses', courseId, 'documents');
+    const documentsSnap = await getDocs(documentsRef);
+    
+    for (const docDoc of documentsSnap.docs) {
+      await deleteDoc(docDoc.ref);
+      deletedDocuments++;
+    }
+    
+    // 3. Delete the course itself
+    const courseRef = doc(db, 'courses', courseId);
+    await deleteDoc(courseRef);
+    
+    console.log(`✅ Course ${courseId} deleted with cascade: ${deletedSessions} sessions, ${deletedMessages} messages, ${deletedDocuments} documents`);
+    return { 
+      success: true, 
+      deletedSessions, 
+      deletedMessages,
+      deletedDocuments
+    };
+  } catch (error) {
+    console.error('❌ Error deleting course with cascade:', error);
     return { success: false, error: error.message };
   }
 }
@@ -969,12 +1240,22 @@ if (typeof window !== 'undefined') {
     getDocumentsNeedingFileSearchUpload,
     saveCourseFileSearchStore,
     
-    // Chat session operations (PRIVATE)
+    // Chat session operations
     createChatSession,
     getUserChatSessions,
     addMessageToSession,
     getSessionMessages,
     deleteChatSession,
+    removeUserEnrollment,
+    
+    // Admin operations
+    setUserAdminStatus,
+    isUserAdmin,
+    getAllUsers,
+    getAllCourses,
+    getAllChatSessionsForCourse,
+    getAllChatSessions,
+    deleteCourseWithCascade,
     
     // Statistics
     getUserStats,

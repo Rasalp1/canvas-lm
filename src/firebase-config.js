@@ -8,6 +8,7 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  addDoc,
   collection,
   query,
   where,
@@ -44,6 +45,7 @@ window.firebaseModules = {
   getDocs,
   updateDoc,
   deleteDoc,
+  addDoc,
   
   // Query operations
   collection,

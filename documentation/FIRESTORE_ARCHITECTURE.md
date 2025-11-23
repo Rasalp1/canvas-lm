@@ -56,64 +56,37 @@ firestore (root)
 │  ├─ A123/                                  [Document - Chrome User ID]
 │  │  ├─ email: "alice@example.com"         (Field)
 │  │  ├─ displayName: "alice"               (Field)
+│  │  ├─ isAdmin: false                     (Field - NEW: Admin privileges)
 │  │  ├─ createdAt: Timestamp               (Field)
 │  │  ├─ lastSeenAt: Timestamp              (Field)
 │  │  │
-│  │  ├─ enrollments/                       [Subcollection - 🔐 PRIVATE]
-│  │  │  │
-│  │  │  ├─ 12345/                          [Document - Course ID user accessed]
-│  │  │  │  ├─ courseId: "12345"
-│  │  │  │  ├─ courseName: "Introduction to CS"
-│  │  │  │  ├─ enrolledAt: Timestamp
-│  │  │  │  ├─ lastAccessedAt: Timestamp
-│  │  │  │  └─ favorite: false
-│  │  │  │
-│  │  │  └─ 67890/                          [Document]
-│  │  │     ├─ courseId: "67890"
-│  │  │     ├─ courseName: "Advanced Math"
-│  │  │     ├─ enrolledAt: Timestamp
-│  │  │     ├─ lastAccessedAt: Timestamp
-│  │  │     └─ favorite: true
-│  │  │
-│  │  └─ chatSessions/                      [Subcollection - 🔐 PRIVATE]
+│  │  └─ enrollments/                       [Subcollection - 🔐 PRIVATE]
 │  │     │
-│  │     ├─ session_abc123/                 [Document - Chat Session ID]
+│  │     ├─ 12345/                          [Document - Course ID user accessed]
 │  │     │  ├─ courseId: "12345"
-│  │     │  ├─ createdAt: Timestamp
-│  │     │  ├─ lastMessageAt: Timestamp
-│  │     │  ├─ title: "Questions about Lecture 1"
-│  │     │  ├─ messageCount: 5
-│  │     │  │
-│  │     │  └─ messages/                    [Subcollection]
-│  │     │     ├─ msg_1/
-│  │     │     │  ├─ role: "user"
-│  │     │     │  ├─ content: "Explain recursion"
-│  │     │     │  └─ timestamp: Timestamp
-│  │     │     │
-│  │     │     ├─ msg_2/
-│  │     │     │  ├─ role: "assistant"
-│  │     │     │  ├─ content: "Recursion is..."
-│  │     │     │  └─ timestamp: Timestamp
-│  │     │     │
-│  │     │     └─ ... (more messages)
+│  │     │  ├─ courseName: "Introduction to CS"
+│  │     │  ├─ enrolledAt: Timestamp
+│  │     │  ├─ lastAccessedAt: Timestamp
+│  │     │  └─ favorite: false
 │  │     │
-│  │     └─ session_xyz789/                 [Document]
+│  │     └─ 67890/                          [Document]
 │  │        ├─ courseId: "67890"
-│  │        └─ ... (session metadata)
+│  │        ├─ courseName: "Advanced Math"
+│  │        ├─ enrolledAt: Timestamp
+│  │        ├─ lastAccessedAt: Timestamp
+│  │        └─ favorite: true
 │  │
 │  └─ B456/                                  [Document - Another User]
 │     ├─ email: "bob@example.com"
 │     ├─ displayName: "bob"
+│     ├─ isAdmin: false                     (Field)
 │     ├─ createdAt: Timestamp
 │     ├─ lastSeenAt: Timestamp
 │     │
-│     ├─ enrollments/                       [Subcollection - Bob's courses]
-│     │  └─ 12345/                          [Same course, different enrollment]
-│     │     ├─ enrolledAt: Timestamp (Bob's enrollment time)
-│     │     └─ ... (Bob's preferences)
-│     │
-│     └─ chatSessions/                      [Subcollection - Bob's chats]
-│        └─ ... (Bob's conversations)
+│     └─ enrollments/                       [Subcollection - Bob's courses]
+│        └─ 12345/                          [Same course, different enrollment]
+│           ├─ enrolledAt: Timestamp (Bob's enrollment time)
+│           └─ ... (Bob's preferences)
 │
 ├─ courses/                                  [Collection - 🌍 SHARED]
 │  │
@@ -167,8 +140,41 @@ firestore (root)
 │     ├─ createdBy: "B456"
 │     │
 │     └─ documents/                         [Subcollection]
-│        ├─ ... (PDFs for MATH201 - shared)
+│        └─ ... (PDFs for MATH201 - shared)
 │        └─ ...
+│
+└─ chatSessions/                             [Collection - TOP-LEVEL with userId]
+   │
+   ├─ session_abc123/                        [Document - Chat Session ID]
+   │  ├─ userId: "A123"                      (Field - Owner reference)
+   │  ├─ courseId: "12345"                   (Field - Course reference)
+   │  ├─ createdAt: Timestamp                (Field)
+   │  ├─ lastMessageAt: Timestamp            (Field)
+   │  ├─ title: "Questions about Lecture 1"  (Field)
+   │  ├─ messageCount: 5                     (Field)
+   │  │
+   │  └─ messages/                           [Subcollection]
+   │     ├─ msg_1/
+   │     │  ├─ role: "user"
+   │     │  ├─ content: "Explain recursion"
+   │     │  └─ timestamp: Timestamp
+   │     │
+   │     ├─ msg_2/
+   │     │  ├─ role: "assistant"
+   │     │  ├─ content: "Recursion is..."
+   │     │  └─ timestamp: Timestamp
+   │     │
+   │     └─ ... (more messages)
+   │
+   ├─ session_xyz789/                        [Document - Another session]
+   │  ├─ userId: "A123"
+   │  ├─ courseId: "67890"
+   │  └─ ... (session metadata)
+   │
+   └─ session_def456/                        [Document - Bob's session]
+      ├─ userId: "B456"
+      ├─ courseId: "12345"
+      └─ ... (session metadata)
 ```
 
 ## 🔍 Data Relationships
@@ -199,42 +205,69 @@ for (const doc of snapshot.docs) {
 }
 ```
 
-### 2. User → Chat Sessions (One-to-Many)
+### 2. User → Chat Sessions (One-to-Many) - TOP-LEVEL COLLECTION
 ```javascript
-// User A123 has multiple private chat sessions
-users/A123/chatSessions/session_abc123/
-users/A123/chatSessions/session_xyz789/
+// User A123 has multiple chat sessions (stored in top-level collection)
+chatSessions/session_abc123/
+  userId: "A123"
+  courseId: "12345"
 
-// Each session links to a course
-users/A123/chatSessions/session_abc123/
+chatSessions/session_xyz789/
+  userId: "A123"
+  courseId: "67890"
+
+// Course → Chat Sessions (many users can have sessions for same course)
+chatSessions/session_abc123/
+  userId: "A123"
+  courseId: "12345"  → references courses/12345/
+
+chatSessions/session_def456/
+  userId: "B456"
   courseId: "12345"  → references courses/12345/
 ```
 
 **Query Pattern:**
 ```javascript
 // Get all chat sessions for user A123
-const sessionsRef = collection(db, 'users', 'A123', 'chatSessions');
-const snapshot = await getDocs(sessionsRef);
-
-// Get chat sessions for specific course
 const q = query(
-  collection(db, 'users', 'A123', 'chatSessions'),
+  collection(db, 'chatSessions'),
+  where('userId', '==', 'A123')
+);
+const snapshot = await getDocs(q);
+
+// Get chat sessions for user A123 and specific course
+const q = query(
+  collection(db, 'chatSessions'),
+  where('userId', '==', 'A123'),
+  where('courseId', '==', '12345')
+);
+
+// ADMIN: Get all chat sessions for a course (across all users)
+const q = query(
+  collection(db, 'chatSessions'),
   where('courseId', '==', '12345')
 );
 ```
 
+**Cascade Deletion:**
+```javascript
+// When a course is deleted, automatically delete all chat sessions
+// This is handled by Cloud Function trigger: onCourseDeleted
+// See ADMIN_AND_CASCADE_DELETE.md for details
+```
+
 ### 3. Chat Session → Messages (One-to-Many)
 ```javascript
-// Session has multiple messages
-users/A123/chatSessions/session_abc123/messages/msg_1/
-users/A123/chatSessions/session_abc123/messages/msg_2/
+// Session has multiple messages (stored as subcollection)
+chatSessions/session_abc123/messages/msg_1/
+chatSessions/session_abc123/messages/msg_2/
 ```
 
 **Query Pattern:**
 ```javascript
 // Get all messages for a session
 const messagesRef = collection(
-  db, 'users', 'A123', 'chatSessions', 'session_abc123', 'messages'
+  db, 'chatSessions', 'session_abc123', 'messages'
 );
 const snapshot = await getDocs(messagesRef);
 ```

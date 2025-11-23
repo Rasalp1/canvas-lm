@@ -11,6 +11,7 @@ export class PopupLogic {
     this.fileSearchManager = null;
     this.uiCallbacks = {};
     this.conversationHistory = [];
+    this.currentSessionId = null; // Track current chat session
     
     // Firestore helper functions
     this.firestoreHelpers = null;
@@ -178,16 +179,32 @@ export class PopupLogic {
       
       this.uiCallbacks.setStatus?.(`✅ Detected: ${courseName}`);
       
+      // Check if course has documents
+      let docCount = 0;
+      if (this.currentUser) {
+        try {
+          const docsResult = await this.firestoreHelpers.getCourseDocuments(this.db, courseId);
+          docCount = docsResult.success ? docsResult.data.length : 0;
+        } catch (error) {
+          console.error('Error checking course documents:', error);
+        }
+      }
+      
       // Get course details
       const courseHtml = `
         <div class="text-sm space-y-2">
           <p><strong class="font-semibold">Course:</strong> ${courseName}</p>
           <p><strong class="font-semibold">ID:</strong> ${courseId}</p>
+          ${docCount > 0 ? `<p class="text-slate-900"><strong class="font-semibold">Documents:</strong> ${docCount} PDFs indexed</p>` : ''}
         </div>
       `;
       
       this.uiCallbacks.setCourseDetails?.(courseHtml);
       this.uiCallbacks.setShowCourseInfo?.(true);
+      this.uiCallbacks.setCurrentCourseDocCount?.(docCount);
+      
+      // Load or create chat session for this course
+      await this.loadOrCreateChatSession();
       
     } catch (error) {
       console.error('Error detecting Canvas:', error);
@@ -270,7 +287,7 @@ export class PopupLogic {
     }
   }
 
-  selectCourse(course) {
+  async selectCourse(course) {
     this.currentCourseData = {
       id: course.id,
       name: course.name,
@@ -279,16 +296,72 @@ export class PopupLogic {
     
     this.uiCallbacks.setStatus?.(`✅ Selected: ${course.name}`);
     
+    const docCount = course.actualPdfCount || 0;
+    
     const courseHtml = `
       <div class="text-sm space-y-2">
         <p><strong class="font-semibold">Course:</strong> ${course.name}</p>
         <p><strong class="font-semibold">ID:</strong> ${course.id}</p>
+        ${docCount > 0 ? `<p class="text-slate-900"><strong class="font-semibold">Documents:</strong> ${docCount} PDFs indexed</p>` : ''}
       </div>
     `;
     
     this.uiCallbacks.setCourseDetails?.(courseHtml);
     this.uiCallbacks.setShowCourseInfo?.(true);
     this.uiCallbacks.setShowCourseSelector?.(false);
+    this.uiCallbacks.setCurrentCourseDocCount?.(docCount);
+    
+    // Load or create chat session for this course
+    await this.loadOrCreateChatSession();
+  }
+
+  async removeEnrollment(courseId) {
+    if (!this.currentUser) {
+      console.error('No user signed in');
+      return;
+    }
+
+    try {
+      const result = await this.firestoreHelpers.removeUserEnrollment(
+        this.db,
+        this.currentUser.id,
+        courseId
+      );
+
+      if (result.success) {
+        console.log(`✅ Removed enrollment for course ${courseId}`);
+        
+        // Refresh the course list
+        await this.loadAllCourses();
+        
+        // If we were viewing this course, clear the view
+        if (this.currentCourseData && this.currentCourseData.id === courseId) {
+          this.currentCourseData = null;
+          this.currentSessionId = null;
+          this.conversationHistory = [];
+          this.uiCallbacks.setShowCourseInfo?.(false);
+          this.uiCallbacks.setChatMessages?.([]);
+        }
+      } else {
+        console.error('Failed to remove enrollment:', result.error);
+        alert('Failed to remove enrollment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error removing enrollment:', error);
+      alert('An error occurred while removing enrollment.');
+    }
+  }
+
+  backToCourseSelector() {
+    // Clear current course and show course selector
+    this.currentCourseData = null;
+    this.currentSessionId = null;
+    this.conversationHistory = [];
+    this.uiCallbacks.setShowCourseInfo?.(false);
+    this.uiCallbacks.setShowCourseSelector?.(true);
+    this.uiCallbacks.setChatMessages?.([]);
+    this.uiCallbacks.setStatus?.('Select a course from your enrolled courses');
+    console.log('✅ Navigated back to course selector');
   }
 
   async handleScan() {
@@ -339,6 +412,75 @@ export class PopupLogic {
     this.detectCanvas();
   }
 
+  /**
+   * Load or create a chat session for the current course
+   * Loads existing messages if a session exists
+   */
+  async loadOrCreateChatSession() {
+    if (!this.currentUser || !this.currentCourseData || !this.db) {
+      console.log('⚠️ Cannot load chat session: missing user or course data');
+      return;
+    }
+
+    try {
+      // Get existing chat sessions for this course
+      const sessionsResult = await this.firestoreHelpers.getUserChatSessions(
+        this.db, 
+        this.currentUser.id, 
+        this.currentCourseData.id
+      );
+
+      let sessionId;
+
+      if (sessionsResult.success && sessionsResult.data.length > 0) {
+        // Use the most recent session (sessions are sorted by lastMessageAt)
+        sessionId = sessionsResult.data[0].id;
+        console.log('✅ Using existing chat session:', sessionId);
+
+        // Load existing messages
+        const messagesResult = await this.firestoreHelpers.getSessionMessages(
+          this.db,
+          this.currentUser.id,
+          sessionId
+        );
+
+        if (messagesResult.success) {
+          // Convert Firestore messages to UI format
+          this.conversationHistory = messagesResult.data.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+          this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+          console.log(`✅ Loaded ${this.conversationHistory.length} messages from session`);
+        }
+      } else {
+        // Create a new session
+        const createResult = await this.firestoreHelpers.createChatSession(
+          this.db,
+          this.currentUser.id,
+          {
+            courseId: this.currentCourseData.id,
+            title: `Chat - ${this.currentCourseData.name}`
+          }
+        );
+
+        if (createResult.success) {
+          sessionId = createResult.sessionId;
+          this.conversationHistory = [];
+          this.uiCallbacks.setChatMessages?.([]);
+          console.log('✅ Created new chat session:', sessionId);
+        } else {
+          console.error('❌ Failed to create chat session');
+          return;
+        }
+      }
+
+      this.currentSessionId = sessionId;
+    } catch (error) {
+      console.error('❌ Error loading/creating chat session:', error);
+    }
+  }
+
   async handleChatSend(message) {
     if (!this.currentUser || !this.db) {
       this.conversationHistory.push({ 
@@ -380,10 +522,31 @@ export class PopupLogic {
     
     const fileSearchStoreName = courseResult.data.fileSearchStoreName;
     
+    // Ensure we have a chat session
+    if (!this.currentSessionId) {
+      await this.loadOrCreateChatSession();
+      if (!this.currentSessionId) {
+        this.conversationHistory.push({ 
+          role: 'assistant', 
+          content: '❌ Unable to create chat session' 
+        });
+        this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+        return;
+      }
+    }
+    
     // Add user message
     this.conversationHistory.push({ role: 'user', content: message });
     this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
     this.uiCallbacks.setIsChatLoading?.(true);
+    
+    // Save user message to Firestore
+    await this.firestoreHelpers.addMessageToSession(
+      this.db,
+      this.currentUser.id,
+      this.currentSessionId,
+      { role: 'user', content: message }
+    );
     
     try {
       // Query File Search with the store name
@@ -396,13 +559,30 @@ export class PopupLogic {
       this.conversationHistory.push({ role: 'assistant', content: response.answer });
       this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
       
+      // Save assistant message to Firestore
+      await this.firestoreHelpers.addMessageToSession(
+        this.db,
+        this.currentUser.id,
+        this.currentSessionId,
+        { role: 'assistant', content: response.answer }
+      );
+      
     } catch (error) {
       console.error('Chat error:', error);
+      const errorMessage = '❌ Error: ' + error.message;
       this.conversationHistory.push({ 
         role: 'assistant', 
-        content: '❌ Error: ' + error.message 
+        content: errorMessage
       });
       this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+      
+      // Save error message to Firestore
+      await this.firestoreHelpers.addMessageToSession(
+        this.db,
+        this.currentUser.id,
+        this.currentSessionId,
+        { role: 'assistant', content: errorMessage }
+      );
     } finally {
       this.uiCallbacks.setIsChatLoading?.(false);
     }

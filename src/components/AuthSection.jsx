@@ -6,29 +6,15 @@ import { LogIn, Sparkles } from 'lucide-react';
 
 export const AuthSection = ({ isLoggedIn, userStats, onLogin }) => {
   if (isLoggedIn) {
-    return (
-      <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="success" className="font-semibold">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Connected
-            </Badge>
-            <p className="text-sm text-slate-700 flex-1">
-              {userStats || 'Loading your stats...'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
     <Card className="overflow-hidden relative">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-400/20 to-fuchsia-400/20 rounded-full blur-2xl" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-sky-400/20 rounded-full blur-2xl" />
       <CardContent className="p-6 relative">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl shadow-lg shadow-violet-500/30">
+          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-gradient-to-br from-blue-500 to-sky-500 rounded-2xl shadow-lg shadow-blue-500/30">
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           

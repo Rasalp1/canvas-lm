@@ -960,3 +960,59 @@ exports.downloadCanvasPdf = onCall(async (request) => {
     throw new Error(`Failed to download PDF: ${error.message}`);
   }
 });
+
+// ==================== ADMIN OPERATIONS ====================
+
+/**
+ * Firestore trigger: Cascade delete chat sessions when a course is deleted
+ * This runs automatically whenever a document in the 'courses' collection is deleted
+ */
+const {onDocumentDeleted} = require('firebase-functions/v2/firestore');
+
+exports.onCourseDeleted = onDocumentDeleted('courses/{courseId}', async (event) => {
+  const courseId = event.params.courseId;
+  logger.info(`🗑️ Course ${courseId} deleted, starting cascade deletion...`);
+  
+  try {
+    let deletedSessions = 0;
+    let deletedMessages = 0;
+    let deletedDocuments = 0;
+    
+    // 1. Delete all chat sessions for this course
+    const sessionsSnapshot = await db.collection('chatSessions')
+      .where('courseId', '==', courseId)
+      .get();
+    
+    for (const sessionDoc of sessionsSnapshot.docs) {
+      // Delete all messages in this session
+      const messagesSnapshot = await db.collection('chatSessions')
+        .doc(sessionDoc.id)
+        .collection('messages')
+        .get();
+      
+      for (const messageDoc of messagesSnapshot.docs) {
+        await messageDoc.ref.delete();
+        deletedMessages++;
+      }
+      
+      // Delete the session
+      await sessionDoc.ref.delete();
+      deletedSessions++;
+    }
+    
+    // 2. Note: Course documents are subcollections and need manual cleanup
+    // They will be handled by the deleteCourseWithCascade function in firestore-helpers
+    
+    logger.info(`✅ Cascade delete complete for course ${courseId}: ${deletedSessions} sessions, ${deletedMessages} messages`);
+    
+    return {
+      success: true,
+      courseId,
+      deletedSessions,
+      deletedMessages
+    };
+  } catch (error) {
+    logger.error(`❌ Error in cascade delete for course ${courseId}:`, error);
+    throw error;
+  }
+});

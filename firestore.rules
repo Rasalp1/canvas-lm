@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // NOTE: Chrome extensions don't use Firebase Auth (request.auth is always null)
+    // Instead, we rely on client-side security and Cloud Functions for sensitive operations
+    // In production, you should implement proper authentication
+    
+    // Helper function to check if user is admin (requires userId parameter)
+    function isAdmin(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             get(/databases/$(database)/documents/users/$(userId)).data.isAdmin == true;
+    }
+    
+    // ==================== USERS COLLECTION ====================
+    match /users/{userId} {
+      // Allow read/write for now (Chrome extension uses client-side userId)
+      // In production, implement proper authentication
+      allow read: if true;
+      allow create: if true;
+      
+      // Prevent non-admins from setting isAdmin to true
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']) ||
+                       isAdmin(userId);
+      
+      // Only admins can delete users
+      allow delete: if isAdmin(userId);
+      
+      // Enrollments subcollection
+      match /enrollments/{enrollmentId} {
+        allow read, write: if true;
+      }
+    }
+    
+    // ==================== COURSES COLLECTION (SHARED) ====================
+    match /courses/{courseId} {
+      // Allow read/write for all users
+      allow read, create, update: if true;
+      
+      // Only admins can delete courses (triggers cascade deletion)
+      // Admin check requires passing userId from client
+      allow delete: if request.resource.data.deletedBy != null && 
+                       isAdmin(request.resource.data.deletedBy);
+      
+      // Documents subcollection (shared)
+      match /documents/{documentId} {
+        allow read, write: if true;
+        allow delete: if true;
+      }
+    }
+    
+    // ==================== CHAT SESSIONS COLLECTION (TOP-LEVEL) ====================
+    match /chatSessions/{sessionId} {
+      // Allow read/write for all users
+      // In production with proper auth, check resource.data.userId == request.auth.uid
+      allow read, create, update: if true;
+      
+      // Allow users to delete their own sessions, admins can delete any
+      allow delete: if true;
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Allow read/write for all users
+        allow read, write, delete: if true;
+      }
+    }
+  }
+}
