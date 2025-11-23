@@ -179,16 +179,35 @@ export class PopupLogic {
       
       this.uiCallbacks.setStatus?.(`✅ Detected: ${courseName}`);
       
-      // Check if course has documents
+      // Check if course has documents and enrollment status
       let docCount = 0;
+      let courseExists = false;
+      let isEnrolled = false;
+      
       if (this.currentUser) {
         try {
+          // Check if course exists in database
+          const courseResult = await this.firestoreHelpers.getCourse(this.db, courseId);
+          courseExists = courseResult.success && courseResult.data;
+          
+          // Check if user is enrolled
+          const enrollmentResult = await this.firestoreHelpers.isUserEnrolled(this.db, this.currentUser.id, courseId);
+          isEnrolled = enrollmentResult.success && enrollmentResult.isEnrolled;
+          
+          // Get document count
           const docsResult = await this.firestoreHelpers.getCourseDocuments(this.db, courseId);
           docCount = docsResult.success ? docsResult.data.length : 0;
         } catch (error) {
-          console.error('Error checking course documents:', error);
+          console.error('Error checking course status:', error);
         }
       }
+      
+      // Update enrollment status
+      this.uiCallbacks.setEnrollmentStatus?.({
+        courseExists,
+        isEnrolled,
+        checking: false
+      });
       
       // Get course details
       const courseHtml = `
@@ -231,7 +250,7 @@ export class PopupLogic {
             
             return {
               ...course,
-              name: course.courseName || course.name || `Course ${course.id}`,
+              name: course.courseName || `Course ${course.id}`,
               actualPdfCount: actualCount
             };
           })
@@ -311,8 +330,67 @@ export class PopupLogic {
     this.uiCallbacks.setShowCourseSelector?.(false);
     this.uiCallbacks.setCurrentCourseDocCount?.(docCount);
     
+    // Set enrollment status - user is enrolled if they're in the course list
+    this.uiCallbacks.setEnrollmentStatus?.({
+      courseExists: true,
+      isEnrolled: true,
+      checking: false
+    });
+    
     // Load or create chat session for this course
     await this.loadOrCreateChatSession();
+  }
+
+  async enrollInCurrentCourse() {
+    if (!this.currentUser) {
+      console.error('No user signed in');
+      alert('Please sign in to enroll in courses.');
+      return;
+    }
+
+    if (!this.currentCourseData) {
+      console.error('No course data available');
+      return;
+    }
+
+    try {
+      console.log('📝 Enrolling user in course:', this.currentCourseData.id);
+      
+      const enrollmentResult = await this.firestoreHelpers.enrollUserInCourse(
+        this.db,
+        this.currentUser.id,
+        {
+          courseId: this.currentCourseData.id,
+          courseName: this.currentCourseData.name
+        }
+      );
+
+      if (enrollmentResult.success) {
+        console.log('✅ User enrolled successfully');
+        
+        // Update enrollment status
+        this.uiCallbacks.setEnrollmentStatus?.({
+          courseExists: true,
+          isEnrolled: true,
+          checking: false
+        });
+        
+        // Refresh course list
+        await this.loadAllCourses();
+        
+        // Load chat session for this course
+        await this.loadOrCreateChatSession();
+        
+        // Show success message
+        this.uiCallbacks.setStatus?.(`✅ Enrolled in ${this.currentCourseData.name}`);
+      } else {
+        console.error('Failed to enroll:', enrollmentResult.error);
+        alert('Failed to enroll in course. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error enrolling in course:', error);
+      alert('An error occurred while enrolling in the course.');
+    }
   }
 
   async removeEnrollment(courseId) {
@@ -334,13 +412,22 @@ export class PopupLogic {
         // Refresh the course list
         await this.loadAllCourses();
         
-        // If we were viewing this course, clear the view
+        // If we were viewing this course, update enrollment status and clear chat
         if (this.currentCourseData && this.currentCourseData.id === courseId) {
-          this.currentCourseData = null;
+          // Update enrollment status to reflect un-enrollment
+          this.uiCallbacks.setEnrollmentStatus?.({
+            courseExists: true,
+            isEnrolled: false,
+            checking: false
+          });
+          
           this.currentSessionId = null;
           this.conversationHistory = [];
-          this.uiCallbacks.setShowCourseInfo?.(false);
           this.uiCallbacks.setChatMessages?.([]);
+          this.uiCallbacks.setCurrentCourseDocCount?.(0);
+          
+          // Don't clear currentCourseData so the course info stays visible
+          // This allows the user to re-enroll if desired
         }
       } else {
         console.error('Failed to remove enrollment:', result.error);

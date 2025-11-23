@@ -37,7 +37,6 @@ export const CourseDetection = ({ status, onDetect }) => {
             <Info className="w-4 h-4 text-blue-600" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-blue-900 mb-1">Quick Tip</p>
             <p className="text-xs text-blue-700 leading-relaxed">
               Navigate to a Canvas course page (e.g., <code className="px-1 py-0.5 bg-white/60 rounded">canvas.edu/courses/12345</code>) for this extension to work.
             </p>

@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Rounded popup window */
+html, body {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
 /* Custom scrollbar styling for Arcade-like feel */
 ::-webkit-scrollbar {
   width: 8px;

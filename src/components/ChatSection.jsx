@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -114,8 +114,125 @@ export const ChatSection = ({
   inputValue, 
   onInputChange, 
   onSend, 
-  isLoading 
+  isLoading,
+  isFullScreen = false
 }) => {
+  if (isFullScreen) {
+    // Full-screen layout for extended page
+    return (
+      <div className="flex-1 flex flex-col h-full">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="w-full px-8 py-8">
+            <div className="space-y-6">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-sky-100 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
+                    <Bot className="w-10 h-10 text-blue-600" />
+                  </div>
+                  <p className="text-lg text-slate-700 font-medium mb-2">Ready to help!</p>
+                  <p className="text-sm text-slate-500">Ask me anything about your course materials</p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div 
+                    key={idx}
+                    className={`flex gap-3 animate-fade-in ${
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
+                    <div className={`flex gap-3 max-w-[80%] ${
+                      msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                    }`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        msg.role === 'user'
+                          ? 'bg-gradient-to-br from-blue-500 to-sky-500'
+                          : 'bg-gradient-to-br from-slate-600 to-slate-700'
+                      }`}>
+                        {msg.role === 'user' ? (
+                          <User className="w-4 h-4 text-white" />
+                        ) : (
+                          <Bot className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div 
+                        className={`p-4 rounded-2xl shadow-sm ${
+                          msg.role === 'user' 
+                            ? 'bg-gradient-to-br from-blue-100 to-sky-100 text-slate-800' 
+                            : 'bg-white border border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <div className="text-sm leading-relaxed space-y-1">
+                          {msg.role === 'user' 
+                            ? msg.content 
+                            : formatAIResponse(msg.content)
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isLoading && (
+                <div className="flex gap-3 animate-fade-in justify-start">
+                  <div className="flex gap-3 max-w-[80%]">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-slate-600 to-slate-700">
+                      <Bot className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="p-4 rounded-2xl shadow-sm bg-white border border-slate-200">
+                      <div className="flex items-center gap-3">
+                        <l-trefoil
+                          size="28"
+                          stroke="3.5"
+                          stroke-length="0.15"
+                          bg-opacity="0.1"
+                          speed="1.4"
+                          color="#7c3aed"
+                        />
+                        <span className="text-sm text-slate-500">Thinking...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Input Area - Fixed at Bottom */}
+        <div className="border-t border-slate-200 bg-white p-4">
+          <div className="w-full px-4">
+            <div className="flex gap-3">
+              <Input
+                type="text"
+                value={inputValue}
+                onChange={(e) => onInputChange(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && onSend()}
+                placeholder="Ask about your course..."
+                disabled={isLoading}
+                className="flex-1 h-12 text-base"
+              />
+              <Button
+                onClick={onSend}
+                disabled={isLoading || !inputValue.trim()}
+                size="lg"
+                variant={isLoading || !inputValue.trim() ? "secondary" : "gradient"}
+                className="flex-shrink-0 w-12 h-12"
+              >
+                {isLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Card layout for popup
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -192,7 +309,7 @@ export const ChatSection = ({
                         stroke-length="0.15"
                         bg-opacity="0.1"
                         speed="1.4"
-                        color="#7c3aed"
+                        color="#3b82f6"
                       />
                       <span className="text-sm text-slate-500">Thinking...</span>
                     </div>

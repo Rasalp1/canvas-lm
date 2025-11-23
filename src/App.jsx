@@ -6,6 +6,8 @@ import { CourseInfo } from './components/CourseInfo';
 import { ChatSection } from './components/ChatSection';
 import { CourseSelector } from './components/CourseSelector';
 import { AllCoursesView } from './components/AllCoursesView';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/dialog';
+import { Button } from './components/ui/button';
 import './styles.css';
 
 const CSS_VARS = `
@@ -50,6 +52,9 @@ export const App = ({
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isExtensionPage, setIsExtensionPage] = useState(false);
   const [currentCourseDocCount, setCurrentCourseDocCount] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, course: null });
+  const [enrollmentStatus, setEnrollmentStatus] = useState({ courseExists: false, isEnrolled: false, checking: true });
 
   useEffect(() => {
     // Check if we're on an extension page
@@ -73,7 +78,8 @@ export const App = ({
         setIsScanning,
         setChatMessages,
         setIsChatLoading,
-        setCurrentCourseDocCount
+        setCurrentCourseDocCount,
+        setEnrollmentStatus
       });
       popupLogic.initialize();
     }
@@ -116,15 +122,26 @@ export const App = ({
     }
   };
 
-  const handleRemoveEnrollment = async (courseId) => {
-    if (popupLogic) {
-      await popupLogic.removeEnrollment(courseId);
+  const handleRemoveEnrollment = (course) => {
+    setConfirmDialog({ open: true, course });
+  };
+
+  const handleConfirmRemove = async () => {
+    if (confirmDialog.course && popupLogic) {
+      await popupLogic.removeEnrollment(confirmDialog.course.id);
     }
+    setConfirmDialog({ open: false, course: null });
   };
 
   const handleBackToCourseSelector = () => {
     if (popupLogic) {
       popupLogic.backToCourseSelector();
+    }
+  };
+
+  const handleEnroll = () => {
+    if (popupLogic) {
+      popupLogic.enrollInCurrentCourse();
     }
   };
 
@@ -135,15 +152,190 @@ export const App = ({
     return [];
   };
 
+  // Extended page layout (ChatGPT-like)
+  if (isExtensionPage && isLoggedIn) {
+    return (
+      <>
+        <style>{CSS_VARS}</style>
+        <div className="w-screen h-screen bg-slate-50 flex overflow-hidden">
+          {/* Left Sidebar - Course List */}
+          <div className={`bg-slate-100 border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out ${
+            sidebarCollapsed ? 'w-16' : 'w-80'
+          }`}>
+            {/* Header */}
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+              {!sidebarCollapsed && (
+                <div className="flex items-center gap-3 transition-opacity duration-200">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <span className="text-xl font-bold text-white">C</span>
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold text-slate-900">Canvas LM</h1>
+                    <p className="text-xs text-slate-500">{user?.email}</p>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <span className="text-slate-600">{sidebarCollapsed ? '→' : '←'}</span>
+              </button>
+            </div>
+
+            {/* Course List */}
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="space-y-1">
+                {courseList && courseList.length > 0 ? (
+                  courseList.map((course) => (
+                    <button
+                      key={course.id}
+                      onClick={() => handleSelectCourse(course)}
+                      className={`w-full text-left p-3 rounded-lg transition-all hover:bg-slate-200 group relative ${
+                        showCourseInfo && courseDetails?.includes(course.id) ? 'bg-slate-200' : ''
+                      }`}
+                      title={sidebarCollapsed ? course.name : ''}
+                    >
+                      {sidebarCollapsed ? (
+                        <div className="flex justify-center">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-500 rounded-lg flex items-center justify-center flex-shrink-0 text-xs">
+                              📚
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-slate-900 leading-snug">{course.name}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveEnrollment(course);
+                            }}
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                          >
+                            <span className="text-red-600 text-lg">×</span>
+                          </button>
+                        </>
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  !sidebarCollapsed && (
+                    <div className="text-center py-8 text-slate-500 text-sm">
+                      <p>No courses yet</p>
+                      <p className="text-xs mt-1">Visit a Canvas course to get started</p>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* User Stats Footer */}
+            {!sidebarCollapsed && (
+              <div className="p-4 border-t border-slate-200">
+                <div className="text-xs text-slate-500">
+                  {userStats || '📊 No stats available'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col bg-white">
+            {showCourseInfo && currentCourseDocCount > 0 && enrollmentStatus.isEnrolled ? (
+              /* Chat Interface */
+              <>
+                <ChatSection 
+                  messages={chatMessages}
+                  inputValue={chatInput}
+                  onInputChange={setChatInput}
+                  onSend={handleChatSend}
+                  isLoading={isChatLoading}
+                  isFullScreen={true}
+                />
+              </>
+            ) : showCourseInfo ? (
+              /* Course Info - Need to Scan */
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="max-w-2xl w-full">
+                  <CourseInfo 
+                    courseDetails={courseDetails}
+                    onScan={handleScan}
+                    isScanning={isScanning}
+                    hasDocuments={currentCourseDocCount > 0}
+                    onBack={handleBackToCourseSelector}
+                    showBackButton={false}
+                    enrollmentStatus={enrollmentStatus}
+                    onEnroll={handleEnroll}
+                    isLoggedIn={isLoggedIn}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Welcome Screen */
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="text-center max-w-2xl">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-sky-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                    <span className="text-4xl">💬</span>
+                  </div>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-3">Welcome to Canvas LM</h2>
+                  <p className="text-slate-600 mb-8">
+                    Select a course from the sidebar to start chatting with your course materials
+                  </p>
+                  
+                  {/* DB Overview Card */}
+                  <div className="mt-12">
+                    <AllCoursesView onLoadCourses={handleLoadAllCourses} isStandalone={true} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Confirmation Dialog */}
+          <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ open, course: null })}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Remove Course?</DialogTitle>
+                <DialogDescription>
+                  This will remove "{confirmDialog.course?.name}" from your list and delete all your chat history with this course. This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDialog({ open: false, course: null })}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleConfirmRemove}
+                >
+                  Remove Course
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </>
+    );
+  }
+
+  // Popup layout (original)
   return (
     <>
       <style>{CSS_VARS}</style>
-      <div className={isExtensionPage ? "w-screen min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-y-auto" : "w-[420px] min-h-[600px] bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden"}>
+      <div className="w-[420px] min-h-[600px] bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden">
         {/* Animated background gradient orbs - Arcade style */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/40 to-sky-200/40 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         
-        <div className={isExtensionPage ? "relative z-10 p-8 max-w-7xl mx-auto" : "relative z-10 p-6"}>
+        <div className="relative z-10 p-6">
           <Header user={user} onExpandWindow={handleExpandWindow} isExtensionPage={isExtensionPage} />
           
           <div className="space-y-4 mt-6">
@@ -182,11 +374,14 @@ export const App = ({
                   hasDocuments={currentCourseDocCount > 0}
                   onBack={handleBackToCourseSelector}
                   showBackButton={isExtensionPage && showCourseSelector === false}
+                  enrollmentStatus={enrollmentStatus}
+                  onEnroll={handleEnroll}
+                  isLoggedIn={isLoggedIn}
                 />
               </div>
             )}
             
-            {isLoggedIn && showCourseInfo && (
+            {isLoggedIn && showCourseInfo && enrollmentStatus.isEnrolled && (
               <div className="animate-fade-in">
                 <ChatSection 
                   messages={chatMessages}
@@ -195,12 +390,6 @@ export const App = ({
                   onSend={handleChatSend}
                   isLoading={isChatLoading}
                 />
-              </div>
-            )}
-            
-            {isLoggedIn && isExtensionPage && (
-              <div className="animate-fade-in">
-                <AllCoursesView onLoadCourses={handleLoadAllCourses} isStandalone={true} />
               </div>
             )}
           </div>
