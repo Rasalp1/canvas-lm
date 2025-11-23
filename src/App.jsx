@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import { Header } from './components/Header';
 import { AuthSection } from './components/AuthSection';
 import { CourseDetection } from './components/CourseDetection';
@@ -53,6 +54,7 @@ export const App = ({
   const [isExtensionPage, setIsExtensionPage] = useState(false);
   const [currentCourseDocCount, setCurrentCourseDocCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, course: null });
   const [enrollmentStatus, setEnrollmentStatus] = useState({ courseExists: false, isEnrolled: false, checking: true });
 
@@ -159,7 +161,7 @@ export const App = ({
         <style>{CSS_VARS}</style>
         <div className="w-screen h-screen bg-slate-50 flex overflow-hidden">
           {/* Left Sidebar - Course List */}
-          <div className={`bg-slate-100 border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out ${
+          <div className={`bg-slate-100 border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out rounded-r-3xl ${
             sidebarCollapsed ? 'w-16' : 'w-80'
           }`}>
             {/* Header */}
@@ -234,12 +236,24 @@ export const App = ({
               </div>
             </div>
 
-            {/* User Stats Footer */}
+            {/* Settings Button */}
             {!sidebarCollapsed && (
-              <div className="p-4 border-t border-slate-200">
-                <div className="text-xs text-slate-500">
-                  {userStats || '📊 No stats available'}
-                </div>
+              <div className="p-2 border-t border-slate-200 relative">
+                {settingsOpen && (
+                  <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-lg shadow-lg py-2">
+                    {/* Empty dropdown menu - placeholder for future settings */}
+                    <div className="px-4 py-2 text-sm text-slate-500 text-center">
+                      Settings coming soon
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  className="w-full flex items-center gap-2 px-7 py-4 text-sm text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  <Settings size={16} className="text-slate-600" />
+                  <span>Settings</span>
+                </button>
               </div>
             )}
           </div>
@@ -256,6 +270,7 @@ export const App = ({
                   onSend={handleChatSend}
                   isLoading={isChatLoading}
                   isFullScreen={true}
+                  user={user}
                 />
               </>
             ) : showCourseInfo ? (
@@ -389,6 +404,7 @@ export const App = ({
                   onInputChange={setChatInput}
                   onSend={handleChatSend}
                   isLoading={isChatLoading}
+                  user={user}
                 />
               </div>
             )}

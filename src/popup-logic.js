@@ -12,6 +12,8 @@ export class PopupLogic {
     this.uiCallbacks = {};
     this.conversationHistory = [];
     this.currentSessionId = null; // Track current chat session
+    this.streamingMessageTimer = null; // Timer for streaming animation
+    this.isStreaming = false; // Flag to prevent interruptions
     
     // Firestore helper functions
     this.firestoreHelpers = null;
@@ -212,9 +214,8 @@ export class PopupLogic {
       // Get course details
       const courseHtml = `
         <div class="text-sm space-y-2">
-          <p><strong class="font-semibold">Course:</strong> ${courseName}</p>
-          <p><strong class="font-semibold">ID:</strong> ${courseId}</p>
-          ${docCount > 0 ? `<p class="text-slate-900"><strong class="font-semibold">Documents:</strong> ${docCount} PDFs indexed</p>` : ''}
+          <p><strong class="font-semibold">${courseName}</strong> | ID: ${courseId}</p>
+          ${docCount > 0 ? `<p class="text-slate-900">${docCount} PDFs scanned</p>` : ''}
         </div>
       `;
       
@@ -222,8 +223,10 @@ export class PopupLogic {
       this.uiCallbacks.setShowCourseInfo?.(true);
       this.uiCallbacks.setCurrentCourseDocCount?.(docCount);
       
-      // Load or create chat session for this course
-      await this.loadOrCreateChatSession();
+      // Only load chat session if user is enrolled
+      if (isEnrolled) {
+        await this.loadOrCreateChatSession();
+      }
       
     } catch (error) {
       console.error('Error detecting Canvas:', error);
@@ -322,9 +325,8 @@ export class PopupLogic {
     
     const courseHtml = `
       <div class="text-sm space-y-2">
-        <p><strong class="font-semibold">Course:</strong> ${displayName}</p>
-        <p><strong class="font-semibold">ID:</strong> ${course.id}</p>
-        ${docCount > 0 ? `<p class="text-slate-900"><strong class="font-semibold">Documents:</strong> ${docCount} PDFs indexed</p>` : ''}
+        <p><strong class="font-semibold">${displayName}</strong> | ID: ${course.id}</p>
+        ${docCount > 0 ? `<p class="text-slate-900">${docCount} PDFs scanned</p>` : ''}
       </div>
     `;
     
@@ -340,7 +342,7 @@ export class PopupLogic {
       checking: false
     });
     
-    // Load or create chat session for this course
+    // Load or create chat session for this enrolled course
     await this.loadOrCreateChatSession();
   }
 
@@ -381,7 +383,7 @@ export class PopupLogic {
         // Refresh course list
         await this.loadAllCourses();
         
-        // Load chat session for this course
+        // Now that user is enrolled, create/load chat session
         await this.loadOrCreateChatSession();
         
         // Show success message
@@ -588,7 +590,7 @@ export class PopupLogic {
       
       const storeResult = await this.fileSearchManager.createCourseStore(
         this.currentCourseData.id,
-        `${this.currentCourseData.name} (${this.currentCourseData.id})`
+        this.currentCourseData.name
       );
       
       const fileSearchStore = { name: storeResult.name };
@@ -607,7 +609,6 @@ export class PopupLogic {
         courseName: this.currentCourseData.name,
         courseCode: this.currentCourseData.courseCode || '',
         canvasUrl: this.currentCourseData.url,
-        pdfCount: pdfs.length,
         fileSearchStoreName: fileSearchStore.name
       });
       
@@ -709,6 +710,52 @@ export class PopupLogic {
     return new Blob([byteArray], { type: mimeType });
   }
 
+  /**
+   * Animate message streaming word-by-word
+   * @param {string} fullMessage - The complete message to stream
+   * @param {number} delay - Delay between words in ms (default 20ms)
+   */
+  async streamMessage(fullMessage, delay = 20) {
+    // Clear any existing streaming animation
+    if (this.streamingMessageTimer) {
+      clearInterval(this.streamingMessageTimer);
+    }
+
+    this.isStreaming = true;
+
+    // Split message into words (preserving whitespace and newlines)
+    const tokens = fullMessage.split(/(?<=\s)|(?=\s)/);
+    let currentText = '';
+    let tokenIndex = 0;
+
+    // Add empty assistant message that we'll update
+    this.conversationHistory.push({ role: 'assistant', content: '' });
+    this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+
+    return new Promise((resolve) => {
+      this.streamingMessageTimer = setInterval(() => {
+        if (tokenIndex >= tokens.length) {
+          clearInterval(this.streamingMessageTimer);
+          this.streamingMessageTimer = null;
+          this.isStreaming = false;
+          
+          // Ensure final message is complete
+          this.conversationHistory[this.conversationHistory.length - 1].content = fullMessage;
+          this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+          resolve();
+          return;
+        }
+
+        currentText += tokens[tokenIndex];
+        tokenIndex++;
+
+        // Update the last message in the conversation
+        this.conversationHistory[this.conversationHistory.length - 1].content = currentText;
+        this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+      }, delay);
+    });
+  }
+
   handleLogin() {
     alert('Please sign in to Chrome by clicking your profile icon in the top-right corner of Chrome, then reload this extension.');
   }
@@ -724,6 +771,18 @@ export class PopupLogic {
   async loadOrCreateChatSession() {
     if (!this.currentUser || !this.currentCourseData || !this.db) {
       console.log('⚠️ Cannot load chat session: missing user or course data');
+      return;
+    }
+
+    // Verify user is enrolled before creating/loading session
+    const enrollmentResult = await this.firestoreHelpers.isUserEnrolled(
+      this.db,
+      this.currentUser.id,
+      this.currentCourseData.id
+    );
+    
+    if (!enrollmentResult.success || !enrollmentResult.isEnrolled) {
+      console.log('⚠️ User not enrolled in course, skipping chat session creation');
       return;
     }
 
@@ -854,17 +913,20 @@ export class PopupLogic {
     );
     
     try {
-      // Query File Search with the store name
-      const response = await this.fileSearchManager.queryWithFileSearch(
+      // Query course store with the course ID
+      const response = await this.fileSearchManager.queryCourseStore(
         message,
-        fileSearchStoreName,
+        this.currentCourseData.id,
         'gemini-2.5-flash'
       );
       
-      this.conversationHistory.push({ role: 'assistant', content: response.answer });
-      this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+      // Turn off loading indicator once we receive the response
+      this.uiCallbacks.setIsChatLoading?.(false);
       
-      // Save assistant message to Firestore
+      // Stream the response word-by-word
+      await this.streamMessage(response.answer, 20);
+      
+      // Save assistant message to Firestore (after streaming completes)
       await this.firestoreHelpers.addMessageToSession(
         this.db,
         this.currentUser.id,
@@ -874,12 +936,14 @@ export class PopupLogic {
       
     } catch (error) {
       console.error('Chat error:', error);
+      
+      // Turn off loading indicator on error
+      this.uiCallbacks.setIsChatLoading?.(false);
+      
       const errorMessage = '❌ Error: ' + error.message;
-      this.conversationHistory.push({ 
-        role: 'assistant', 
-        content: errorMessage
-      });
-      this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+      
+      // Stream error message too
+      await this.streamMessage(errorMessage, 20);
       
       // Save error message to Firestore
       await this.firestoreHelpers.addMessageToSession(
@@ -888,8 +952,6 @@ export class PopupLogic {
         this.currentSessionId,
         { role: 'assistant', content: errorMessage }
       );
-    } finally {
-      this.uiCallbacks.setIsChatLoading?.(false);
     }
   }
 

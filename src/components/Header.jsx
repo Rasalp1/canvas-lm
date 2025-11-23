@@ -26,7 +26,7 @@ export const Header = ({ user, onExpandWindow, isExtensionPage }) => {
           <Avatar className="w-9 h-9 ring-2 ring-slate-200">
             <AvatarImage src={user.photoURL} alt={user.displayName} />
             <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-sky-500 text-white">
-              {user.displayName?.charAt(0) || 'U'}
+              {user.displayName?.charAt(0).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
         )}

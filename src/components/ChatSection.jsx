@@ -3,7 +3,7 @@ import { Card, CardHeader, CardContent, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import { MessageCircle, Send, Bot, User } from 'lucide-react';
+import { MessageCircle, Send, Layers } from 'lucide-react';
 import { trefoil } from 'ldrs';
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
@@ -122,7 +122,8 @@ export const ChatSection = ({
   onInputChange, 
   onSend, 
   isLoading,
-  isFullScreen = false
+  isFullScreen = false,
+  user
 }) => {
   const scrollContainerRef = useRef(null);
   const scrollAreaRef = useRef(null);
@@ -159,7 +160,7 @@ export const ChatSection = ({
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-sky-100 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
-                    <Bot className="w-10 h-10 text-blue-600" />
+                    <Layers className="w-10 h-10 text-blue-600" />
                   </div>
                   <p className="text-lg text-slate-700 font-medium mb-2">Ready to help!</p>
                   <p className="text-sm text-slate-500">Ask me anything about your course materials</p>
@@ -172,18 +173,18 @@ export const ChatSection = ({
                       msg.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    <div className={`flex gap-3 max-w-[80%] ${
+                    <div className={`flex gap-3 max-w-[80%] items-start ${
                       msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
                     }`}>
                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         msg.role === 'user'
-                          ? 'bg-gradient-to-br from-blue-500 to-sky-500'
-                          : 'bg-gradient-to-br from-slate-600 to-slate-700'
+                          ? 'bg-gradient-to-br from-blue-500 to-sky-500 text-white font-semibold text-sm'
+                          : 'bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600'
                       }`}>
                         {msg.role === 'user' ? (
-                          <User className="w-4 h-4 text-white" />
+                          user?.displayName?.charAt(0).toUpperCase() || 'U'
                         ) : (
-                          <Bot className="w-4 h-4 text-white" />
+                          <Layers className="w-4 h-4 text-white" />
                         )}
                       </div>
                       <div 
@@ -206,9 +207,9 @@ export const ChatSection = ({
               )}
               {isLoading && (
                 <div className="flex gap-3 animate-fade-in justify-start">
-                  <div className="flex gap-3 max-w-[80%]">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-slate-600 to-slate-700">
-                      <Bot className="w-4 h-4 text-white" />
+                  <div className="flex gap-3 max-w-[80%] items-start">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600">
+                      <Layers className="w-4 h-4 text-white" />
                     </div>
                     <div className="p-4 rounded-2xl shadow-sm bg-white border border-slate-200">
                       <div className="flex items-center gap-3">
@@ -231,23 +232,23 @@ export const ChatSection = ({
         </div>
 
         {/* Input Area - Fixed at Bottom */}
-        <div className="border-t border-slate-200 bg-white p-4">
-          <div className="w-full px-4">
+        <div className="bg-white">
+          <div className="w-full px-8 py-4">
             <div className="flex gap-3">
               <Input
                 type="text"
                 value={inputValue}
                 onChange={(e) => onInputChange(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && onSend()}
-                placeholder="Ask about your course..."
+                placeholder="Ask me about your course..."
                 disabled={isLoading}
-                className="flex-1 h-12 text-base"
+                className="flex-1 h-12 text-base border-slate-600"
               />
               <Button
                 onClick={onSend}
                 disabled={isLoading || !inputValue.trim()}
-                size="lg"
-                variant={isLoading || !inputValue.trim() ? "secondary" : "gradient"}
+                size="icon"
+                variant="gradient"
                 className="flex-shrink-0 w-12 h-12"
               >
                 {isLoading ? (
@@ -281,7 +282,7 @@ export const ChatSection = ({
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-sky-100 rounded-2xl flex items-center justify-center mb-4">
-                  <Bot className="w-8 h-8 text-blue-600" />
+                  <Layers className="w-8 h-8 text-blue-600" />
                 </div>
                 <p className="text-sm text-slate-600 font-medium mb-1">Ready to help!</p>
                 <p className="text-xs text-slate-500">Ask me anything about your course materials</p>
@@ -297,13 +298,13 @@ export const ChatSection = ({
                   <div className="flex flex-col gap-1.5 max-w-[95%]">
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
                       msg.role === 'user'
-                        ? 'bg-gradient-to-br from-blue-500 to-sky-500 self-end'
-                        : 'bg-gradient-to-br from-slate-600 to-slate-700 self-start'
+                        ? 'bg-gradient-to-br from-blue-500 to-sky-500 self-end text-white font-semibold text-xs'
+                        : 'bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600 self-start'
                     }`}>
                       {msg.role === 'user' ? (
-                        <User className="w-4 h-4 text-white" />
+                        user?.displayName?.charAt(0).toUpperCase() || 'U'
                       ) : (
-                        <Bot className="w-4 h-4 text-white" />
+                        <Layers className="w-3.5 h-3.5 text-white" />
                       )}
                     </div>
                     <div 
@@ -327,8 +328,8 @@ export const ChatSection = ({
             {isLoading && (
               <div className="flex flex-col animate-fade-in items-start">
                 <div className="flex flex-col gap-1.5 max-w-[95%]">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-slate-600 to-slate-700 self-start">
-                    <Bot className="w-4 h-4 text-white" />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600 self-start">
+                    <Layers className="w-3.5 h-3.5 text-white" />
                   </div>
                   <div className="p-3 rounded-2xl shadow-sm bg-white border border-slate-200">
                     <div className="flex items-center gap-3">
@@ -363,7 +364,7 @@ export const ChatSection = ({
             onClick={onSend}
             disabled={isLoading || !inputValue.trim()}
             size="icon"
-            variant={isLoading || !inputValue.trim() ? "secondary" : "gradient"}
+            variant="gradient"
             className="flex-shrink-0"
           >
             {isLoading ? (

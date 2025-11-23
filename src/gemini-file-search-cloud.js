@@ -296,7 +296,51 @@ class GeminiFileSearchCloudClient {
   // ==================== QUERY (RAG) ====================
 
   /**
-   * Query File Search store with semantic search and generate answer
+   * Query course store (RECOMMENDED)
+   * This is the main RAG endpoint for querying course materials
+   * @param {string} question - The question to ask
+   * @param {string} courseId - Canvas course ID
+   * @param {string} model - Model to use (default: gemini-2.5-flash)
+   * @param {string} metadataFilter - Optional metadata filter
+   * @param {number} topK - Number of chunks to retrieve (default: 5)
+   * @returns {Promise<Object>} Answer with citations
+   */
+  async queryCourseStore(question, courseId, model = 'gemini-2.5-flash', metadataFilter = null, topK = 5) {
+    try {
+      if (!this.userId) {
+        throw new Error('userId not set. Call setUserId() first.');
+      }
+      
+      console.log('🔍 Querying course store with:', question);
+      
+      const queryCourseStore = httpsCallable(this.functions, 'queryCourseStore');
+      const result = await queryCourseStore({
+        userId: this.userId,
+        question,
+        courseId,
+        model,
+        metadataFilter,
+        topK
+      });
+
+      if (!result.data.success) {
+        throw new Error('Query failed');
+      }
+
+      console.log('✅ Query completed');
+      return {
+        answer: result.data.answer,
+        groundingMetadata: result.data.groundingMetadata,
+        model: result.data.model
+      };
+    } catch (error) {
+      console.error('❌ Error querying course store:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Query File Search store (DEPRECATED - use queryCourseStore)
    * This is the main RAG endpoint
    * @param {string} question - The question to ask
    * @param {string} storeName - Store resource name to search

@@ -95,7 +95,6 @@ export async function saveCourse(db, userId, courseData) {
         canvasInstance: extractCanvasInstance(courseData.canvasUrl),
         firstScannedAt: Timestamp.now(),
         lastScannedAt: Timestamp.now(),
-        pdfCount: courseData.pdfCount || 0,
         fileSearchStoreName: null, // Will be created later
         totalEnrollments: 1,
         createdBy: userId
@@ -104,8 +103,7 @@ export async function saveCourse(db, userId, courseData) {
     } else {
       // Course exists - just update last scan time
       await setDoc(courseRef, {
-        lastScannedAt: Timestamp.now(),
-        pdfCount: courseData.pdfCount || 0
+        lastScannedAt: Timestamp.now()
       }, { merge: true });
       console.log('✅ Shared course updated:', courseData.courseId);
     }
@@ -201,31 +199,6 @@ export async function getUserCourses(db, userId) {
     return { success: true, data: courses };
   } catch (error) {
     console.error('❌ Error getting user courses:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Update course PDF count
- * @param {Object} db - Firestore database instance
- * @param {string} courseId - Canvas course ID
- * @param {number} pdfCount - Number of PDFs in course
- * @returns {Promise<Object>} Result object with success status
- */
-export async function updateCoursePdfCount(db, courseId, pdfCount) {
-  try {
-    const { doc, updateDoc, Timestamp } = window.firebaseModules;
-    
-    const courseRef = doc(db, 'courses', courseId);
-    await updateDoc(courseRef, {
-      pdfCount: pdfCount,
-      lastScannedAt: Timestamp.now()
-    });
-    
-    console.log('✅ Course PDF count updated:', courseId, pdfCount);
-    return { success: true };
-  } catch (error) {
-    console.error('❌ Error updating course PDF count:', error);
     return { success: false, error: error.message };
   }
 }
@@ -1217,7 +1190,6 @@ if (typeof window !== 'undefined') {
     saveCourse,
     getCourse,
     getUserCourses,
-    updateCoursePdfCount,
     incrementCourseEnrollments,
     
     // Enrollment operations (PRIVATE)

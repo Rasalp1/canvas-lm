@@ -151,7 +151,6 @@ exports.createCourseStore = onCall(async (request) => {
         courseName: courseName || displayName || `Course ${courseId}`,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         createdBy: userId,
-        pdfCount: 0,
         totalSize: 0
       });
       logger.info('Course document created', { courseId, userId });
@@ -404,7 +403,9 @@ exports.uploadToStore = onCall(async (request) => {
       });
     }
 
-    const fileSize = Buffer.byteLength(fileData, 'base64');
+    // Step 2: Decode base64 to get actual file buffer
+    const buffer = Buffer.from(fileData, 'base64');
+    const fileSize = buffer.length;
 
     // CORRECT ENDPOINT: uploadToFileSearchStore (not documents:upload)
     const initUrl = `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${GEMINI_API_KEY}`;
@@ -441,13 +442,11 @@ exports.uploadToStore = onCall(async (request) => {
 
     const uploadUrl = initResponse.headers.get('x-goog-upload-url');
 
-    // Step 2: Upload file content
-    const buffer = Buffer.from(fileData, 'base64');
-    
+    // Step 3: Upload file content with correct size
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Content-Length': fileSize,
+        'Content-Length': fileSize.toString(),
         'X-Goog-Upload-Offset': '0',
         'X-Goog-Upload-Command': 'upload, finalize'
       },
@@ -471,7 +470,7 @@ exports.uploadToStore = onCall(async (request) => {
       done: operationData.done 
     });
 
-    // Step 3: Poll operation until done
+    // Step 4: Poll operation until done
     let operation = operationData;
     let attempts = 0;
     const maxAttempts = 30;
@@ -526,11 +525,10 @@ exports.uploadToStore = onCall(async (request) => {
     // Extract just the document ID from the full resource name
     const documentId = documentName.split('/').pop();
 
-    // Update document count in course document
+    // Update last upload timestamp (pdfCount is set by client during batch upload)
     await db
       .collection('courses').doc(courseId)
       .update({
-        pdfCount: admin.firestore.FieldValue.increment(1),
         lastUploadAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
@@ -628,13 +626,6 @@ exports.deleteDocument = onCall(async (request) => {
       throw new Error(`Delete document failed: ${error}`);
     }
 
-    // Update document count in course document
-    await db
-      .collection('courses').doc(courseId)
-      .update({
-        pdfCount: admin.firestore.FieldValue.increment(-1)
-      });
-
     logger.info('Document deleted', { documentName, storeName, userId });
 
     return { success: true };
@@ -685,7 +676,10 @@ exports.queryCourseStore = onCall(async (request) => {
           fileSearchStoreNames: [storeName],
           topK: topK
         }
-      }]
+      }],
+      generationConfig: {
+        maxOutputTokens: 8192  // Increase from default (~2048) to allow longer responses
+      }
     };
 
     // Add metadata filter if provided
@@ -823,7 +817,10 @@ exports.queryWithFileSearch = onCall(async (request) => {
           fileSearchStoreNames: [storeName],
           topK: topK
         }
-      }]
+      }],
+      generationConfig: {
+        maxOutputTokens: 8192  // Increase from default (~2048) to allow longer responses
+      }
     };
 
     // Add metadata filter if provided
