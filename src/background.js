@@ -79,6 +79,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true;
       
+    case 'SMART_CRAWL_COMPLETE':
+      // Handle smart navigation crawl completion from content script
+      console.log('🎉 Smart crawl complete:', request.report);
+      
+      // Forward the completion message to popup
+      chrome.runtime.sendMessage({
+        type: 'SMART_CRAWL_COMPLETE',
+        pdfCount: request.report?.pdfsFound || 0,
+        pagesVisited: request.report?.pagesVisited || 0,
+        courseId: request.report?.courseId,
+        report: request.report
+      }).catch(err => {
+        console.log('Popup not open, completion message not sent');
+      });
+      break;
+    
     case 'FOUND_PDFS':
       // Handle PDF discovery from content script
       console.log(`Found ${request.pdfs.length} PDFs in course ${request.courseId}:`, request.pdfs);

@@ -468,12 +468,36 @@ export class PopupLogic {
     this.uiCallbacks.setIsScanning?.(true);
     
     try {
-      // Send scan request to background script
-      chrome.runtime.sendMessage({
-        type: 'START_SMART_SCAN',
+      // Send scan request directly to content script in active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (!tab) {
+        throw new Error('No active tab found');
+      }
+      
+      console.log('🚀 Starting smart scan for course:', this.currentCourseData);
+      
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'startSmartCrawl',
         courseId: this.currentCourseData.id,
         courseName: this.currentCourseData.name,
         userId: this.currentUser.id
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error sending message to content script:', chrome.runtime.lastError);
+          alert('Error: Make sure you are on a Canvas course page');
+          this.uiCallbacks.setIsScanning?.(false);
+          return;
+        }
+        
+        if (response?.error) {
+          console.error('Content script error:', response.error);
+          alert('Error: ' + response.error);
+          this.uiCallbacks.setIsScanning?.(false);
+        } else {
+          console.log('✅ Smart scan started successfully:', response);
+          // Keep scanning state active - will be cleared when scan completes
+        }
       });
       
     } catch (error) {
@@ -488,10 +512,201 @@ export class PopupLogic {
       console.log('📬 Popup received message:', message);
       
       if (message.type === 'PDF_SCAN_COMPLETE') {
+        console.log('🎉 PDF_SCAN_COMPLETE received! PDFs found:', message.pdfCount);
+        console.log('🚀 Calling saveFoundPDFsToFirestore()...');
+        
+        // PDFs are now stored in chrome.storage, safe to save to Firestore
+        this.saveFoundPDFsToFirestore().then(() => {
+          console.log('✅ saveFoundPDFsToFirestore() completed successfully');
+          this.uiCallbacks.setIsScanning?.(false);
+          // Refresh course details to show updated document count
+          this.detectCanvas();
+        }).catch(err => {
+          console.error('❌ Error in saveFoundPDFsToFirestore:', err);
+          this.uiCallbacks.setIsScanning?.(false);
+          alert('Error saving PDFs: ' + err.message);
+        });
+      }
+      
+      if (message.type === 'SMART_CRAWL_COMPLETE') {
         this.uiCallbacks.setIsScanning?.(false);
-        alert(`✅ Scan complete! Found ${message.pdfCount} PDFs`);
+        const pdfCount = message.pdfCount || message.pdfsFound || 0;
+        alert(`✅ Smart scan complete! Found ${pdfCount} PDFs`);
+        // Refresh course details to show updated document count
+        this.detectCanvas();
+      }
+      
+      if (message.type === 'SMART_CRAWL_PROGRESS') {
+        // Update UI with progress information
+        console.log('Smart scan progress:', message);
       }
     });
+  }
+
+  async saveFoundPDFsToFirestore() {
+    console.log('📥 saveFoundPDFsToFirestore() called');
+    
+    try {
+      console.log('🔍 Checking user sign-in status...');
+      console.log('Current user:', this.currentUser);
+      console.log('Database:', this.db ? 'initialized' : 'NOT initialized');
+      
+      // Check if user is signed in
+      if (!this.currentUser || !this.db) {
+        console.log('❌ User not signed in or DB not initialized');
+        alert('Please sign in to Chrome to save PDFs');
+        return;
+      }
+      
+      // Check if File Search Manager is initialized
+      if (!this.fileSearchManager) {
+        console.warn('⚠️ File Search Manager not initialized');
+        alert('File Search service is not available. Please check your internet connection.');
+        return;
+      }
+      
+      console.log('✅ User authenticated, fetching PDFs from storage...');
+      console.log('Looking for key:', `pdfs_${this.currentCourseData.id}`);
+      
+      // Get all PDFs found during crawling
+      const storedData = await chrome.storage.local.get([`pdfs_${this.currentCourseData.id}`]);
+      console.log('📦 Storage data retrieved:', storedData);
+      
+      const pdfs = storedData[`pdfs_${this.currentCourseData.id}`]?.pdfs || [];
+      console.log(`📄 Found ${pdfs.length} PDFs in storage`);
+      
+      if (pdfs.length === 0) {
+        console.log('⚠️ No PDFs found in storage');
+        alert('No PDFs found during crawl');
+        return;
+      }
+      
+      console.log(`💾 Preparing to save ${pdfs.length} PDFs to Firestore and File Search...`);
+      
+      // Step 1: Get or create File Search store for this course
+      console.log('🗄️ Getting or creating shared File Search store...');
+      
+      const storeResult = await this.fileSearchManager.createCourseStore(
+        this.currentCourseData.id,
+        `${this.currentCourseData.name} (${this.currentCourseData.id})`
+      );
+      
+      const fileSearchStore = { name: storeResult.name };
+      
+      if (storeResult.alreadyExists) {
+        console.log('📦 Using existing shared store (created by another user or previous scan)');
+      } else {
+        console.log('✅ New shared store created for course');
+      }
+      
+      // Step 2: Save course information to Firestore with File Search store name
+      console.log('💾 Saving shared course and creating enrollment...');
+      
+      const courseResult = await this.firestoreHelpers.saveCourse(this.db, this.currentUser.id, {
+        courseId: this.currentCourseData.id,
+        courseName: this.currentCourseData.name,
+        courseCode: this.currentCourseData.courseCode || '',
+        canvasUrl: this.currentCourseData.url,
+        pdfCount: pdfs.length,
+        fileSearchStoreName: fileSearchStore.name
+      });
+      
+      if (!courseResult.success) {
+        throw new Error(`Failed to save course: ${courseResult.error}`);
+      }
+      
+      console.log(`✅ ${courseResult.isNewCourse ? 'New shared course created' : 'Existing course updated'}`);
+      
+      // Step 2.5: Create user enrollment
+      const enrollmentResult = await this.firestoreHelpers.enrollUserInCourse(this.db, this.currentUser.id, {
+        courseId: this.currentCourseData.id,
+        courseName: this.currentCourseData.name
+      });
+      
+      if (!enrollmentResult.success) {
+        throw new Error(`Failed to create enrollment: ${enrollmentResult.error}`);
+      }
+      
+      console.log(`✅ ${enrollmentResult.isNewEnrollment ? 'User enrolled in course' : 'Enrollment updated'}`);
+      
+      // Step 3: Save all PDF metadata to Firestore
+      const saveResults = await this.firestoreHelpers.saveDocuments(this.db, this.currentCourseData.id, pdfs);
+      const savedCount = saveResults.filter(r => r.success).length;
+      
+      console.log(`✅ Saved ${savedCount}/${pdfs.length} PDF metadata to Firestore`);
+      
+      // Step 4: Upload PDFs to File Search store
+      let uploadedCount = 0;
+      let uploadFailedCount = 0;
+      
+      for (let i = 0; i < pdfs.length; i++) {
+        const pdf = pdfs[i];
+        const docId = btoa(pdf.url).replace(/[/+=]/g, '_');
+        
+        try {
+          console.log(`📤 Uploading ${i + 1}/${pdfs.length}: ${pdf.title}...`);
+          
+          // Download PDF from Canvas via background script (avoids CORS)
+          console.log(`📥 Requesting PDF blob from background: ${pdf.url}`);
+          const blobResponse = await chrome.runtime.sendMessage({
+            action: 'FETCH_PDF_BLOB',
+            url: pdf.url
+          });
+          
+          if (!blobResponse.success) {
+            throw new Error(`Failed to download PDF: ${blobResponse.error}`);
+          }
+          
+          // Convert base64 back to blob
+          const pdfBlob = this.base64ToBlob(blobResponse.base64Data, blobResponse.mimeType);
+          console.log(`✅ Received PDF blob: ${pdfBlob.size} bytes`);
+          
+          // Upload to File Search store with metadata
+          const uploadResult = await this.fileSearchManager.uploadToStore(
+            fileSearchStore.name,
+            pdfBlob,
+            pdf.title,
+            {
+              courseId: this.currentCourseData.id,
+              courseName: this.currentCourseData.name,
+              source: pdf.type,
+              originalUrl: pdf.url
+            }
+          );
+          
+          // Save File Search document reference to Firestore
+          await this.firestoreHelpers.saveDocumentFileSearch(this.db, this.currentCourseData.id, docId, uploadResult.name);
+          
+          uploadedCount++;
+          console.log(`✅ [${uploadedCount}/${pdfs.length}] Uploaded: ${pdf.title}`);
+        } catch (uploadError) {
+          uploadFailedCount++;
+          console.error(`❌ Failed to upload ${pdf.title}:`, uploadError);
+          await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'failed');
+        }
+      }
+      
+      // Final status
+      if (uploadedCount > 0) {
+        alert(`✅ Successfully uploaded ${uploadedCount} PDFs to File Search!${uploadFailedCount > 0 ? `\n⚠️ ${uploadFailedCount} uploads failed` : ''}`);
+      } else {
+        alert(`❌ Upload failed for all PDFs. Please check your internet connection.`);
+      }
+      
+    } catch (err) {
+      console.error('Error in saveFoundPDFsToFirestore:', err);
+      throw err;
+    }
+  }
+
+  base64ToBlob(base64, mimeType) {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
   }
 
   handleLogin() {

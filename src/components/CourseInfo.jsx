@@ -124,7 +124,7 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, hasDocuments, on
                   <span className="relative z-10 flex items-center justify-center w-full h-full">
                     {isScanning ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        <div className="w-4 h-4 border-2 text-white border-white/30 border-t-white rounded-full animate-spin mr-2" />
                         Scanning Course...
                       </>
                     ) : (

@@ -1847,29 +1847,22 @@ class CanvasContentScript {
 
       // Smart Navigation (Option 2) Message Handlers
       case 'startSmartCrawl':
-        console.log('🚀 Smart navigation crawl requested from popup...');
-        console.log('Smart navigation enabled:', this.smartNavigationEnabled);
-        console.log('State manager exists:', !!this.stateManager);
-        console.log('Course ID:', this.courseId);
+        console.log('🚀 Smart crawl requested from popup (using background tab scanning)...');
         
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page' });
           return;
         }
         
-        if (!this.stateManager || !this.smartNavigationEnabled) {
-          sendResponse({ error: 'Smart navigation not initialized. Check console for details.' });
-          return;
-        }
-        
-        // Start smart navigation crawl
-        this.startSmartNavigationCrawl()
-          .then(result => {
-            console.log('Smart crawl start result:', result);
-            sendResponse(result);
+        // Use the enhanced crawl system that opens background tabs (works better)
+        console.log('ℹ️  Using background tab scanning system for better stability');
+        this.startEnhancedCrawl()
+          .then(() => {
+            console.log('✅ Enhanced crawl started successfully');
+            sendResponse({ success: true, message: 'Background tab scanning started' });
           })
           .catch(error => {
-            console.error('Smart crawl start error:', error);
+            console.error('❌ Enhanced crawl start error:', error);
             sendResponse({ success: false, error: error.message });
           });
         return true; // Keep message channel open for async response

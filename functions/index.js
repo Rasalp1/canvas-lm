@@ -510,14 +510,13 @@ exports.uploadToStore = onCall(async (request) => {
     // Log the full response structure for debugging
     logger.info('Operation response structure', { 
       responseKeys: document ? Object.keys(document) : 'null',
-      hasName: !!document?.name,
-      hasDisplayName: !!document?.displayName,
-      documentName: document?.name
+      hasDocumentName: !!document?.documentName,
+      documentName: document?.documentName
     });
 
     // Get the full document resource name from the response
     // Format: fileSearchStores/{store}/documents/{documentId}
-    const documentName = document?.name;
+    const documentName = document?.documentName;
     
     if (!documentName) {
       logger.error('No document name in operation response', { operation });
