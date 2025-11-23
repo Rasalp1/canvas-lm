@@ -277,7 +277,7 @@ export const ChatSection = ({
       
       <CardContent className="space-y-3">
         <ScrollArea ref={scrollAreaRef} className="h-[320px] pr-4">
-          <div className="space-y-3">
+          <div className="space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-sky-100 rounded-2xl flex items-center justify-center mb-4">
@@ -290,17 +290,15 @@ export const ChatSection = ({
               messages.map((msg, idx) => (
                 <div 
                   key={idx}
-                  className={`flex gap-2 animate-fade-in ${
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
+                  className={`flex flex-col animate-fade-in ${
+                    msg.role === 'user' ? 'items-end' : 'items-start'
                   }`}
                 >
-                  <div className={`flex gap-2 max-w-[80%] ${
-                    msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                  }`}>
+                  <div className="flex flex-col gap-1.5 max-w-[95%]">
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
                       msg.role === 'user'
-                        ? 'bg-gradient-to-br from-blue-500 to-sky-500'
-                        : 'bg-gradient-to-br from-slate-600 to-slate-700'
+                        ? 'bg-gradient-to-br from-blue-500 to-sky-500 self-end'
+                        : 'bg-gradient-to-br from-slate-600 to-slate-700 self-start'
                     }`}>
                       {msg.role === 'user' ? (
                         <User className="w-4 h-4 text-white" />
@@ -327,9 +325,9 @@ export const ChatSection = ({
               ))
             )}
             {isLoading && (
-              <div className="flex gap-2 animate-fade-in justify-start">
-                <div className="flex gap-2 max-w-[80%]">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-slate-600 to-slate-700">
+              <div className="flex flex-col animate-fade-in items-start">
+                <div className="flex flex-col gap-1.5 max-w-[95%]">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-slate-600 to-slate-700 self-start">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
                   <div className="p-3 rounded-2xl shadow-sm bg-white border border-slate-200">
