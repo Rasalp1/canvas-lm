@@ -43,6 +43,79 @@ setGlobalOptions({
 // Get Firestore instance
 const db = admin.firestore();
 
+// ==================== RATE LIMITING ====================
+
+// Rate limit configuration
+const RATE_LIMITS = {
+  queryCourseStore: { requests: 50, windowMs: 60000 },      // 50 queries per minute
+  uploadToStore: { requests: 20, windowMs: 60000 },          // 20 uploads per minute
+  createCourseStore: { requests: 5, windowMs: 60000 },       // 5 store creations per minute
+  deleteDocument: { requests: 30, windowMs: 60000 }          // 30 deletions per minute
+};
+
+/**
+ * Check rate limit for a user
+ * @param {string} userId - User ID
+ * @param {string} operation - Operation name (e.g., 'queryCourseStore')
+ * @returns {Promise<boolean>} true if allowed, throws error if rate limited
+ */
+async function checkRateLimit(userId, operation) {
+  const config = RATE_LIMITS[operation];
+  if (!config) {
+    return true; // No rate limit configured for this operation
+  }
+
+  const now = Date.now();
+  const windowStart = now - config.windowMs;
+  const rateLimitRef = db
+    .collection('users').doc(userId)
+    .collection('rateLimits').doc(operation);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(rateLimitRef);
+      
+      if (!doc.exists) {
+        // First request in this window
+        transaction.set(rateLimitRef, {
+          requests: [now],
+          lastReset: now
+        });
+        return true;
+      }
+
+      const data = doc.data();
+      // Filter out requests outside the current window
+      const recentRequests = (data.requests || []).filter(timestamp => timestamp > windowStart);
+      
+      if (recentRequests.length >= config.requests) {
+        // Rate limit exceeded
+        const oldestRequest = Math.min(...recentRequests);
+        const retryAfter = Math.ceil((oldestRequest + config.windowMs - now) / 1000);
+        throw new Error(`Rate limit exceeded. Try again in ${retryAfter} seconds.`);
+      }
+
+      // Add current request
+      recentRequests.push(now);
+      transaction.set(rateLimitRef, {
+        requests: recentRequests,
+        lastReset: now
+      });
+      
+      return true;
+    });
+
+    return result;
+  } catch (error) {
+    if (error.message.includes('Rate limit exceeded')) {
+      throw error;
+    }
+    // Log transaction errors but don't block the request
+    logger.warn('Rate limit check failed, allowing request', { userId, operation, error: error.message });
+    return true;
+  }
+}
+
 // ==================== HELPER FUNCTIONS ====================
 
 /**
@@ -132,6 +205,7 @@ async function linkStoreToCourse(courseId, storeName, userId) {
  * NEW: Creates ONE shared store per course, not per user
  * First user to request creates it, subsequent users use the same store
  * Auto-enrolls user and creates course document if needed
+ * Rate limited: 5 requests per minute per user
  */
 exports.createCourseStore = onCall(async (request) => {
   try {
@@ -140,6 +214,9 @@ exports.createCourseStore = onCall(async (request) => {
     if (!courseId || !userId) {
       throw new Error('courseId and userId are required');
     }
+
+    // Check rate limit (5 store creations per minute)
+    await checkRateLimit(userId, 'createCourseStore');
 
     // Check if course exists, create if not
     let courseDoc = await db.collection('courses').doc(courseId).get();
@@ -379,6 +456,9 @@ exports.uploadToStore = onCall(async (request) => {
       throw new Error('storeName, fileData, fileName, and userId are required');
     }
 
+    // Check rate limit (20 uploads per minute)
+    await checkRateLimit(userId, 'uploadToStore');
+
     // Get courseId and verify enrollment
     const courseId = await getCourseIdFromStore(storeName);
     await verifyEnrollment(userId, courseId);
@@ -603,6 +683,7 @@ exports.listDocuments = onCall(async (request) => {
 /**
  * Delete a document from File Search store
  * Verifies user is enrolled in the course
+ * Rate limited: 30 deletions per minute per user
  */
 exports.deleteDocument = onCall(async (request) => {
   try {
@@ -611,6 +692,9 @@ exports.deleteDocument = onCall(async (request) => {
     if (!documentName || !storeName || !userId) {
       throw new Error('documentName, storeName, and userId are required');
     }
+
+    // Check rate limit (30 deletions per minute)
+    await checkRateLimit(userId, 'deleteDocument');
 
     // Get courseId and verify enrollment
     const courseId = await getCourseIdFromStore(storeName);
@@ -642,6 +726,7 @@ exports.deleteDocument = onCall(async (request) => {
  * Query course's shared File Search store (NEW)
  * Verifies user is enrolled in course
  * Optionally saves to user's private chat history
+ * Rate limited: 50 requests per minute per user
  */
 exports.queryCourseStore = onCall(async (request) => {
   try {
@@ -660,6 +745,9 @@ exports.queryCourseStore = onCall(async (request) => {
     if (!question || !courseId || !userId) {
       throw new Error('question, courseId, and userId are required');
     }
+
+    // Check rate limit (50 queries per minute)
+    await checkRateLimit(userId, 'queryCourseStore');
 
     // Verify user is enrolled in course
     await verifyEnrollment(userId, courseId);
