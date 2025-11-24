@@ -653,7 +653,8 @@ exports.queryCourseStore = onCall(async (request) => {
       metadataFilter,
       topK = 5,
       saveToHistory = false,
-      sessionId = null
+      sessionId = null,
+      history = []
     } = request.data;
 
     if (!question || !courseId || !userId) {
@@ -667,10 +668,17 @@ exports.queryCourseStore = onCall(async (request) => {
     const storeName = await getSharedStore(courseId);
 
     // Build request with File Search tool
+    // Start with conversation history (limit to last 10 messages)
+    const contents = history.slice(-10);
+    
+    // Add current user question
+    contents.push({
+      role: 'user',
+      parts: [{ text: question }]
+    });
+    
     const requestBody = {
-      contents: [{
-        parts: [{ text: question }]
-      }],
+      contents: contents,
       tools: [{
         fileSearch: {
           fileSearchStoreNames: [storeName],

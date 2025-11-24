@@ -913,11 +913,23 @@ export class PopupLogic {
     );
     
     try {
-      // Query course store with the course ID
+      // Get last 10 messages (excluding the current one) for context
+      // Convert to Gemini format: {role: 'user'|'model', parts: [{text: '...'}]}
+      const historyForGemini = this.conversationHistory
+        .slice(-10)
+        .map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.content }]
+        }));
+      
+      // Query course store with the course ID and conversation history
       const response = await this.fileSearchManager.queryCourseStore(
         message,
         this.currentCourseData.id,
-        'gemini-2.5-flash'
+        'gemini-2.5-flash',
+        null,
+        5,
+        historyForGemini
       );
       
       // Turn off loading indicator once we receive the response
@@ -959,5 +971,26 @@ export class PopupLogic {
     chrome.tabs.create({
       url: chrome.runtime.getURL('popup.html')
     });
+  }
+
+  async getCourseDocumentsForDrawer(courseId) {
+    try {
+      if (!this.db || !this.firestoreHelpers) {
+        console.error('Database not initialized');
+        return [];
+      }
+
+      const result = await this.firestoreHelpers.getCourseDocuments(this.db, courseId);
+      
+      if (result.success && result.data) {
+        console.log(`✅ Retrieved ${result.data.length} documents for drawer`);
+        return result.data;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching course documents for drawer:', error);
+      return [];
+    }
   }
 }

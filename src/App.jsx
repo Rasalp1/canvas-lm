@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, ChevronDown } from 'lucide-react';
 import { Header } from './components/Header';
+import { CoursePDFDrawer } from './components/CoursePDFDrawer';
 import { AuthSection } from './components/AuthSection';
 import { CourseDetection } from './components/CourseDetection';
 import { CourseInfo } from './components/CourseInfo';
@@ -57,6 +58,10 @@ export const App = ({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, course: null });
   const [enrollmentStatus, setEnrollmentStatus] = useState({ courseExists: false, isEnrolled: false, checking: true });
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerCourse, setDrawerCourse] = useState(null);
+  const [drawerDocuments, setDrawerDocuments] = useState([]);
+  const [drawerLoading, setDrawerLoading] = useState(false);
 
   useEffect(() => {
     // Check if we're on an extension page
@@ -122,6 +127,8 @@ export const App = ({
     if (popupLogic) {
       popupLogic.selectCourse(course);
     }
+    // Close drawer when selecting a course for main view
+    setDrawerOpen(false);
   };
 
   const handleRemoveEnrollment = (course) => {
@@ -152,6 +159,30 @@ export const App = ({
       return await popupLogic.loadAllCourses();
     }
     return [];
+  };
+
+  const handleToggleDrawer = async (course, event) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    // If clicking the same course, just toggle
+    if (drawerCourse?.id === course.id && drawerOpen) {
+      setDrawerOpen(false);
+      return;
+    }
+    
+    // New course selected, fetch documents
+    setDrawerCourse(course);
+    setDrawerLoading(true);
+    setDrawerOpen(true);
+    
+    if (popupLogic) {
+      const docs = await popupLogic.getCourseDocumentsForDrawer(course.id);
+      setDrawerDocuments(docs);
+    }
+    
+    setDrawerLoading(false);
   };
 
   // Extended page layout (ChatGPT-like)
@@ -190,40 +221,67 @@ export const App = ({
               <div className="space-y-1">
                 {courseList && courseList.length > 0 ? (
                   courseList.map((course) => (
-                    <button
-                      key={course.id}
-                      onClick={() => handleSelectCourse(course)}
-                      className={`w-full text-left p-3 rounded-lg transition-all hover:bg-slate-200 group relative ${
-                        showCourseInfo && courseDetails?.includes(course.id) ? 'bg-slate-200' : ''
-                      }`}
-                      title={sidebarCollapsed ? course.name : ''}
-                    >
-                      {sidebarCollapsed ? (
-                        <div className="flex justify-center">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-500 rounded-lg flex items-center justify-center flex-shrink-0 text-xs">
-                              📚
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm text-slate-900 leading-tight">{course.name}</p>
-                            </div>
+                    <div key={course.id}>
+                      <button
+                        onClick={() => handleSelectCourse(course)}
+                        className={`w-full text-left p-3 transition-all hover:bg-slate-200 group relative ${
+                          showCourseInfo && courseDetails?.includes(course.id) 
+                            ? 'bg-slate-200 rounded-t-lg' 
+                            : 'rounded-lg'
+                        }`}
+                        title={sidebarCollapsed ? course.name : ''}
+                      >
+                        {sidebarCollapsed ? (
+                          <div className="flex justify-center">
+                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                           </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-500 rounded-lg flex items-center justify-center flex-shrink-0 text-xs">
+                                📚
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm text-slate-900 leading-tight">{course.name}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveEnrollment(course);
+                              }}
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                            >
+                              <span className="text-red-600 text-lg">×</span>
+                            </button>
+                          </>
+                        )}
+                      </button>
+                      {!sidebarCollapsed && showCourseInfo && courseDetails?.includes(course.id) && (
+                        <>
+                          {drawerOpen && drawerCourse?.id === course.id && (
+                            <CoursePDFDrawer
+                              open={true}
+                              documents={drawerDocuments}
+                              isLoading={drawerLoading}
+                            />
+                          )}
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveEnrollment(course);
-                            }}
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                            onClick={(e) => handleToggleDrawer(course, e)}
+                            className={`w-full flex justify-center py-2 transition-all rounded-b-lg ${
+                              drawerOpen && drawerCourse?.id === course.id 
+                                ? 'bg-slate-100 hover:bg-slate-150' 
+                                : 'bg-slate-200 hover:bg-slate-300'
+                            }`}
+                            title="View course documents"
                           >
-                            <span className="text-red-600 text-lg">×</span>
+                            <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform ${
+                              drawerOpen && drawerCourse?.id === course.id ? 'rotate-180' : ''
+                            }`} />
                           </button>
                         </>
                       )}
-                    </button>
+                    </div>
                   ))
                 ) : (
                   !sidebarCollapsed && (

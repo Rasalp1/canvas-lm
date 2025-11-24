@@ -303,9 +303,10 @@ class GeminiFileSearchCloudClient {
    * @param {string} model - Model to use (default: gemini-2.5-flash)
    * @param {string} metadataFilter - Optional metadata filter
    * @param {number} topK - Number of chunks to retrieve (default: 5)
+   * @param {Array} history - Optional conversation history (max 10 messages)
    * @returns {Promise<Object>} Answer with citations
    */
-  async queryCourseStore(question, courseId, model = 'gemini-2.5-flash', metadataFilter = null, topK = 5) {
+  async queryCourseStore(question, courseId, model = 'gemini-2.5-flash', metadataFilter = null, topK = 5, history = []) {
     try {
       if (!this.userId) {
         throw new Error('userId not set. Call setUserId() first.');
@@ -320,7 +321,8 @@ class GeminiFileSearchCloudClient {
         courseId,
         model,
         metadataFilter,
-        topK
+        topK,
+        history: history.slice(-10)
       });
 
       if (!result.data.success) {
