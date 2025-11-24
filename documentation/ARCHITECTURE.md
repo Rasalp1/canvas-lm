@@ -1,62 +1,80 @@
-# Architecture Overview: Canvas RAG Assistant with Gemini
+# Architecture Overview: Canvas LM - AI Study Assistant
+
+**Last Updated:** November 24, 2025  
+**Version:** 1.0.0
 
 ## System Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        USER INTERFACE                            │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  popup.html                        settings.html                 │
-│  ┌──────────────┐                  ┌──────────────┐            │
-│  │ 🔍 Scan PDFs │                  │ ⚙️ Settings  │            │
-│  │ 💬 Chat UI   │                  │ 🔑 API Key   │            │
-│  └──────────────┘                  └──────────────┘            │
-│         │                                  │                     │
-└─────────┼──────────────────────────────────┼─────────────────────┘
-          │                                  │
-          ▼                                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      EXTENSION LOGIC                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  popup.js              settings.js           content-script.js   │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐   │
-│  │ Initialize   │     │ Save API Key │     │ Scan Canvas  │   │
-│  │ Handle Chat  │     │ to Chrome    │     │ Extract PDFs │   │
-│  │ Upload PDFs  │     │ Storage      │     └──────────────┘   │
-│  └──────────────┘     └──────────────┘                          │
-│         │                                                         │
-│         ├──────────────────┬─────────────────┐                  │
-│         ▼                  ▼                 ▼                  │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐       │
-│  │ gemini-rag.js│   │firestore-    │   │firebase-     │       │
-│  │              │   │helpers.js    │   │config.js     │       │
-│  │ RAG Manager  │   │              │   │              │       │
-│  └──────────────┘   └──────────────┘   └──────────────┘       │
-│         │                  │                 │                  │
-└─────────┼──────────────────┼─────────────────┼──────────────────┘
-          │                  │                 │
-          ▼                  ▼                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      EXTERNAL SERVICES                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌──────────────────────┐         ┌──────────────────────┐     │
-│  │  Gemini File API     │         │  Firebase/Firestore   │     │
-│  │  ═══════════════     │         │  ═══════════════      │     │
-│  │                      │         │                       │     │
-│  │  📤 Upload PDFs      │         │  💾 Store Metadata    │     │
-│  │  🔄 Process Files    │         │  📊 User Data         │     │
-│  │  💬 Chat with RAG    │         │  📁 Course Data       │     │
-│  │  🗑️  Delete Files     │         │  📄 Document URIs     │     │
-│  │                      │         │                       │     │
-│  │  Endpoint:           │         │  Project:             │     │
-│  │  generativelanguage  │         │  canvas-lm            │     │
-│  │  .googleapis.com     │         │  .firebaseapp.com     │     │
-│  └──────────────────────┘         └──────────────────────┘     │
-│                                                                   │
-└───────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                         USER INTERFACE (React)                        │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│  popup.html (React App)                    settings.html              │
+│  ┌─────────────────────────────┐          ┌────────────────┐        │
+│  │  App.jsx (Main Container)   │          │  ⚙️ Settings    │        │
+│  │  ├─ Header.jsx              │          │  🔐 Sign In     │        │
+│  │  ├─ AuthSection.jsx         │          │                 │        │
+│  │  ├─ CourseDetection.jsx     │          └────────────────┘        │
+│  │  ├─ CourseSelector.jsx      │                                      │
+│  │  ├─ CourseInfo.jsx          │                                      │
+│  │  ├─ ChatSection.jsx         │                                      │
+│  │  ├─ AllCoursesView.jsx      │                                      │
+│  │  └─ CoursePDFDrawer.jsx     │                                      │
+│  └─────────────────────────────┘                                      │
+│              ↕                                                         │
+│  ┌─────────────────────────────┐                                      │
+│  │  popup-logic.js             │ ← Business Logic Layer               │
+│  │  (PopupLogic class)         │                                      │
+│  └─────────────────────────────┘                                      │
+│              ↕                                                         │
+└──────────────┼───────────────────────────────────────────────────────┘
+               │
+               ├───────────────┬────────────────┬──────────────────┐
+               ▼               ▼                ▼                  ▼
+┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐  ┌─────────────┐
+│ firestore-       │  │ gemini-file-     │  │ firebase-      │  │ content-    │
+│ helpers.js       │  │ search-cloud.js  │  │ config.js      │  │ script.js   │
+│                  │  │                  │  │                │  │             │
+│ 💾 Firestore     │  │ 🤖 Cloud         │  │ 🔥 Firebase    │  │ 🔍 Canvas   │
+│ Operations       │  │ Functions Client │  │ Init           │  │ Page Scan   │
+└──────────────────┘  └──────────────────┘  └────────────────┘  └─────────────┘
+         ↕                      ↕                     ↕
+┌──────────────────────────────────────────────────────────────────────┐
+│                     FIREBASE CLOUD INFRASTRUCTURE                     │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│  ┌──────────────────────────────┐    ┌───────────────────────────┐  │
+│  │  Firebase Cloud Functions     │    │  Firestore Database       │  │
+│  │  (europe-north1 - Finland)    │    │  (Multi-region)           │  │
+│  │  ═════════════════════════    │    │  ═════════════════        │  │
+│  │                               │    │                           │  │
+│  │  🔐 queryCourseStore()        │◄───┤  users/{userId}           │  │
+│  │     • System prompt injection │    │  courses/{courseId}       │  │
+│  │     • Rate limit: 50/min      │    │  enrollments/             │  │
+│  │     • Enrollment verification │    │  chatSessions/            │  │
+│  │                               │    │  rateLimits/              │  │
+│  │  📤 uploadToStore()           │    │                           │  │
+│  │     • Rate limit: 20/min      │    └───────────────────────────┘  │
+│  │                               │                                    │
+│  │  🏗️  createCourseStore()      │    ┌───────────────────────────┐  │
+│  │     • Rate limit: 5/min       │───►│  Gemini File Search API   │  │
+│  │                               │    │  (Google AI)              │  │
+│  │  🗑️  deleteDocument()          │    │  ═════════════════        │  │
+│  │     • Rate limit: 30/min      │    │                           │  │
+│  │                               │    │  📁 Corpus Storage         │  │
+│  │  🛡️  checkRateLimit()         │    │  🔍 Semantic Search        │  │
+│  │  🔐 verifyEnrollment()        │    │  🤖 RAG Query Engine       │  │
+│  │                               │    │  📄 Document Chunking      │  │
+│  └──────────────────────────────┘    └───────────────────────────┘  │
+│                                                                        │
+│  ┌────────────────────────────────────────────────────────────────┐  │
+│  │  Chrome Identity API (Google OAuth)                            │  │
+│  │  • No Firebase Authentication tokens                           │  │
+│  │  • Security via Cloud Functions enrollment verification        │  │
+│  └────────────────────────────────────────────────────────────────┘  │
+│                                                                        │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow
@@ -70,121 +88,186 @@ Canvas Page
     ▼
 content-script.js
     │
-    │ (2) Extracts PDF links
+    │ (2) Extracts PDF links from Canvas page DOM
     ▼
-popup.js
+App.jsx (React UI)
     │
-    │ (3) Saves to Firestore
+    │ (3) Calls popup-logic.js.scanCurrentCourse()
     ▼
-Firestore
+popup-logic.js
     │
-    │ (4) Downloads PDF blob
+    │ (4) Saves course + enrollment to Firestore
+    │    (via firestore-helpers.js)
     ▼
-gemini-rag.js
+Firestore (courses, enrollments)
     │
-    │ (5) Uploads to Gemini
+    │ (5) Downloads PDF blobs from Canvas
+    │    (using Canvas cookies for auth)
     ▼
-Gemini File API
+popup-logic.js
     │
-    │ (6) Returns file URI
+    │ (6) Calls Cloud Function: uploadToStore()
+    │    (via gemini-file-search-cloud.js)
     ▼
-firestore-helpers.js
+Firebase Cloud Functions
     │
-    │ (7) Saves URI + expiration
+    │ (7) Rate limit check → Enrollment verification
+    │    → Base64 encode PDF → Upload to Gemini
     ▼
-Firestore
+Gemini File Search API
+    │
+    │ (8) Returns corpus document name
+    ▼
+Cloud Functions
+    │
+    │ (9) Saves document metadata to Firestore
+    ▼
+Firestore (courses/{id}/documents/)
 ```
 
-### 2. Chat Flow
+### 2. Chat Flow (RAG Query)
 
 ```
 User Question
     │
     │ (1) "What is covered in Chapter 3?"
     ▼
-popup.js
+ChatSection.jsx
     │
-    │ (2) Get course documents
+    │ (2) Calls popup-logic.js.sendMessage()
     ▼
-firestore-helpers.js
+popup-logic.js
     │
-    │ (3) Query documents with valid URIs
+    │ (3) Gets conversation history + courseId
     ▼
-Firestore
+gemini-file-search-cloud.js
     │
-    │ (4) Returns: [uri1, uri2, uri3, ...]
+    │ (4) Calls Cloud Function: queryCourseStore()
     ▼
-gemini-rag.js
+Firebase Cloud Functions
     │
-    │ (5) Send prompt + file URIs
+    │ (5) Rate limit check (50 req/min)
+    │    → Enrollment verification
+    │    → Get shared store name from Firestore
     ▼
-Gemini File API
+Firestore (courses/{id})
     │
-    │ (6) Reads PDFs, generates answer
+    │ (6) Returns fileSearchStoreName
     ▼
-Gemini File API
+Cloud Functions
     │
-    │ (7) Returns AI response
+    │ (7) Builds Gemini request:
+    │    • System prompt (course material focus)
+    │    • User question + conversation history
+    │    • File Search tool with corpus reference
     ▼
-popup.js
+Gemini File Search API
     │
-    │ (8) Display answer to user
+    │ (8) Semantic search across course PDFs
+    │    → Retrieves relevant chunks
+    │    → Generates contextualized answer
     ▼
-Chat UI
+Gemini 2.5 Flash Model
+    │
+    │ (9) Returns AI response with citations
+    ▼
+Cloud Functions
+    │
+    │ (10) Saves chat message to Firestore
+    ▼
+Firestore (chatSessions/)
+    │
+    │ (11) Returns response to client
+    ▼
+popup-logic.js
+    │
+    │ (12) Streams message to UI (10ms delay)
+    ▼
+ChatSection.jsx
+    │
+    │ (13) Displays answer with typing animation
+    ▼
+User sees response
 ```
 
-## API Key Flow
+## Authentication Flow (Chrome Identity API)
 
 ```
-Google AI Studio
+User clicks "Sign In"
     │
-    │ (1) User creates API key
-    │     (starts with "AIza...")
+    │ (1) App.jsx → popup-logic.js.handleLogin()
     ▼
-settings.html
+chrome.identity.getProfileUserInfo()
     │
-    │ (2) User pastes key
+    │ (2) Google OAuth via Chrome
+    │     • User may need to select Google account
+    │     • Chrome handles OAuth flow
     ▼
-settings.js
+Google Account Selection
     │
-    │ (3) Validates format
-    │     (must start with "AIza")
+    │ (3) Returns userInfo object:
+    │     { id, email }
     ▼
-Chrome Storage API
+popup-logic.js
     │
-    │ (4) Stores securely
-    │     chrome.storage.sync
+    │ (4) Calls firestore-helpers.saveUser()
     ▼
-popup.js
+Firestore (users/{userId})
     │
-    │ (5) Retrieves on init
+    │ (5) Creates/updates user document:
+    │     • email, displayName
+    │     • createdAt, lastSeenAt
     ▼
-GeminiRAGManager
+App.jsx
     │
-    │ (6) Uses for API calls
+    │ (6) Updates UI state: setIsLoggedIn(true)
     ▼
-Gemini File API
+User sees authenticated interface
+
+Note: API key is stored server-side in Cloud Functions .env file
+      • Never exposed to client
+      • GEMINI_API_KEY environment variable
+      • Keeps user's API key secure
 ```
 
-## File Lifecycle
+## File Lifecycle (Gemini File Search Corpus)
 
 ```
-PDF File
+PDF File (from Canvas)
     │
-    ├─► (1) Upload        ──► Gemini receives file
+    ├─► (1) Upload to Cloud Function
+    │       • File downloaded as blob from Canvas
+    │       • Base64 encoded for transmission
+    │       • Sent to uploadToStore() Cloud Function
     │
-    ├─► (2) Processing    ──► Gemini analyzes content
-    │                          (5-30 seconds)
+    ├─► (2) Cloud Function Processing
+    │       • Rate limit check (20 req/min)
+    │       • Enrollment verification
+    │       • Creates corpus if not exists
+    │       • Uploads document to Gemini File Search
     │
-    ├─► (3) Active        ──► Ready for chat
-    │                          URI: files/abc123xyz
-    │                          Valid for 48 hours
+    ├─► (3) Gemini Corpus Storage
+    │       • Document added to shared course corpus
+    │       • Automatic chunking and embedding
+    │       • Corpus name: corpora/{random-id}
+    │       • Document name: corpora/{id}/documents/{doc-id}
+    │       • PERSISTENT (no expiration)
     │
-    ├─► (4) Chat          ──► Referenced in prompts
-    │                          Multiple times
+    ├─► (4) Metadata Saved to Firestore
+    │       • courses/{courseId}/documents/{docId}
+    │       • Fields: fileName, geminiDocumentName, uploadedAt
+    │       • fileSearchStoreName saved in course document
     │
-    └─► (5) Expiration    ──► Auto-deleted after 48h
-                               Need to re-upload
+    ├─► (5) Available for RAG Queries
+    │       • Shared across all enrolled users
+    │       • Semantic search enabled
+    │       • Chunks automatically retrieved
+    │
+    └─► (6) Manual Deletion Only
+            • User can delete via UI
+            • Calls deleteDocument() Cloud Function
+            • Removes from Gemini corpus + Firestore
+            • No automatic expiration
 ```
 
 ## Database Schema
@@ -193,73 +276,155 @@ PDF File
 
 ```
 users/
-  {userId}/
+  {userId}/                          ← Chrome Identity user ID
     email: string
     displayName: string
     lastSeenAt: timestamp
     createdAt: timestamp
+    isAdmin: boolean                 ← Admin privileges
+    
+  {userId}/rateLimits/               ← Rate limiting (per user, per operation)
+    {operation}/                     ← e.g., "queryCourseStore", "uploadToStore"
+      requestTimestamps: array<timestamp>
 
 courses/
-  {courseId}/
-    userId: string
+  {courseId}/                        ← SHARED across all enrolled users
     courseName: string
     courseCode: string
     canvasUrl: string
+    canvasInstance: string           ← e.g., "canvas.instructure.com"
+    firstScannedAt: timestamp
     lastScannedAt: timestamp
-    pdfCount: number
-    createdAt: timestamp
+    fileSearchStoreName: string      ← Gemini corpus name (corpora/xxx)
+    totalEnrollments: number
+    createdBy: string                ← userId of first scanner
     
-    documents/
-      {docId}/
-        fileName: string
-        fileUrl: string
-        fileSize: number
-        fileType: string
-        scannedFrom: string
-        uploadedAt: timestamp
-        uploadStatus: string
-        
-        // Gemini-specific fields
-        geminiUri: string           ← File URI from Gemini
-        geminiFileName: string      ← files/abc123xyz
-        geminiUploadedAt: timestamp ← When uploaded
-        geminiExpiresAt: timestamp  ← 48 hours from upload
+  {courseId}/documents/              ← SHARED course documents
+    {docId}/
+      fileName: string
+      canvasUrl: string
+      fileSize: number
+      scannedFrom: string
+      uploadedAt: timestamp
+      uploadedBy: string             ← userId who uploaded
+      geminiDocumentName: string     ← corpora/{id}/documents/{doc-id}
+      chunkCount: number             ← Number of chunks created
+
+enrollments/                         ← User-Course relationships
+  {enrollmentId}/                    ← Composite ID: {userId}_{courseId}
+    userId: string
+    courseId: string
+    enrolledAt: timestamp
+    lastAccessedAt: timestamp
+    currentSessionId: string         ← Active chat session
+
+chatSessions/                        ← Root-level chat sessions
+  {sessionId}/                       ← Generated UUID
+    userId: string
+    courseId: string
+    title: string                    ← First message preview
+    createdAt: timestamp
+    lastMessageAt: timestamp
+    messageCount: number
+    
+  {sessionId}/messages/
+    {messageId}/
+      role: string                   ← "user" or "model"
+      content: string
+      timestamp: timestamp
+      tokens: number                 ← Optional usage tracking
 ```
 
 ## Component Responsibilities
 
-### `gemini-rag.js`
-- ✅ Upload files to Gemini
-- ✅ Wait for processing
-- ✅ Generate chat responses
-- ✅ Manage file lifecycle
-- ✅ Handle API errors
+### Frontend (Chrome Extension)
 
-### `firestore-helpers.js`
-- ✅ Save/retrieve documents
-- ✅ Store Gemini URIs
-- ✅ Track expiration
-- ✅ Find expired files
-- ✅ Clean up old data
+#### `App.jsx` (React Main Component)
+- ✅ Main application container
+- ✅ State management for UI
+- ✅ Route between chat/all courses views
+- ✅ Integrate all child components
+- ✅ Handle fullscreen mode
 
-### `popup.js`
-- ✅ Orchestrate scanning
-- ✅ Handle user interactions
-- ✅ Upload PDFs to Gemini
-- ✅ Process chat messages
-- ✅ Display results
+#### `popup-logic.js` (Business Logic)
+- ✅ Orchestrate all extension operations
+- ✅ User authentication (Chrome Identity)
+- ✅ Course detection and enrollment
+- ✅ PDF scanning coordination
+- ✅ Chat message handling
+- ✅ Session management
+- ✅ Bridge between UI and services
 
-### `settings.js`
-- ✅ Manage API key
-- ✅ Validate input
-- ✅ Store securely
-- ✅ Show connection status
+#### `gemini-file-search-cloud.js` (Cloud Functions Client)
+- ✅ Call Cloud Functions via Firebase SDK
+- ✅ createCourseStore() - Create new corpus
+- ✅ uploadToStore() - Upload PDF to corpus
+- ✅ queryCourseStore() - RAG query with history
+- ✅ deleteDocument() - Remove document
+- ✅ Handle network errors and retries
 
-### `content-script.js`
-- ✅ Scan Canvas pages
-- ✅ Extract PDF links
+#### `firestore-helpers.js` (Database Operations)
+- ✅ User CRUD operations
+- ✅ Course and enrollment management
+- ✅ Document metadata storage
+- ✅ Chat session and message storage
+- ✅ Shared course access logic
+- ✅ Statistics and analytics queries
+
+#### `content-script.js` (Canvas Page Scanner)
+- ✅ Inject into Canvas LMS pages
+- ✅ Extract course information from DOM
+- ✅ Scan for PDF links in course files
 - ✅ Navigate course structure
-- ✅ Send data to popup
+- ✅ Send data to popup via messaging
+
+#### React Components
+- `Header.jsx` - Logo and navigation
+- `AuthSection.jsx` - Sign in/out UI
+- `CourseDetection.jsx` - Current page course info
+- `CourseSelector.jsx` - Switch between courses
+- `ChatSection.jsx` - Chat interface with streaming
+- `AllCoursesView.jsx` - Grid view of all enrollments
+- `CoursePDFDrawer.jsx` - Document list sidebar
+- `CourseInfo.jsx` - Course metadata display
+
+### Backend (Firebase Cloud Functions)
+
+#### `functions/index.js`
+
+**Security Functions:**
+- ✅ `checkRateLimit()` - Firestore transaction-based rate limiting
+- ✅ `verifyEnrollment()` - Check user enrollment in course
+- ✅ `getSharedStore()` - Get or create shared corpus
+
+**API Functions (all are `onCall` HTTP functions):**
+
+- ✅ `createCourseStore`
+  - Creates new Gemini File Search corpus
+  - Associates corpus with course in Firestore
+  - Rate limit: 5 requests/minute
+  - Requires: userId, courseId, displayName
+
+- ✅ `uploadToStore`
+  - Uploads PDF document to corpus
+  - Base64 decoding and validation
+  - Saves metadata to Firestore
+  - Rate limit: 20 requests/minute
+  - Requires: userId, courseId, fileData, fileName
+
+- ✅ `queryCourseStore`
+  - RAG query with Gemini 2.5 Flash
+  - System prompt injection (course focus)
+  - Conversation history support
+  - Saves chat messages to Firestore
+  - Rate limit: 50 requests/minute
+  - Requires: userId, courseId, question
+
+- ✅ `deleteDocument`
+  - Removes document from corpus
+  - Deletes Firestore metadata
+  - Rate limit: 30 requests/minute
+  - Requires: userId, courseId, documentName
 
 ## API Endpoints Used
 
@@ -285,33 +450,95 @@ updateDoc() - Update document
 deleteDoc() - Delete document
 ```
 
-## Security Layers
+## Security Architecture
+
+### Multi-Layer Security Model
 
 ```
-API Key
-    │
-    ├─► Stored in Chrome sync storage
-    │   (Encrypted by Chrome)
-    │
-    ├─► Never exposed in code
-    │   (Retrieved at runtime)
-    │
-    ├─► Transmitted over HTTPS
-    │   (TLS encrypted)
-    │
-    └─► Validated on server
-        (Google verifies key)
+┌───────────────────────────────────┐
+│ Layer 1: Chrome Identity (OAuth)     │
+│   • Google account authentication    │
+│   • No passwords stored             │
+│   • Chrome handles OAuth flow       │
+└───────────────────────────────────┘
+           │
+           ▼
+┌───────────────────────────────────┐
+│ Layer 2: Firestore Rules            │
+│   • Intentionally permissive         │
+│   • No Firebase Auth tokens         │
+│   • Rate limits collection locked   │
+│   • Security enforced in Layer 3    │
+└───────────────────────────────────┘
+           │
+           ▼
+┌───────────────────────────────────┐
+│ Layer 3: Cloud Functions Security   │
+│   • Enrollment verification         │
+│   • Rate limiting (per user/op)     │
+│   • Input validation                │
+│   • API key never exposed           │
+└───────────────────────────────────┘
+           │
+           ▼
+┌───────────────────────────────────┐
+│ Layer 4: Google Cloud Security      │
+│   • TLS encryption (HTTPS)          │
+│   • Gemini API validation           │
+│   • Firestore encryption at rest    │
+│   • GCP infrastructure security     │
+└───────────────────────────────────┘
+```
 
-PDFs
+### API Key Protection
+```
+GEMINI_API_KEY
     │
-    ├─► Uploaded to Google servers
-    │   (Secure transmission)
+    ├─► Stored: functions/.env file (server-side)
+    │   • NEVER in client code
+    │   • NEVER in version control (.gitignore)
+    │   • NEVER exposed to users
     │
-    ├─► Processed by Gemini
-    │   (Google's secure infrastructure)
+    ├─► Access: Cloud Functions environment only
+    │   • process.env.GEMINI_API_KEY
+    │   • Not accessible from client
     │
-    └─► Auto-deleted after 48h
-        (No permanent storage)
+    └─► Usage: Direct Gemini API calls
+        • Transmitted over HTTPS only
+        • Google validates key server-side
+```
+
+### Data Security
+```
+User Data
+    │
+    ├─► Personal Info: Firestore encrypted at rest
+    │   • Email, displayName
+    │   • Users can only harm themselves (no Auth)
+    │
+    ├─► Course Materials: Shared corpus storage
+    │   • PDFs stored in Gemini File Search
+    │   • Accessible to all enrolled students
+    │   • Enrollment verified by Cloud Functions
+    │
+    └─► Chat History: Private per user
+        • chatSessions filtered by userId
+        • Cannot access other users' chats
+```
+
+### Rate Limiting (Firestore Transaction-Based)
+```
+Operation           Limit        Enforcement
+───────────────────  ───────────  ────────────
+queryCourseStore    50/min       checkRateLimit()
+uploadToStore       20/min       checkRateLimit()
+createCourseStore   5/min        checkRateLimit()
+deleteDocument      30/min       checkRateLimit()
+
+Storage: users/{userId}/rateLimits/{operation}
+  • requestTimestamps: array of timestamps
+  • Old timestamps cleaned up automatically
+  • Firestore transaction ensures atomicity
 ```
 
 ## Performance Considerations

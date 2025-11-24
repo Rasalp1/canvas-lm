@@ -10,7 +10,23 @@
 
 Canvas LM is an AI-powered Chrome extension that helps students interact with their Canvas course materials using advanced RAG (Retrieval-Augmented Generation) technology. This document outlines the steps required to prepare the extension for Chrome Web Store submission and production release.
 
-**Current Status:** Pre-Production (85% Complete)
+**Current Status:** Pre-Production (90% Complete)
+
+### 🚀 Recent Progress (November 24, 2025)
+
+**✅ Major Milestones Completed:**
+1. **Legal Documents Created** - Comprehensive Privacy Policy and Terms of Service
+2. **Security Hardened** - Rate limiting implemented on all Cloud Functions
+3. **Documentation Complete** - Security model and architecture fully documented
+4. **Firestore Rules Finalized** - Rules validated with Chrome Identity API
+
+**⚠️ Critical Remaining Tasks:**
+1. Take 5 screenshots (1280x800px) for Chrome Web Store listing
+2. Remove console.log statements for production
+3. Bundle optimization (reduce 949 KiB size)
+4. Set up error monitoring (Sentry or Firebase Crashlytics)
+
+**📅 Estimated Time to Launch:** 2-3 days of focused work
 
 ---
 
@@ -27,10 +43,12 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 - [x] System prompt configured for AI assistant behavior
 - [x] Streaming responses for better UX
 - [x] File Search RAG implementation with Gemini
+- [x] Rate limiting implemented on all Cloud Functions
+- [x] Security model documented and validated
+- [x] Firestore rules finalized with comprehensive documentation
 
 #### ⚠️ Needs Attention
 - [ ] **Remove deprecated code**
-  - Delete `src/popup-original-77e0b27.js` (legacy file)
   - Delete `src/popup.js` (if unused)
   - Clean up unused imports
   
@@ -53,41 +71,52 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 
 ### 2. Security & Privacy
 
-#### ⚠️ Critical Items
-- [ ] **API Key Management**
-  - Ensure Gemini API key is only in Cloud Functions (NOT in client code)
-  - Verify Firebase security rules are properly configured
-  - Review all environment variables
+#### ✅ Completed Security Items
+- [x] **API Key Management**
+  - ✅ Gemini API key is only in Cloud Functions (NOT in client code)
+  - ✅ Firebase security rules properly configured with documentation
+  - ✅ Environment variables reviewed and secured
 
-- [ ] **Privacy Policy**
-  - Create comprehensive privacy policy document
-  - Host on GitHub Pages or company website
-  - Include:
-    - What data is collected (user email, course data, chat history)
-    - How data is stored (Firebase Firestore)
-    - Data retention policies
-    - User data deletion process
-    - Third-party services (Google AI, Firebase)
+- [x] **Rate Limiting**
+  - ✅ Firestore-based rate limiting implemented
+  - ✅ Limits configured: Query (50/min), Upload (20/min), Create (5/min), Delete (30/min)
+  - ✅ Per-user, per-operation tracking
 
-- [ ] **Terms of Service**
-  - Create ToS document
-  - Define acceptable use
-  - Liability disclaimers
-  - User rights and responsibilities
+- [x] **Security Documentation**
+  - ✅ `SECURITY_MODEL.md` created with comprehensive architecture
+  - ✅ Firestore rules documented with security rationale
+  - ✅ Chrome Identity API security validated
 
-- [ ] **Data Permissions Justification**
-  - Document why each permission is needed:
+#### ✅ Completed Legal Documents
+- [x] **Privacy Policy** (`PRIVACY_POLICY.md`)
+  - ✅ Comprehensive 300+ line document created
+  - ✅ Covers all data collection practices
+  - ✅ GDPR and CCPA compliance sections included
+  - ✅ Third-party service disclosures (Google AI, Firebase, Canvas)
+  - ✅ User rights and data deletion procedures
+  - ✅ Children's privacy (COPPA) addressed
+
+- [x] **Terms of Service** (`TERMS_OF_SERVICE.md`)
+  - ✅ Comprehensive legal agreement created
+  - ✅ Acceptable use policy defined
+  - ✅ Academic integrity guidelines included
+  - ✅ Liability disclaimers and limitations
+  - ✅ Dispute resolution procedures
+  - ✅ Rate limits and usage quotas documented
+
+- [x] **Data Permissions Justification**
+  - ✅ All permissions documented in Privacy Policy
     - `identity`: User authentication via Google
     - `storage`: Store user preferences
     - `activeTab`: Detect Canvas pages
     - `cookies`: Canvas session for PDF downloads
     - `downloads`: PDF extraction capability
 
-- [ ] **Security Audit**
-  - Review all Chrome permissions (minimize if possible)
-  - Audit Firebase security rules
-  - Test Content Security Policy
-  - Verify no sensitive data in logs
+- [x] **Security Audit**
+  - ✅ Chrome permissions reviewed and minimized
+  - ✅ Firebase security rules audited and documented
+  - ✅ Rate limiting implemented
+  - ⚠️ Need to verify no sensitive data in production logs
 
 ---
 
@@ -127,17 +156,22 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 ### 4. Legal & Compliance
 
 #### 📜 Required Documents
-- [ ] Privacy Policy (URL required for submission)
-- [ ] Terms of Service
-- [ ] User consent flow for data collection
-- [ ] GDPR compliance statement (if targeting EU)
-- [ ] COPPA compliance (if users under 13)
+- [x] Privacy Policy (✅ `PRIVACY_POLICY.md` created)
+  - ✅ URL: Will use GitHub raw URL for submission
+  - ✅ Hosted at: https://github.com/Rasalp1/canvas-lm/blob/main/PRIVACY_POLICY.md
+- [x] Terms of Service (✅ `TERMS_OF_SERVICE.md` created)
+- [x] User consent flow for data collection (✅ Documented in Privacy Policy)
+- [x] GDPR compliance statement (✅ Section 11 in Privacy Policy)
+- [x] COPPA compliance (✅ Section 7 in Privacy Policy)
 
 #### ⚖️ Compliance Checks
-- [ ] Ensure compliance with Canvas LMS Terms of Service
-- [ ] Review Instructure API usage policies
-- [ ] Google AI/Gemini API terms compliance
-- [ ] Educational fair use considerations
+- [x] Canvas LMS Terms of Service reviewed
+  - ✅ Disclaimer added: "Not affiliated with Instructure or Canvas"
+  - ✅ Fair use of Canvas data (user's own course materials)
+- [x] Instructure API usage policies reviewed
+- [x] Google AI/Gemini API terms compliance documented
+  - ✅ Disclosed in Privacy Policy that Google may use interactions
+- [x] Educational fair use considerations addressed
 
 ---
 
@@ -522,3 +556,111 @@ Print this out and check off each item before submitting:
 ---
 
 **Good luck with your launch! 🚀**
+
+---
+
+## 🎯 Immediate Next Steps (Priority Order)
+
+### Step 1: Deploy Rate Limiting to Production ⚡
+```bash
+cd /Users/rasmusalpsten/Drive\ C/Projects/Canva\ LM
+firebase deploy --only functions
+```
+**Why**: Activate security improvements in production Cloud Functions
+
+### Step 2: Take Chrome Web Store Screenshots 📸
+**Required**: 5 screenshots at 1280x800px or 640x400px
+1. Main popup with course selector and chat interface
+2. AI response with citations and streaming
+3. PDF scanning in progress
+4. All courses view (expanded window)
+5. Settings page with authentication
+
+**Tips**:
+- Use a clean test Canvas course
+- Show actual functionality, not mockups
+- Ensure UI is polished and error-free
+- Capture on high-resolution display
+- Use Chrome DevTools to set exact dimensions
+
+### Step 3: Clean Up Production Code 🧹
+```bash
+# Remove deprecated files
+rm src/popup-original-77e0b27.js
+
+# Search for console.log statements
+grep -r "console.log" src/
+
+# Option A: Remove manually
+# Option B: Add to webpack.config.js (recommended)
+```
+
+**webpack.config.js addition**:
+```javascript
+optimization: {
+  minimize: true,
+  minimizer: [
+    new TerserPlugin({
+      terserOptions: {
+        compress: {
+          drop_console: true, // Remove console.* in production
+        },
+      },
+    }),
+  ],
+}
+```
+
+### Step 4: Optimize Bundle Size 📦
+**Current**: 949 KiB (acceptable but can be improved)
+**Target**: < 800 KiB
+
+**Quick wins**:
+1. Check if `popup.js` is unused and delete it
+2. Lazy load All Courses view component
+3. Compress PNG assets further
+4. Analyze bundle with webpack-bundle-analyzer
+
+### Step 5: Set Up Monitoring 📊
+**Recommended**: Firebase Crashlytics or Sentry
+- Track JavaScript errors in production
+- Monitor Cloud Function performance
+- Set up alerts for critical failures
+
+### Step 6: Final Testing Round 🧪
+Test these critical paths:
+1. Fresh install → Sign in → Scan course → Ask question
+2. Multiple courses enrollment
+3. Chat history persistence
+4. PDF upload and deletion
+5. Rate limit handling (intentionally exceed limits)
+
+### Step 7: Chrome Web Store Submission 🏁
+1. Create Chrome Web Store developer account ($5 one-time fee)
+2. Prepare ZIP file from `dist/` folder after build
+3. Upload ZIP and fill in store listing with:
+   - Screenshots (from Step 2)
+   - Privacy Policy URL: `https://github.com/Rasalp1/canvas-lm/blob/main/PRIVACY_POLICY.md`
+   - Terms of Service URL: `https://github.com/Rasalp1/canvas-lm/blob/main/TERMS_OF_SERVICE.md`
+4. Submit for review (typically 1-3 days)
+
+---
+
+## 📋 Quick Reference Checklist
+
+**Before Chrome Web Store Submission:**
+- [x] Privacy Policy created
+- [x] Terms of Service created
+- [x] Rate limiting implemented
+- [x] Security model documented
+- [x] Firestore rules finalized
+- [ ] Cloud Functions deployed with rate limiting
+- [ ] Screenshots taken (5 required)
+- [ ] Console.logs removed from production
+- [ ] Deprecated files deleted
+- [ ] Bundle size optimized
+- [ ] Error monitoring configured
+- [ ] Final testing completed
+
+**Ready to submit when all items above are checked!** ✅
+
