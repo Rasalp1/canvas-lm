@@ -342,47 +342,11 @@ class GeminiFileSearchCloudClient {
   }
 
   /**
-   * Query File Search store (DEPRECATED - use queryCourseStore)
-   * This is the main RAG endpoint
-   * @param {string} question - The question to ask
-   * @param {string} storeName - Store resource name to search
-   * @param {string} model - Model to use (default: gemini-2.5-flash)
-   * @param {string} metadataFilter - Optional metadata filter
-   * @param {number} topK - Number of chunks to retrieve (default: 5)
-   * @returns {Promise<Object>} Answer with citations
+   * DEPRECATED: Use queryCourseStore instead
+   * This method has been removed. Use queryCourseStore for all queries.
    */
-  async queryWithFileSearch(question, storeName, model = 'gemini-2.5-flash', metadataFilter = null, topK = 5) {
-    try {
-      if (!this.userId) {
-        throw new Error('userId not set. Call setUserId() first.');
-      }
-      
-      console.log('🔍 Querying File Search store with:', question);
-      
-      const queryWithFileSearch = httpsCallable(this.functions, 'queryWithFileSearch');
-      const result = await queryWithFileSearch({
-        userId: this.userId,
-        question,
-        storeName,
-        model,
-        metadataFilter,
-        topK
-      });
-
-      if (!result.data.success) {
-        throw new Error('Query failed');
-      }
-
-      console.log('✅ Query completed');
-      return {
-        answer: result.data.answer,
-        groundingMetadata: result.data.groundingMetadata,
-        model: result.data.model
-      };
-    } catch (error) {
-      console.error('❌ Error querying File Search store:', error);
-      throw error;
-    }
+  async queryWithFileSearch() {
+    throw new Error('queryWithFileSearch is deprecated. Use queryCourseStore instead.');
   }
 
   // Helper: Convert File/Blob to base64

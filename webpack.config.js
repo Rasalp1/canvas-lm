@@ -50,7 +50,13 @@ module.exports = {
         { from: 'manifest.json', to: 'manifest.json' },
         { from: 'smart-navigator.js', to: 'smart-navigator.js' },
         { from: 'state-management.js', to: 'state-management.js' },
-        { from: 'stateful-page-scanner.js', to: 'stateful-page-scanner.js' }
+        { from: 'stateful-page-scanner.js', to: 'stateful-page-scanner.js' },
+        { from: 'favicon-16x16.png', to: 'favicon-16x16.png' },
+        { from: 'favicon-32x32.png', to: 'favicon-32x32.png' },
+        { from: 'android-chrome-192x192.png', to: 'android-chrome-192x192.png' },
+        { from: 'android-chrome-512x512.png', to: 'android-chrome-512x512.png' },
+        { from: 'apple-touch-icon.png', to: 'apple-touch-icon.png' },
+        { from: 'Canvas LM Logo.png', to: 'Canvas LM Logo.png' }
       ]
     })
   ],

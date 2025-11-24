@@ -199,8 +199,12 @@ export const App = ({
             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
               {!sidebarCollapsed && (
                 <div className="flex items-center gap-3 transition-opacity duration-200">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <span className="text-xl font-bold text-white">C</span>
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
+                    <img 
+                      src={chrome.runtime.getURL('Canvas LM Logo.png')}
+                      alt="Canvas LM" 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
                     <h1 className="text-lg font-bold text-slate-900">Canvas LM</h1>

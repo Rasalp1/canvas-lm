@@ -713,9 +713,9 @@ export class PopupLogic {
   /**
    * Animate message streaming word-by-word
    * @param {string} fullMessage - The complete message to stream
-   * @param {number} delay - Delay between words in ms (default 20ms)
+   * @param {number} delay - Delay between words in ms (default 10ms)
    */
-  async streamMessage(fullMessage, delay = 20) {
+  async streamMessage(fullMessage, delay = 10) {
     // Clear any existing streaming animation
     if (this.streamingMessageTimer) {
       clearInterval(this.streamingMessageTimer);

@@ -678,6 +678,11 @@ exports.queryCourseStore = onCall(async (request) => {
     });
     
     const requestBody = {
+      system_instruction: {
+        parts: [{ 
+          text: 'You are Canvas LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.\n\nSTRICT RULES:\n1. Persona: Be professional, encouraging, and helpful. You are knowledgeable and serious about the course, but also support the student in a mentor-type way.\n2. ONLY use information found in the provided course documents\n3. ALWAYS search the File Search store before answering any question\n4. Reference the course material as often as possible, and use language such as "Based on the course material,"\n5. Provide specific citations showing which document(s) you used\n6. Use quotes and paraphrasing extensively\n\nRESPONSE FORMAT:\n- Answer the question clearly and concisely based on the documents\n- Include relevant details, examples, or explanations from the course materials\n- When asked for when the exam date is, always mention only the latest date available.\n\nRemember: Your knowledge is based on what\'s been uploaded to this course. This ensures accuracy and prevents misinformation.'
+        }]
+      },
       contents: contents,
       tools: [{
         fileSearch: {
@@ -780,101 +785,6 @@ exports.queryCourseStore = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Query course store error:', error);
-    throw new Error(error.message);
-  }
-});
-
-/**
- * DEPRECATED: Query File Search store by name
- * Kept for backward compatibility
- * Use queryCourseStore instead for new implementations
- */
-exports.queryWithFileSearch = onCall(async (request) => {
-  logger.warn('queryWithFileSearch is deprecated, use queryCourseStore instead');
-  
-  try {
-    const { 
-      question, 
-      storeName,
-      userId,
-      model = 'gemini-2.5-flash',
-      metadataFilter,
-      topK = 5
-    } = request.data;
-
-    if (!question || !storeName || !userId) {
-      throw new Error('question, storeName, and userId are required');
-    }
-
-    // Get courseId and verify enrollment
-    const courseId = await getCourseIdFromStore(storeName);
-    await verifyEnrollment(userId, courseId);
-
-    // Build request with File Search tool and system instructions
-    const requestBody = {
-      system_instruction: {
-        parts: [{ 
-          text: 'You are a Canvas LM, a helpful AI assistant that answers questions based on the provided course materials. Always use the File Search tool to find relevant information from the documents before answering. Provide detailed, accurate answers with citations when possible.'
-        }]
-      },
-      contents: [{
-        parts: [{ text: question }]
-      }],
-      tools: [{
-        fileSearch: {
-          fileSearchStoreNames: [storeName],
-          topK: topK
-        }
-      }],
-      generationConfig: {
-        maxOutputTokens: 8192  // Increase from default (~2048) to allow longer responses
-      }
-    };
-
-    // Add metadata filter if provided
-    if (metadataFilter) {
-      requestBody.tools[0].fileSearch.metadataFilter = metadataFilter;
-    }
-
-    const response = await fetch(
-      `${GEMINI_API_ENDPOINT}/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Query failed: ${error}`);
-    }
-
-    const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!text) {
-      throw new Error('No response from Gemini');
-    }
-
-    // Extract citations if available
-    const groundingMetadata = result.candidates?.[0]?.groundingMetadata;
-
-    logger.info('File Search query completed', { 
-      model,
-      storeName,
-      hasCitations: !!groundingMetadata
-    });
-
-    return {
-      success: true,
-      answer: text,
-      groundingMetadata: groundingMetadata,
-      model: model
-    };
-
-  } catch (error) {
-    logger.error('Query error:', error);
     throw new Error(error.message);
   }
 });

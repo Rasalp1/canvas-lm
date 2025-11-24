@@ -1,10 +1,25 @@
 {
   "manifest_version": 3,
   "name": "Canvas LM",
-  "version": "1.0",
-  "description": "Extract PDFs from Canvas courses and chat with course materials using AI.",
+  "version": "1.0.0",
+  "description": "AI-powered study assistant for Canvas. Extract PDFs, chat with course materials using advanced AI.",
+  "author": "Rasmus Alpsten",
+  "homepage_url": "https://github.com/Rasalp1/canvas-lm",
+  "minimum_chrome_version": "88",
+  "icons": {
+    "16": "favicon-16x16.png",
+    "32": "favicon-32x32.png",
+    "192": "android-chrome-192x192.png",
+    "512": "android-chrome-512x512.png"
+  },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "favicon-16x16.png",
+      "32": "favicon-32x32.png",
+      "192": "android-chrome-192x192.png",
+      "512": "android-chrome-512x512.png"
+    }
   },
   "options_page": "settings.html",
   "permissions": [
@@ -48,7 +63,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["src/*"],
+      "resources": ["src/*", "*.png"],
       "matches": ["<all_urls>"]
     }
   ]

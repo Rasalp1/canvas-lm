@@ -1,16 +1,18 @@
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
-import { Maximize2, Layers } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 
 export const Header = ({ user, onExpandWindow, isExtensionPage }) => {
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-3">
         <div className="relative">
-          <div className="w-11 h-11 bg-gradient-to-br from-blue-600 via-blue-500 to-sky-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-            <Layers className="w-6 h-6" />
-          </div>
+          <img 
+            src={chrome.runtime.getURL('Canvas LM Logo.png')}
+            alt="Canvas LM Logo" 
+            className="w-11 h-11 rounded-2xl"
+          />
           <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
         </div>
         <div>
