@@ -33,7 +33,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const functions = getFunctions(app, 'europe-north1');
 
-// Make available globally for popup.js and other scripts
+// Make available globally
 window.firebaseApp = app;
 window.firebaseDb = db;
 window.firebaseFunctions = functions;

@@ -48,10 +48,6 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 - [x] Firestore rules finalized with comprehensive documentation
 
 #### ⚠️ Needs Attention
-- [ ] **Remove deprecated code**
-  - Delete `src/popup.js` (if unused)
-  - Clean up unused imports
-  
 - [ ] **Remove debug code**
   - Search and remove all `console.log` statements in production build
   - Remove debug sections/buttons from UI

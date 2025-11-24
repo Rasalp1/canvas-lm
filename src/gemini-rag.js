@@ -324,7 +324,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { GeminiRAGManager };
 }
 
-// Make available globally for popup.js
+// Make available globally
 if (typeof window !== 'undefined') {
   window.GeminiRAGManager = GeminiRAGManager;
 }
