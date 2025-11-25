@@ -49,6 +49,9 @@ export const App = ({
   const [showCourseSelector, setShowCourseSelector] = useState(false);
   const [courseList, setCourseList] = useState([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanTimeLeft, setScanTimeLeft] = useState(0);
+  const [scanStartTime, setScanStartTime] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -62,6 +65,25 @@ export const App = ({
   const [drawerCourse, setDrawerCourse] = useState(null);
   const [drawerDocuments, setDrawerDocuments] = useState([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
+
+  // Scan progress timer
+  useEffect(() => {
+    if (!isScanning || !scanStartTime) {
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - scanStartTime;
+      const estimatedTotal = 120000; // 2 minutes estimated
+      const progress = Math.min((elapsed / estimatedTotal) * 100, 95); // Cap at 95% until complete
+      const timeLeft = Math.max(0, Math.ceil((estimatedTotal - elapsed) / 1000));
+      
+      setScanProgress(progress);
+      setScanTimeLeft(timeLeft);
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, [isScanning, scanStartTime]);
 
   useEffect(() => {
     // Check if we're on an extension page
@@ -83,6 +105,9 @@ export const App = ({
         setShowCourseSelector,
         setCourseList,
         setIsScanning,
+        setScanProgress,
+        setScanTimeLeft,
+        setScanStartTime,
         setChatMessages,
         setIsChatLoading,
         setCurrentCourseDocCount,
@@ -106,6 +131,9 @@ export const App = ({
 
   const handleScan = () => {
     if (popupLogic) {
+      setScanStartTime(Date.now());
+      setScanProgress(0);
+      setScanTimeLeft(120);
       popupLogic.handleScan();
     }
   };
@@ -343,6 +371,8 @@ export const App = ({
                     courseDetails={courseDetails}
                     onScan={handleScan}
                     isScanning={isScanning}
+                    scanProgress={scanProgress}
+                    scanTimeLeft={scanTimeLeft}
                     hasDocuments={currentCourseDocCount > 0}
                     onBack={handleBackToCourseSelector}
                     showBackButton={false}
@@ -448,6 +478,8 @@ export const App = ({
                   courseDetails={courseDetails}
                   onScan={handleScan}
                   isScanning={isScanning}
+                  scanProgress={scanProgress}
+                  scanTimeLeft={scanTimeLeft}
                   hasDocuments={currentCourseDocCount > 0}
                   onBack={handleBackToCourseSelector}
                   showBackButton={isExtensionPage && showCourseSelector === false}

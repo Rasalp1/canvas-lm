@@ -46,6 +46,9 @@ export class PopupLogic {
     // Detect Canvas course
     await this.detectCanvas();
     
+    // Check for pending scan results
+    await this.checkPendingScanResults();
+    
     // Listen for messages from background script
     this.setupMessageListener();
   }
@@ -456,6 +459,45 @@ export class PopupLogic {
     console.log('✅ Navigated back to course selector');
   }
 
+  async checkPendingScanResults() {
+    if (!this.currentCourseData) return;
+    
+    try {
+      const scanStatusKey = `scan_status_${this.currentCourseData.id}`;
+      const result = await chrome.storage.local.get(scanStatusKey);
+      const scanStatus = result[scanStatusKey];
+      
+      if (!scanStatus) return;
+      
+      const ageMinutes = (Date.now() - scanStatus.timestamp) / 1000 / 60;
+      
+      if (scanStatus.status === 'scanning' && ageMinutes < 10) {
+        // Scan is still in progress
+        console.log('⏳ Scan still in progress for this course');
+        this.uiCallbacks.setIsScanning?.(true);
+        this.uiCallbacks.setStatus?.('Scan in progress... (started ' + Math.round(ageMinutes) + ' min ago)');
+      } else if (scanStatus.status === 'complete' && ageMinutes < 30) {
+        // Scan completed while popup was closed
+        console.log('🎉 Found completed scan results:', scanStatus);
+        
+        // Clear the status
+        chrome.storage.local.remove(scanStatusKey);
+        
+        // Notify user
+        const message = `✅ Scan completed! Found ${scanStatus.pdfCount} PDFs while you were away.`;
+        this.uiCallbacks.setStatus?.(message);
+        
+        // Process the results
+        await this.saveFoundPDFsToFirestore();
+        
+        // Refresh course details
+        await this.detectCanvas();
+      }
+    } catch (error) {
+      console.error('Error checking pending scan results:', error);
+    }
+  }
+
   async handleScan() {
     if (!this.currentUser) {
       alert('Please sign in to Chrome first');
@@ -466,6 +508,13 @@ export class PopupLogic {
       alert('Please navigate to a Canvas course page first');
       return;
     }
+    
+    // Notify background that scan is starting
+    chrome.runtime.sendMessage({
+      action: 'SCAN_STARTED',
+      courseId: this.currentCourseData.id,
+      courseName: this.currentCourseData.name
+    }).catch(() => {});
     
     this.uiCallbacks.setIsScanning?.(true);
     
@@ -531,8 +580,23 @@ export class PopupLogic {
       }
       
       if (message.type === 'SMART_CRAWL_COMPLETE') {
-        this.uiCallbacks.setIsScanning?.(false);
+        // Set progress to 100% before stopping
+        this.uiCallbacks.setScanProgress?.(100);
+        this.uiCallbacks.setScanTimeLeft?.(0);
+        
+        // Wait a moment to show completion
+        setTimeout(() => {
+          this.uiCallbacks.setIsScanning?.(false);
+          this.uiCallbacks.setScanProgress?.(0);
+        }, 1000);
+        
         const pdfCount = message.pdfCount || message.pdfsFound || 0;
+        
+        // Clear scan status from storage
+        if (message.courseId) {
+          chrome.storage.local.remove(`scan_status_${message.courseId}`);
+        }
+        
         alert(`✅ Smart scan complete! Found ${pdfCount} PDFs`);
         // Refresh course details to show updated document count
         this.detectCanvas();

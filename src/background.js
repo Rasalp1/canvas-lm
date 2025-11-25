@@ -83,7 +83,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Handle smart navigation crawl completion from content script
       console.log('🎉 Smart crawl complete:', request.report);
       
-      // Forward the completion message to popup
+      // Store scan results persistently so popup can retrieve them even if closed
+      const courseId = request.report?.courseId;
+      if (courseId) {
+        chrome.storage.local.set({
+          [`scan_status_${courseId}`]: {
+            status: 'complete',
+            timestamp: Date.now(),
+            pdfCount: request.report?.pdfsFound || 0,
+            pagesVisited: request.report?.pagesVisited || 0,
+            report: request.report
+          }
+        }).then(() => {
+          console.log('✅ Scan results stored persistently for course:', courseId);
+          
+          // Set badge to show completion
+          chrome.action.setBadgeText({ text: '✓' });
+          chrome.action.setBadgeBackgroundColor({ color: '#00AA00' });
+          
+          // Clear badge after 5 seconds
+          setTimeout(() => {
+            chrome.action.setBadgeText({ text: '' });
+          }, 5000);
+        });
+      }
+      
+      // Forward the completion message to popup (if open)
       chrome.runtime.sendMessage({
         type: 'SMART_CRAWL_COMPLETE',
         pdfCount: request.report?.pdfsFound || 0,
@@ -91,8 +116,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         courseId: request.report?.courseId,
         report: request.report
       }).catch(err => {
-        console.log('Popup not open, completion message not sent');
+        console.log('Popup not open, scan results saved to storage');
       });
+      break;
+    
+    case 'SCAN_STARTED':
+      // Handle scan start notification
+      console.log(`🚀 Scan started for course ${request.courseId}`);
+      
+      // Store scan in-progress status
+      chrome.storage.local.set({
+        [`scan_status_${request.courseId}`]: {
+          status: 'scanning',
+          timestamp: Date.now(),
+          courseId: request.courseId,
+          courseName: request.courseName
+        }
+      });
+      
+      // Set badge to show scanning
+      chrome.action.setBadgeText({ text: '...' });
+      chrome.action.setBadgeBackgroundColor({ color: '#0066CC' });
+      
+      sendResponse({ received: true });
       break;
     
     case 'FOUND_PDFS':
@@ -115,7 +161,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         type: 'PDF_SCAN_COMPLETE',
         courseId: request.courseId,
         pdfCount: request.pdfs.length
-      }).catch(() => {}); // Ignore if popup not open
+      }).catch(() => {
+        console.log('Popup not open, PDF data saved to storage');
+      });
       
       sendResponse({ received: true });
       break;

@@ -5,7 +5,12 @@ import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { BookOpen, Zap, Package, FileText, FolderOpen, Cloud, Sparkles, ArrowLeft, UserPlus, AlertCircle } from 'lucide-react';
 
-export const CourseInfo = ({ courseDetails, onScan, isScanning, hasDocuments, onBack, showBackButton, enrollmentStatus, onEnroll, isLoggedIn }) => {
+export const CourseInfo = ({ courseDetails, onScan, isScanning, scanProgress, scanTimeLeft, hasDocuments, onBack, showBackButton, enrollmentStatus, onEnroll, isLoggedIn }) => {
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -115,26 +120,65 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, hasDocuments, on
                   </div> */}
                 </div>
                 
-                <Button
-                  onClick={onScan}
-                  disabled={isScanning}
-                  className="w-full relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[2px] before:bg-gradient-to-r before:from-blue-500 before:via-cyan-500 before:to-blue-500 before:bg-[length:200%_100%] before:animate-[shimmer_2s_linear_infinite] before:-z-10 before:blur-sm"
-                  size="lg"
-                >
-                  <span className="relative z-10 flex items-center justify-center w-full h-full">
-                    {isScanning ? (
-                      <>
-                        <div className="w-4 h-4 border-2 text-white border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                        Scanning Course...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5 mr-2 text-white" />
-                        <span className="text-white">Start Course Scan</span>
-                      </>
-                    )}
-                  </span>
-                </Button>
+                {isScanning ? (
+                  /* Scanning Progress */
+                  <div className="space-y-4">
+                    {/* Warning Banner */}
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border-2 border-red-200 shadow-sm">
+                      <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center flex-shrink-0 animate-pulse">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-base font-bold text-red-900 tracking-tight">DO NOT CLOSE THIS WINDOW</p>
+                        <p className="text-xs text-red-700 mt-0.5">Scan will continue in background but results may be lost</p>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-600 font-medium">Scanning course materials...</span>
+                        <span className="text-slate-500 tabular-nums">{formatTime(scanTimeLeft)} left</span>
+                      </div>
+                      <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500 ease-out relative overflow-hidden"
+                          style={{ width: `${scanProgress}%` }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_linear_infinite]"></div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 text-center mt-1">
+                        {scanProgress < 30 ? 'Discovering course structure...' : 
+                         scanProgress < 60 ? 'Scanning modules and pages...' :
+                         scanProgress < 90 ? 'Processing documents...' : 
+                         'Almost done...'}
+                      </p>
+                    </div>
+                    
+                    {/* Scanning Button (disabled state) */}
+                    <Button
+                      disabled={true}
+                      className="w-full bg-gradient-to-r from-slate-400 to-slate-500 cursor-not-allowed"
+                      size="lg"
+                    >
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      Scanning in Progress...
+                    </Button>
+                  </div>
+                ) : (
+                  /* Start Scan Button */
+                  <Button
+                    onClick={onScan}
+                    className="w-full relative overflow-hidden before:absolute before:inset-0 before:rounded-lg before:p-[2px] before:bg-gradient-to-r before:from-blue-500 before:via-cyan-500 before:to-blue-500 before:bg-[length:200%_100%] before:animate-[shimmer_2s_linear_infinite] before:-z-10 before:blur-sm"
+                    size="lg"
+                  >
+                    <span className="relative z-10 flex items-center justify-center w-full h-full">
+                      <Sparkles className="w-5 h-5 mr-2 text-white" />
+                      <span className="text-white">Start Course Scan</span>
+                    </span>
+                  </Button>
+                )}
               </>
             )}
           </>

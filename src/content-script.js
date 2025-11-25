@@ -1943,6 +1943,15 @@ class CanvasContentScript {
     this.crawlerState.foundPDFs.clear();
     this.crawlerState.pendingUrls = [];
     this.crawlerState.currentStep = 'Starting crawler...';
+    
+    // Notify background script that scan has started
+    chrome.runtime.sendMessage({
+      action: 'SCAN_STARTED',
+      courseId: this.courseId,
+      courseName: this.courseName
+    }).catch(() => {
+      console.log('Could not notify background of scan start');
+    });
 
     try {
       // Step 1: Expand current page content
