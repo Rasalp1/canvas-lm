@@ -62,8 +62,16 @@ class CanvasContentScript {
       
       // Always listen for messages from popup, regardless of course detection
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        this.handleMessage(request, sender, sendResponse);
-        return true; // Keep the message channel open for async responses
+        console.log('📨 Content script received message:', request.action);
+        try {
+          const result = this.handleMessage(request, sender, sendResponse);
+          // Return true only if handleMessage indicates async response
+          return result === true;
+        } catch (error) {
+          console.error('❌ Error in message listener:', error);
+          sendResponse({ error: error.message });
+          return false;
+        }
       });
       
       // Initialize crawler state
@@ -1747,7 +1755,7 @@ class CanvasContentScript {
       // Handle messages from background script (not popup)
       if (request.type === 'FETCH_STATUS') {
         console.log(`📡 Background fetch status: ${request.message}`);
-        return;
+        return false; // Synchronous, no response needed
       }
       
       switch (request.action) {
@@ -1757,17 +1765,18 @@ class CanvasContentScript {
             courseName: this.courseName,
             url: window.location.href
           };
+          console.log('✅ Sending course info response:', response);
           sendResponse(response);
-          break;
+          return false; // Synchronous response
 
       case 'scanPDFs':
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page' });
-          return;
+          return false; // Synchronous response
         }
         const pdfs = this.getAllPdfLinks();
         sendResponse(pdfs);
-        break;
+        return false; // Synchronous response
 
       case 'getPDFs':
         try {
@@ -1778,39 +1787,40 @@ class CanvasContentScript {
           console.error('Error getting PDFs:', error);
           sendResponse([]);
         }
-        break;
+        return false; // Synchronous response
 
       case 'ping':
         // Respond to ping to verify content script is ready
+        console.log('🏓 Ping received, responding with ready status');
         sendResponse({ ready: true, courseId: this.courseId });
-        break;
+        return false; // Synchronous response
 
       case 'startAutoCrawl':
         console.log('Starting auto crawl...');
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page. Please navigate to a Canvas course page.' });
-          return;
+          return false; // Synchronous response
         }
         this.startEnhancedCrawl();
         sendResponse({ started: true, crawlerState: this.crawlerState });
-        break;
+        return false; // Synchronous response
 
       case 'stopAutoCrawl':
         console.log('Stopping auto crawl...');
         this.stopCrawl();
         sendResponse({ stopped: true });
-        break;
+        return false; // Synchronous response
 
       case 'getCrawlerStatus':
         sendResponse(this.crawlerState);
-        break;
+        return false; // Synchronous response
 
       case 'startDeepCrawl':
         console.log('🔮 Manual LEGACY deep crawl requested from popup...');
         console.log('⚠️  Note: This uses the legacy system. For smart navigation, use startAutoCrawl instead.');
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page' });
-          return;
+          return false; // Synchronous response
         }
         
         // Start legacy deep crawl asynchronously
@@ -1824,13 +1834,13 @@ class CanvasContentScript {
           });
         
         sendResponse({ started: true, message: 'Legacy deep crawl started' });
-        break;
+        return false; // Synchronous response
 
       case 'triggerScan':
         console.log('📄 Manual comprehensive scan requested from popup (using smart navigation)...');
         if (!this.courseId) {
           sendResponse({ error: 'No course detected on this page' });
-          return;
+          return false; // Synchronous response
         }
         
         // Start comprehensive scan asynchronously using smart navigation
@@ -1843,15 +1853,16 @@ class CanvasContentScript {
           });
         
         sendResponse({ started: true, message: 'Comprehensive scan started' });
-        break;
+        return false; // Synchronous response
 
       // Smart Navigation (Option 2) Message Handlers
       case 'startSmartCrawl':
         console.log('🚀 Smart crawl requested from popup (using background tab scanning)...');
         
         if (!this.courseId) {
-          sendResponse({ error: 'No course detected on this page' });
-          return;
+          console.error('❌ No course ID found on current page');
+          sendResponse({ success: false, error: 'No course detected on this page' });
+          return true; // Keep channel open for response
         }
         
         // Use the enhanced crawl system that opens background tabs (works better)
@@ -1866,13 +1877,12 @@ class CanvasContentScript {
             sendResponse({ success: false, error: error.message });
           });
         return true; // Keep message channel open for async response
-        break;
 
       case 'stopSmartCrawl':
         console.log('🛑 Stop smart navigation crawl requested...');
         if (!this.stateManager) {
           sendResponse({ error: 'Smart navigation not initialized' });
-          return;
+          return false; // Synchronous response
         }
         
         this.stopSmartNavigationCrawl()
@@ -1883,12 +1893,11 @@ class CanvasContentScript {
             sendResponse({ success: false, error: error.message });
           });
         return true; // Keep message channel open for async response
-        break;
 
       case 'getSmartCrawlProgress':
         if (!this.stateManager) {
           sendResponse({ active: false, error: 'Smart navigation not initialized' });
-          return;
+          return false; // Synchronous response
         }
         
         this.getSmartNavigationProgress()
@@ -1899,13 +1908,12 @@ class CanvasContentScript {
             sendResponse({ active: false, error: error.message });
           });
         return true; // Keep message channel open for async response
-        break;
 
       case 'clearSmartCrawlState':
         console.log('🗑️ Clear smart navigation state requested...');
         if (!this.stateManager) {
           sendResponse({ success: false, error: 'Smart navigation not initialized' });
-          return;
+          return false; // Synchronous response
         }
         
         this.stateManager.clearState()
@@ -1916,15 +1924,16 @@ class CanvasContentScript {
             sendResponse({ success: false, error: error.message });
           });
         return true; // Keep message channel open for async response
-        break;
 
       default:
         console.log('Unknown action:', request.action);
         sendResponse({ error: 'Unknown action' });
+        return false; // Synchronous response
     }
     } catch (error) {
       console.error('Canvas RAG Assistant: Error in handleMessage:', error);
       sendResponse({ error: error.message });
+      return false; // Synchronous response
     }
   }
 
@@ -2009,11 +2018,13 @@ class CanvasContentScript {
       await this.reportCrawlComplete();
       
     } catch (error) {
-      console.error('Crawler error occurred:');
+      console.error('❌ CRITICAL CRAWLER ERROR:');
       console.error('Error name:', error.name);
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
       console.error('Full error object:', error);
+      console.error('Current step was:', this.crawlerState.currentStep);
+      console.error('PDFs found before error:', this.crawlerState.foundPDFs.size);
       
       // Also try to get more details for DOMExceptions
       if (error instanceof DOMException) {
@@ -2022,8 +2033,22 @@ class CanvasContentScript {
       }
       
       this.crawlerState.currentStep = 'Error: ' + (error.message || error.name || 'Unknown error');
-      // Still report completion to trigger PDF download
-      await this.reportCrawlComplete();
+      
+      // Only report completion if we actually found some PDFs
+      // Otherwise the scan failed too early and shouldn't report success
+      if (this.crawlerState.foundPDFs.size > 0) {
+        console.log(`⚠️ Scan encountered error but found ${this.crawlerState.foundPDFs.size} PDFs, reporting partial results...`);
+        await this.reportCrawlComplete();
+      } else {
+        console.error('❌ Scan failed with no PDFs found - NOT reporting completion');
+        // Send error message to popup
+        chrome.runtime.sendMessage({
+          type: 'CRAWL_ERROR',
+          courseId: this.courseId,
+          error: error.message || 'Unknown error during scan',
+          step: this.crawlerState.currentStep
+        }).catch(() => {});
+      }
     } finally {
       this.crawlerState.isRunning = false;
       console.log('Crawler finished, final state:', this.crawlerState);
@@ -3093,13 +3118,13 @@ class CanvasContentScript {
     // 1. Direct PDF URLs (.pdf at end or in query)
     document.querySelectorAll('a[href]').forEach(a => {
       const href = a.href;
-      const text = a.textContent.trim();
+      const cleanText = this.extractCleanLinkText(a);
 
       if (href.match(/\.pdf($|\?)/i)) {
         links.add(href);
         pdfData.push({
           url: href,
-          title: text || 'Untitled PDF',
+          title: cleanText || this.extractFilename(href) || 'Untitled PDF',
           filename: this.extractFilename(href),
           context: this.findContext(a),
           type: 'direct_link'
@@ -3108,24 +3133,20 @@ class CanvasContentScript {
 
       // Canvas file viewer links (enhanced patterns) - only include if likely to be PDF
       if (href.includes('/files/') && !href.includes('folder')) {
+        const cleanText = this.extractCleanLinkText(a);
+        
         // Additional checks to see if this might be a PDF based on context
-        const isProbablyPDF = text.toLowerCase().includes('pdf') || 
-                             text.toLowerCase().includes('.pdf') ||
+        const isProbablyPDF = cleanText?.toLowerCase().includes('pdf') || 
+                             cleanText?.toLowerCase().includes('.pdf') ||
                              a.querySelector('.icon-pdf, .file-icon[class*="pdf"]') ||
                              a.closest('.attachment')?.textContent?.toLowerCase().includes('pdf');
         
         // Only process if it's probably a PDF or if it's a download link
         if (isProbablyPDF || href.includes('/download')) {
-          // Try to get a better title than just "Ladda ner" or "Download"
+          // Try multiple methods to get a good title
           let betterTitle = this.extractBetterTitle(a, href);
           
-          // Don't use generic download text as title
-          const isGenericText = text.toLowerCase() === 'ladda ner' || 
-                              text.toLowerCase() === 'download' ||
-                              text.toLowerCase() === 'ladda ned';
-          
           const finalTitle = betterTitle || 
-                            (!isGenericText ? text : null) ||
                             this.extractFilename(href) ||
                             'Canvas File';
           
@@ -3258,39 +3279,65 @@ class CanvasContentScript {
 
   deduplicatePDFs(pdfData) {
     const seenFiles = new Map(); // file ID -> best PDF object
+    const seenUrls = new Set(); // track exact URLs to avoid true duplicates
     const seenTitles = new Set(); // track titles to avoid duplicates
     const uniquePDFs = [];
     
+    // Generic titles that should be filtered out
+    const genericTitles = [
+      'ladda ner', 'ladda ned', 'download', 
+      'förhandsvisning', 'preview',
+      'canvas file', 'canvas pdf', 'untitled pdf'
+    ];
+    
     for (const pdf of pdfData) {
+      // Skip if we've already seen this exact URL
+      if (seenUrls.has(pdf.url)) {
+        console.log(`⏭️ Skipping duplicate URL: ${pdf.url}`);
+        continue;
+      }
+      
       // Extract Canvas file ID if present
       const fileIdMatch = pdf.url.match(/\/files\/(\d+)/);
       const fileId = fileIdMatch ? fileIdMatch[1] : null;
       
       // Create a normalized title for comparison
       const normalizedTitle = pdf.title.toLowerCase().trim().replace(/\.pdf$/i, '');
+      const isGenericTitle = genericTitles.some(gt => normalizedTitle.includes(gt));
       
       if (fileId) {
-        // This is a Canvas file - check if we already have it
+        // This is a Canvas file - deduplicate by file ID
         if (seenFiles.has(fileId)) {
           const existing = seenFiles.get(fileId);
           
-          // Prefer download URLs over other URLs, and better titles
-          const preferThis = (pdf.url.includes('/download') && !existing.url.includes('/download')) || 
-                            (pdf.title.length > existing.title.length && pdf.title !== 'Ladda ner' && !pdf.title.toLowerCase().includes('download'));
+          // Determine which entry is better
+          const hasDownloadUrl = pdf.url.includes('/download?download_frd=');
+          const existingHasDownloadUrl = existing.url.includes('/download?download_frd=');
+          const hasBetterTitle = !isGenericTitle && (existing.title.length < pdf.title.length || 
+                                                      genericTitles.some(gt => existing.title.toLowerCase().includes(gt)));
+          
+          // Prefer entries with: 1) Better titles, 2) Download URLs with filenames
+          const preferThis = hasBetterTitle || (hasDownloadUrl && !existingHasDownloadUrl);
           
           if (preferThis) {
-            console.log(`Replacing file entry for ID ${fileId}: "${existing.title}" (${existing.url}) -> "${pdf.title}" (${pdf.url})`);
+            console.log(`🔄 Replacing file ${fileId}: "${existing.title}" -> "${pdf.title}"`);
+            seenUrls.delete(existing.url); // Remove old URL from seen list
             seenFiles.set(fileId, pdf);
+            seenUrls.add(pdf.url);
           } else {
-            console.log(`Keeping existing file entry for ID ${fileId}: "${existing.title}" (${existing.url})`);
+            console.log(`✓ Keeping existing file ${fileId}: "${existing.title}"`);
+            seenUrls.add(pdf.url); // Mark this URL as seen even though we're not using it
           }
         } else {
+          // First time seeing this file ID
           seenFiles.set(fileId, pdf);
+          seenUrls.add(pdf.url);
         }
       } else {
-        // Not a Canvas file ID - check by title
-        if (!seenTitles.has(normalizedTitle) && normalizedTitle !== 'ladda ner' && normalizedTitle !== 'download') {
+        // Not a Canvas file ID - deduplicate by title
+        if (!seenTitles.has(normalizedTitle) && !isGenericTitle) {
           seenTitles.add(normalizedTitle);
+          seenUrls.add(pdf.url);
           uniquePDFs.push(pdf);
         }
       }
@@ -3421,9 +3468,61 @@ class CanvasContentScript {
     return context;
   }
 
+  extractCleanLinkText(linkElement) {
+    // Extract the meaningful text from a link, excluding download buttons and action text
+    // Common patterns in Canvas: <a><span class="name">file.pdf</span><span>Ladda ner</span></a>
+    
+    // First try to find specific filename/name elements
+    const nameSelectors = [
+      '.name',
+      '.filename', 
+      '.file-name',
+      '.title',
+      '.item_name',
+      'span:first-child' // Often the first span contains the actual name
+    ];
+    
+    for (const selector of nameSelectors) {
+      const nameEl = linkElement.querySelector(selector);
+      if (nameEl) {
+        const text = nameEl.textContent?.trim();
+        // Make sure it's not a generic action text
+        if (text && !this.isGenericActionText(text)) {
+          return text;
+        }
+      }
+    }
+    
+    // Fallback to full text content, but clean it up
+    const fullText = linkElement.textContent?.trim() || '';
+    
+    // Remove common action suffixes (Swedish and English)
+    const cleanedText = fullText
+      .replace(/\s*(Ladda\s*ner|Ladda\s*ned|Download|Förhandsvisning|Preview)\s*$/gi, '')
+      .trim();
+    
+    return cleanedText || null;
+  }
+  
+  isGenericActionText(text) {
+    const genericTexts = [
+      'ladda ner', 'ladda ned', 'download', 
+      'förhandsvisning', 'preview',
+      'visa', 'view', 'öppna', 'open'
+    ];
+    const lower = text.toLowerCase().trim();
+    return genericTexts.includes(lower);
+  }
+
   extractBetterTitle(linkElement, url) {
     try {
-      // First, check if the URL itself contains the filename (for redirected Canvas URLs or direct URLs)
+      // First, try to get clean text from the link element itself
+      const cleanLinkText = this.extractCleanLinkText(linkElement);
+      if (cleanLinkText && !this.isGenericActionText(cleanLinkText)) {
+        return cleanLinkText;
+      }
+      
+      // Second, check if the URL itself contains the filename (for redirected Canvas URLs or direct URLs)
       const decodedUrl = decodeURIComponent(url);
       
       // Handle canvas-user-content URLs with course files
@@ -3664,7 +3763,24 @@ class CanvasContentScript {
     try {
       // Check if classes are available
       if (typeof CrawlerStateManager === 'undefined') {
+        console.error('❌ CrawlerStateManager class not found - may not be loaded yet');
         throw new Error('CrawlerStateManager class not found');
+      }
+      if (typeof NavigationQueueManager === 'undefined') {
+        console.error('❌ NavigationQueueManager class not found');
+        throw new Error('NavigationQueueManager class not found');
+      }
+      if (typeof NavigationErrorHandler === 'undefined') {
+        console.error('❌ NavigationErrorHandler class not found');
+        throw new Error('NavigationErrorHandler class not found');
+      }
+      if (typeof SmartNavigator === 'undefined') {
+        console.error('❌ SmartNavigator class not found');
+        throw new Error('SmartNavigator class not found');
+      }
+      if (typeof StatefulPageScanner === 'undefined') {
+        console.error('❌ StatefulPageScanner class not found');
+        throw new Error('StatefulPageScanner class not found');
       }
       
       // Initialize state management components
@@ -3694,6 +3810,7 @@ class CanvasContentScript {
     } catch (error) {
       console.error('❌ Failed to initialize smart navigation:', error);
       console.error('Error details:', error.stack);
+      console.warn('⚠️ Smart navigation disabled - content script will still respond to messages but smart features may not work');
       // Fall back to legacy crawler if smart navigation fails
       this.smartNavigationEnabled = false;
     }
@@ -4272,14 +4389,31 @@ class NavigationDetector {
 // Initialize the content script when DOM is ready
 let canvasContentScript = null;
 
+// Add global error handler for uncaught errors
+window.addEventListener('error', (event) => {
+  console.error('Canvas RAG Assistant: Uncaught error:', event.error);
+});
+
 try {
+  console.log('Canvas RAG Assistant: Starting initialization...');
   if (document.readyState === 'loading') {
+    console.log('Canvas RAG Assistant: Waiting for DOMContentLoaded...');
     document.addEventListener('DOMContentLoaded', () => {
-      canvasContentScript = new CanvasContentScript();
+      console.log('Canvas RAG Assistant: DOMContentLoaded fired, initializing...');
+      try {
+        canvasContentScript = new CanvasContentScript();
+        console.log('Canvas RAG Assistant: ✅ Successfully initialized');
+      } catch (error) {
+        console.error('Canvas RAG Assistant: ❌ Error during initialization:', error);
+        console.error('Canvas RAG Assistant: Stack trace:', error.stack);
+      }
     });
   } else {
+    console.log('Canvas RAG Assistant: DOM already ready, initializing immediately...');
     canvasContentScript = new CanvasContentScript();
+    console.log('Canvas RAG Assistant: ✅ Successfully initialized');
   }
 } catch (error) {
-  console.error('Canvas RAG Assistant: Error during initialization:', error);
+  console.error('Canvas RAG Assistant: ❌ Error during initialization:', error);
+  console.error('Canvas RAG Assistant: Stack trace:', error.stack);
 }

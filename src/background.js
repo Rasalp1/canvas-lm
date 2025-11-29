@@ -2,7 +2,7 @@
 
 // Auto-reload extension during development
 chrome.management.getSelf((info) => {
-  if (info.installType === 'development') {
+  if (info && info.installType === 'development') {
     console.log('Canvas RAG Assistant: Development mode detected');
     
     // Listen for file changes and reload extension
@@ -68,7 +68,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true; // Keep message channel open for async response
       
-    case 'getCourseInfo':
+    case 'getCourseInfo': {
       // Retrieve course information
       const courseId = request.courseId;
       chrome.storage.local.get(`course_${courseId}`).then(result => {
@@ -78,8 +78,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse(null);
       });
       return true;
+    }
       
-    case 'SMART_CRAWL_COMPLETE':
+    case 'SMART_CRAWL_COMPLETE': {
       // Handle smart navigation crawl completion from content script
       console.log('🎉 Smart crawl complete:', request.report);
       
@@ -119,6 +120,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('Popup not open, scan results saved to storage');
       });
       break;
+    }
     
     case 'SCAN_STARTED':
       // Handle scan start notification

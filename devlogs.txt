@@ -1,831 +1,346 @@
 Canvas RAG Assistant: Development mode detected
 background.js:1 Canvas RAG Assistant installed/updated: update
-background.js:1 Canvas RAG Assistant updated to version: 1.0
+background.js:1 Canvas RAG Assistant updated to version: 1.0.0
 background.js:1 Background received message: Object
 background.js:1 Storage changed in local : Object
 background.js:1 Course info stored: Object
-background.js:1 Canvas course detected: 37804 on tab 1790731879
+background.js:1 Canvas course detected: 32301 on tab 1790736408
 popup.js:2 ✅ Firebase initialized (Firestore only)
 popup.js:2 ✅ Firestore helpers loaded and available at window.firestoreHelpers
 popup.js:2 Initializing PopupLogic...
 popup.js:2 ✅ File Search Manager initialized
 popup.js:2 Chrome profile info: Object
-popup.js:2 ✅ Retrieved 0 enrolled courses for user: 108448961221190225241
-popup.js:2 ✅ User stats calculated: {totalCourses: 0, totalPDFs: 0, totalSize: 0}
-popup.js:2 ✅ Stats displayed: 📚 0 courses • 📄 0 documents
+popup.js:2 ✅ Retrieved 3 enrolled courses for user: 108448961221190225241
 popup.js:2 ✅ User saved to Firestore: 108448961221190225241
 popup.js:2 User data saved to Firestore
-popup.js:2 ✅ Retrieved 0 documents for course: 37804
-popup.js:2 🚀 Starting smart scan for course: {id: '37804', name: 'EITF45 - Datorkommunikation', url: 'https://canvas.education.lu.se/courses/37804'}
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/modules', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/modules', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/modules
+popup.js:2 ✅ Retrieved 9 successfully uploaded documents for course: 32301
+popup.js:2 ✅ Course retrieved from Firestore: 32301
+popup.js:2 ✅ Retrieved 3 successfully uploaded documents for course: 36823
+popup.js:2 ✅ Retrieved 47 successfully uploaded documents for course: 37804
+popup.js:2 ✅ User stats calculated: {totalCourses: 3, totalPDFs: 59, totalSize: 0}
+popup.js:2 ✅ Stats displayed: 📚 3 courses • 📄 59 documents
+popup.js:2 ✅ Retrieved 9 successfully uploaded documents for course: 32301
+popup.js:2 ✅ Retrieved 1 chat sessions for user
+popup.js:2 ✅ Using existing chat session: SrAWgkUXKBQ6k8CqhPpK
+popup.js:2 ✅ Retrieved 0 messages for session: SrAWgkUXKBQ6k8CqhPpK
+popup.js:2 ✅ Loaded 0 messages from session
+background.js:1 Background received message: {action: 'SCAN_STARTED', courseId: '32301', courseName: 'FMAB20 - Linjär algebra för E och N'}
+background.js:1 🚀 Scan started for course 32301
+background.js:1 Storage changed in local : {scan_status_32301: {…}}
+popup.js:2 🚀 Starting smart scan for course: {id: '32301', name: 'FMAB20 - Linjär algebra för E och N', url: 'https://canvas.education.lu.se/courses/32301'}
+popup.js:2 ✅ Content script is ready
+popup.js:2 📬 Popup received message: {action: 'SCAN_STARTED', courseId: '32301', courseName: 'FMAB20'}
+background.js:1 Background received message: {action: 'SCAN_STARTED', courseId: '32301', courseName: 'FMAB20'}
+background.js:1 🚀 Scan started for course 32301
+background.js:1 Storage changed in local : {scan_status_32301: {…}}
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347158', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347158', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347158
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347158
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347159', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347159', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347159
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347159
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347160', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347160', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347160
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347160
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347161', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347161
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347161', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347161
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347162', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347162
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347162', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347162
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347163', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347163', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347163
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347163
+popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/modules', courseId: '32301'}
+background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/modules', courseId: '32301'}
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/32301/modules
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Kursmoduler: EITF45', url: 'https://canvas.education.lu.se/courses/37804/modules', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:23.311Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733864
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Kursmoduler: FMAB20', url: 'https://canvas.education.lu.se/courses/32301/modules', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:09.213Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736414
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Kursmoduler: EITF45', url: 'https://canvas.education.lu.se/courses/37804/modules', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:25.833Z'}
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Kursmoduler: FMAB20', url: 'https://canvas.education.lu.se/courses/32301/modules', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:11.289Z'}
 background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/37804/modules
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/files', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/files', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/files
+background.js:1 ✅ Found 6 PDFs in background tab: https://canvas.education.lu.se/courses/32301/modules
+popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/files', courseId: '32301'}
+background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/files', courseId: '32301'}
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/32301/files
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'EITF45', url: 'https://canvas.education.lu.se/courses/37804', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:30.919Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733868
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'FMAB20', url: 'https://canvas.education.lu.se/courses/32301', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:15.648Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736418
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'EITF45', url: 'https://canvas.education.lu.se/courses/37804', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:33.170Z'}
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'FMAB20', url: 'https://canvas.education.lu.se/courses/32301', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:17.834Z'}
 background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 1 PDFs in background tab: https://canvas.education.lu.se/courses/37804/files
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages', courseId: '37804'}
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/pages
+background.js:1 ✅ Found 6 PDFs in background tab: https://canvas.education.lu.se/courses/32301/files
+popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/pages', courseId: '32301'}
+background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/pages', courseId: '32301'}
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/32301/pages
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'EITF45', url: 'https://canvas.education.lu.se/courses/37804', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:38.301Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733872
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'FMAB20', url: 'https://canvas.education.lu.se/courses/32301', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:22.199Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736422
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'EITF45', url: 'https://canvas.education.lu.se/courses/37804', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:40.538Z'}
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'FMAB20', url: 'https://canvas.education.lu.se/courses/32301', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:24.373Z'}
 background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 4 PDFs in background tab: https://canvas.education.lu.se/courses/37804/pages
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/forelasningar', courseId: '37804'}
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/forelasningar', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/pages/forelasningar
+background.js:1 ✅ Found 6 PDFs in background tab: https://canvas.education.lu.se/courses/32301/pages
+popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/assignments', courseId: '32301'}
+background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/assignments', courseId: '32301'}
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/32301/assignments
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Föreläsningar: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/forelasningar', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:44.970Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733876
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Uppgifter: FMAB20', url: 'https://canvas.education.lu.se/courses/32301/assignments', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:28.252Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736426
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Föreläsningar: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/forelasningar', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:47.353Z'}
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Uppgifter: FMAB20', url: 'https://canvas.education.lu.se/courses/32301/assignments', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:30.411Z'}
 background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 28 PDFs in background tab: https://canvas.education.lu.se/courses/37804/pages/forelasningar
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/ovningar', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/ovningar', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/pages/ovningar
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/32301/assignments
+popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/assignments/syllabus', courseId: '32301'}
+background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/assignments/syllabus', courseId: '32301'}
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/32301/assignments/syllabus
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Övningar: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/ovningar', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:50.950Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733880
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Kursöversikt för FMAB20', url: 'https://canvas.education.lu.se/courses/32301/assignments/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:34.206Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736430
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Övningar: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/ovningar', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:53.328Z'}
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Kursöversikt för FMAB20', url: 'https://canvas.education.lu.se/courses/32301/assignments/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:36.219Z'}
 background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 14 PDFs in background tab: https://canvas.education.lu.se/courses/37804/pages/ovningar
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/laborationer', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/laborationer', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/pages/laborationer
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/32301/assignments/syllabus
+popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/syllabus', courseId: '32301'}
+background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/32301/syllabus', courseId: '32301'}
+background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/32301/syllabus
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Laborationer: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/laborationer', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:56.923Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733884
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Page Not Found', url: 'https://canvas.education.lu.se/courses/32301/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:38.708Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736434
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Laborationer: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/laborationer', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:11:59.482Z'}
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'Page Not Found', url: 'https://canvas.education.lu.se/courses/32301/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:40.725Z'}
 background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 5 PDFs in background tab: https://canvas.education.lu.se/courses/37804/pages/laborationer
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/projektet', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/projektet', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/pages/projektet
+background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/32301/syllabus
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347158', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347158', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347158
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347158
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347159', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347159', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347159
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347159
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347160', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347160', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347160
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347160
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347161', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347161', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347161
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347161
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347162', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347162', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347162
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347162
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347163', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347163', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347163
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347163
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347164', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347164', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347164
+background.js:1 🔗 Creating temporary tab to fetch: https://canvas.education.lu.se/courses/32301/modules/items/1347164
 popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
 background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Projektet: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/projektet', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:02.640Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733888
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Projektet: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/projektet', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:05.446Z'}
-background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 7 PDFs in background tab: https://canvas.education.lu.se/courses/37804/pages/projektet
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/examination', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/pages/examination', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/pages/examination
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Examination: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/examination', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:08.856Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733892
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Examination: EITF45', url: 'https://canvas.education.lu.se/courses/37804/pages/examination', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:11.183Z'}
-background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 4 PDFs in background tab: https://canvas.education.lu.se/courses/37804/pages/examination
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/assignments', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/assignments', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/assignments
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Uppgifter: EITF45', url: 'https://canvas.education.lu.se/courses/37804/assignments', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:14.339Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733896
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Uppgifter: EITF45', url: 'https://canvas.education.lu.se/courses/37804/assignments', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:16.522Z'}
-background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/37804/assignments
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/assignments/syllabus', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/assignments/syllabus', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/assignments/syllabus
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Kursöversikt för EITF45', url: 'https://canvas.education.lu.se/courses/37804/assignments/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:21.298Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733900
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Kursöversikt för EITF45', url: 'https://canvas.education.lu.se/courses/37804/assignments/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:23.306Z'}
-background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 4 PDFs in background tab: https://canvas.education.lu.se/courses/37804/assignments/syllabus
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/assignments/264353', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/assignments/264353', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/assignments/264353
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'LMS', url: 'https://canvas.education.lu.se/courses/37804/assignments/264353', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:26.479Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733904
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'P2. Ämnesval', url: 'https://canvas.education.lu.se/courses/37804/assignments/264353', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:28.636Z'}
-background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/37804/assignments/264353
-popup.js:2 📬 Popup received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/syllabus', courseId: '37804'}
-background.js:1 Background received message: {action: 'OPEN_AND_SCAN_TAB', url: 'https://canvas.education.lu.se/courses/37804/syllabus', courseId: '37804'}
-background.js:1 🔄 Opening background tab for: https://canvas.education.lu.se/courses/37804/syllabus
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Page Not Found', url: 'https://canvas.education.lu.se/courses/37804/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:31.186Z'}
-background.js:1 Canvas course detected: 37804 on tab 1790733908
-popup.js:2 📬 Popup received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Background received message: {action: 'storeCourseInfo', data: {…}}
-background.js:1 Storage changed in local : {course_37804: {…}}
-background.js:1 Course info stored: {courseId: '37804', courseName: 'Page Not Found', url: 'https://canvas.education.lu.se/courses/37804/syllabus', domain: 'canvas.education.lu.se', lastVisited: '2025-11-23T16:12:33.394Z'}
-background.js:1 ✓ Content script ready on background tab
-background.js:1 ✅ Found 0 PDFs in background tab: https://canvas.education.lu.se/courses/37804/syllabus
-popup.js:2 📬 Popup received message: {type: 'FOUND_PDFS', courseId: '37804', courseName: 'EITF45', pdfs: Array(51), pageUrl: 'https://canvas.education.lu.se/courses/37804', …}
-background.js:1 Background received message: {type: 'FOUND_PDFS', courseId: '37804', courseName: 'EITF45', pdfs: Array(51), pageUrl: 'https://canvas.education.lu.se/courses/37804', …}
-popup.js:2 📬 Popup received message: {type: 'CRAWL_COMPLETE', courseId: '37804', pagesVisited: 17, pdfsFound: 51, visitedUrls: Array(17)}
-background.js:1 Found 51 PDFs in course 37804: (51) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+background.js:1 Storage changed in local : {course_32301: {…}}
+background.js:1 Course info stored: {courseId: '32301', courseName: 'LMS', url: 'https://canvas.education.lu.se/courses/32301/assignments/220341?module_item_id=1347164', domain: 'canvas.education.lu.se', lastVisited: '2025-11-29T15:05:55.846Z'}
+background.js:1 Canvas course detected: 32301 on tab 1790736438
+background.js:1 ✅ Successfully fetched 119498 characters from https://canvas.education.lu.se/courses/32301/modules/items/1347164
+background.js:1 🗑️ Cleaned up temporary tab for https://canvas.education.lu.se/courses/32301/modules/items/1347164
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1436661', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1436661', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1436661
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1436661
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347158', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347158', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347158
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347158
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347159', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347159', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347159
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347159
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347160', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347160', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347160
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347160
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347161', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347161', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347161
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347161
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347162', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347162', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347162
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347162
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347163', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1347163', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1347163
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1347163
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1420466', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1420466', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1420466
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1420466
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1427827', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1427827', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1427827
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1427827
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1431739', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1431739', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1431739
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1431739
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1435676', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1435676', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1435676
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1435676
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1436618', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1436618', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1436618
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1436618
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1437533', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1437533', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1437533
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1437533
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1439884', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1439884', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1439884
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1439884
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1440563', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1440563', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1440563
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1440563
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1441052', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1441052', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1441052
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1441052
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1443857', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1443857', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1443857
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1443857
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1444427', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1444427', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1444427
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1444427
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1445614', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1445614', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1445614
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1445614
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1448125', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1448125', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1448125
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1448125
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1448888', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1448888', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1448888
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1448888
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1449506', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1449506', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1449506
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1449506
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1453466', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1453466', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1453466
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1453466
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1454559', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1454559', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1454559
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1454559
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1454850', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1454850', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1454850
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1454850
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1457661', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1457661', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1457661
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1457661
+popup.js:2 📬 Popup received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1459087', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 Background received message: {action: 'AUTHENTICATED_FETCH', url: 'https://canvas.education.lu.se/courses/32301/modules/items/1459087', options: {…}, referer: 'https://canvas.education.lu.se/courses/32301'}
+background.js:1 🌐 Background script fetching: https://canvas.education.lu.se/courses/32301/modules/items/1459087
+background.js:1 ✅ Direct fetch successful for https://canvas.education.lu.se/courses/32301/modules/items/1459087
+popup.js:2 📬 Popup received message: {type: 'FOUND_PDFS', courseId: '32301', courseName: 'FMAB20', pdfs: Array(32), pageUrl: 'https://canvas.education.lu.se/courses/32301', …}
+popup.js:2 📬 Popup received message: {type: 'CRAWL_COMPLETE', courseId: '32301', pagesVisited: 35, pdfsFound: 32, visitedUrls: Array(35)}
+background.js:1 Background received message: {type: 'FOUND_PDFS', courseId: '32301', courseName: 'FMAB20', pdfs: Array(32), pageUrl: 'https://canvas.education.lu.se/courses/32301', …}
+popup.js:2 🎉 CRAWL_COMPLETE received! {type: 'CRAWL_COMPLETE', courseId: '32301', pagesVisited: 35, pdfsFound: 32, visitedUrls: Array(35)}
+popup.js:2 ✅ Scan complete! Found 32 PDFs
+background.js:1 Found 32 PDFs in course 32301: (32) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
 popup.js:2 ✅ Smart scan started successfully: {success: true, message: 'Background tab scanning started'}
-background.js:1 Background received message: {type: 'CRAWL_COMPLETE', courseId: '37804', pagesVisited: 17, pdfsFound: 51, visitedUrls: Array(17)}
-background.js:1 🎯 Background received CRAWL_COMPLETE: {type: 'CRAWL_COMPLETE', courseId: '37804', pagesVisited: 17, pdfsFound: 51, visitedUrls: Array(17)}
+background.js:1 Background received message: {type: 'CRAWL_COMPLETE', courseId: '32301', pagesVisited: 35, pdfsFound: 32, visitedUrls: Array(35)}
+background.js:1 🎯 Background received CRAWL_COMPLETE: {type: 'CRAWL_COMPLETE', courseId: '32301', pagesVisited: 35, pdfsFound: 32, visitedUrls: Array(35)}
 background.js:1 📤 Forwarding CRAWL_COMPLETE to popup...
-popup.js:2 📬 Popup received message: {type: 'PDF_SCAN_COMPLETE', courseId: '37804', pdfCount: 51}
-popup.js:2 🎉 PDF_SCAN_COMPLETE received! PDFs found: 51
+background.js:1 Storage changed in local : {scan_status_32301: {…}}
+popup.js:2 📬 Popup received message: {type: 'PDF_SCAN_COMPLETE', courseId: '32301', pdfCount: 32}
+popup.js:2 🎉 PDF_SCAN_COMPLETE received! PDFs found: 32
 popup.js:2 🚀 Calling saveFoundPDFsToFirestore()...
+background.js:1 Storage changed in local : {pdfs_32301: {…}}
 popup.js:2 📥 saveFoundPDFsToFirestore() called
 popup.js:2 🔍 Checking user sign-in status...
 popup.js:2 Current user: {email: 'rasmus.alpsten@gmail.com', id: '108448961221190225241', displayName: 'rasmus.alpsten', photoURL: null}
 popup.js:2 Database: initialized
 popup.js:2 ✅ User authenticated, fetching PDFs from storage...
-popup.js:2 Looking for key: pdfs_37804
-popup.js:2 📬 Popup received message: {type: 'CRAWL_COMPLETE', courseId: '37804', pagesVisited: 17, pdfsFound: 51, visitedUrls: Array(17)}
+popup.js:2 Looking for key: pdfs_32301
+popup.js:2 📬 Popup received message: {type: 'CRAWL_COMPLETE', courseId: '32301', pagesVisited: 35, pdfsFound: 32, visitedUrls: Array(35)}
+popup.js:2 🎉 CRAWL_COMPLETE received! {type: 'CRAWL_COMPLETE', courseId: '32301', pagesVisited: 35, pdfsFound: 32, visitedUrls: Array(35)}
+popup.js:2 ✅ Scan complete! Found 32 PDFs
 background.js:1 ✅ CRAWL_COMPLETE forwarded to popup successfully
-background.js:1 Storage changed in local : {pdfs_37804: {…}}
-popup.js:2 📦 Storage data retrieved: {pdfs_37804: {…}}
-popup.js:2 📄 Found 51 PDFs in storage
-popup.js:2 💾 Preparing to save 51 PDFs to Firestore and File Search...
+popup.js:2 📦 Storage data retrieved: {pdfs_32301: {…}}
+popup.js:2 📄 Found 32 PDFs in storage
+popup.js:2 💾 Preparing to save 32 PDFs to Firestore and File Search...
 popup.js:2 🗄️ Getting or creating shared File Search store...
-popup.js:2 ✅ New shared store created for course: fileSearchStores/eitf45-datorkommunikation-3-ebr3gxae0112
-popup.js:2 ✅ New shared store created for course
+popup.js:2 ✅ Using existing shared store for course: fileSearchStores/fmab20-linjr-algebra-fr-e-o-y8gm9m08rru8
+popup.js:2 📦 Using existing shared store (created by another user or previous scan)
 popup.js:2 💾 Saving shared course and creating enrollment...
-popup.js:2 ✅ Shared course updated: 37804
+popup.js:2 ✅ Shared course updated: 32301
 popup.js:2 ✅ Existing course updated
-popup.js:2 ✅ User enrollment updated: 37804
+popup.js:2 ✅ User enrollment updated: 32301
 popup.js:2 ✅ Enrollment updated
-popup.js:2 📦 Starting batch save of 51 documents...
-4popup.js:2 ✅ Document saved to Firestore: Ladda ner
-popup.js:2 ✅ Document saved to Firestore: Uppdaterad Figur 7.4 om subnetting
-popup.js:2 ✅ Document saved to Firestore: eitf45 kursinnehåll 2024
-27popup.js:2 ✅ Document saved to Firestore: 1.pdf
-popup.js:2 ✅ Document saved to Firestore: Download PCAP-filen med fångade paket mellan Chromecast och Servern
-popup.js:2 ✅ Document saved to Firestore: 1.pdf
-popup.js:2 ✅ Document saved to Firestore: Wireshark Tutorial
-popup.js:2 ✅ Document saved to Firestore: Wireshark 1.2.7 tutorial
-popup.js:2 ✅ Document saved to Firestore: Projekt -2025- Beskrivning
-popup.js:2 ✅ Document saved to Firestore: Projekt -2025- Introduktion
-3popup.js:2 ✅ Document saved to Firestore: 1.pdf
-popup.js:2 ✅ Document saved to Firestore: Wireshark Tutorial
-5popup.js:2 ✅ Document saved to Firestore: 1.pdf
-3popup.js:2 ✅ Document saved to Firestore: Förhandsvisning
-popup.js:2 ✅ Batch save complete: 51 succeeded, 0 failed
-popup.js:2 ✅ Saved 51/51 PDF metadata to Firestore
-popup.js:2 📤 Uploading 1/51: Ladda ner...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6957561/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6957561/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6957561/download?download_frd=1
+popup.js:2 🔄 Re-scan detected, checking for new and failed documents...
+popup.js:2 ✅ Retrieved 26 documents for course: 32301
+popup.js:2 📊 Scan analysis:
+popup.js:2    - Total PDFs found: 32
+popup.js:2    - Already uploaded successfully: 9
+popup.js:2    - New PDFs to upload: 0
+popup.js:2    - Failed/pending PDFs to retry: 19
+popup.js:2 📤 Will upload 19 PDFs total
+popup.js:2 📤 Uploading 1/19: Youtube-videos...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/pages/youtube-videos
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/pages/youtube-videos
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/pages/youtube-videos'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/pages/youtube-videos
 background.js:1 🍪 Found 3 Canvas cookies
 background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 1554708 bytes
-popup.js:2 ✅ Received PDF blob: 1554708 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Ladda ner
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk1NzU2MS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [1/51] Uploaded: Ladda ner
-popup.js:2 📤 Uploading 2/51: Ladda ner...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807920/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807920/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807920/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 117150 bytes
-popup.js:2 ✅ Received PDF blob: 117150 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Ladda ner
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyMC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [2/51] Uploaded: Ladda ner
-popup.js:2 📤 Uploading 3/51: Ladda ner...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807935/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807935/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807935/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 190310 bytes
-popup.js:2 ✅ Received PDF blob: 190310 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Ladda ner
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzNS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [3/51] Uploaded: Ladda ner
-popup.js:2 📤 Uploading 4/51: Ladda ner...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807984/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807984/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807984/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 49540 bytes
-popup.js:2 ✅ Received PDF blob: 49540 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Ladda ner
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk4NC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [4/51] Uploaded: Ladda ner
-popup.js:2 📤 Uploading 5/51: Uppdaterad Figur 7.4 om subnetting...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807935/download?wrap=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807935/download?wrap=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807935/download?wrap=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 190310 bytes
-popup.js:2 ✅ Received PDF blob: 190310 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Uppdaterad Figur 7.4 om subnetting
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzNS9kb3dubG9hZD93cmFwPTE_
-popup.js:2 ✅ [5/51] Uploaded: Uppdaterad Figur 7.4 om subnetting
-popup.js:2 📤 Uploading 6/51: eitf45 kursinnehåll 2024...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807920/download
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807920/download'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807920/download
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 117150 bytes
-popup.js:2 ✅ Received PDF blob: 117150 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: eitf45 kursinnehåll 2024
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyMC9kb3dubG9hZA__
-popup.js:2 ✅ [6/51] Uploaded: eitf45 kursinnehåll 2024
-popup.js:2 📤 Uploading 7/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807922/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807922/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807922/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 3085559 bytes
-popup.js:2 ✅ Received PDF blob: 3085559 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyMi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [7/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 8/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807923/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807923/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807923/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 2253421 bytes
-popup.js:2 ✅ Received PDF blob: 2253421 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyMy9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [8/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 9/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807942/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807942/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807942/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 669766 bytes
-popup.js:2 ✅ Received PDF blob: 669766 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk0Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [9/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 10/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807943/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807943/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807943/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 187735 bytes
-popup.js:2 ✅ Received PDF blob: 187735 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk0My9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [10/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 11/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807927/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807927/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807927/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 126035 bytes
-popup.js:2 ✅ Received PDF blob: 126035 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyNy9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [11/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 12/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807954/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807954/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807954/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 277584 bytes
-popup.js:2 ✅ Received PDF blob: 277584 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk1NC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [12/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 13/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807976/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807976/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807976/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 3458451 bytes
-popup.js:2 ✅ Received PDF blob: 3458451 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3Ni9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [13/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 14/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807929/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807929/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807929/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 211697 bytes
-popup.js:2 ✅ Received PDF blob: 211697 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyOS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [14/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 15/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807930/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807930/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807930/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 369077 bytes
-popup.js:2 ✅ Received PDF blob: 369077 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzMC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [15/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 16/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807975/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807975/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807975/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 3380128 bytes
-popup.js:2 ✅ Received PDF blob: 3380128 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3NS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [16/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 17/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807953/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807953/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807953/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 210128 bytes
-popup.js:2 ✅ Received PDF blob: 210128 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk1My9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [17/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 18/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807928/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807928/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807928/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 157514 bytes
-popup.js:2 ✅ Received PDF blob: 157514 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyOC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [18/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 19/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807955/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807955/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807955/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 369390 bytes
-popup.js:2 ✅ Received PDF blob: 369390 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk1NS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [19/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 20/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807972/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807972/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807972/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 4969187 bytes
-popup.js:2 ✅ Received PDF blob: 4969187 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [20/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 21/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807952/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807952/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807952/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 163507 bytes
-popup.js:2 ✅ Received PDF blob: 163507 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk1Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [21/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 22/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807941/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807941/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807941/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 281991 bytes
-popup.js:2 ✅ Received PDF blob: 281991 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk0MS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [22/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 23/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807974/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807974/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807974/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 4286360 bytes
-popup.js:2 ✅ Received PDF blob: 4286360 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3NC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [23/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 24/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807967/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807967/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807967/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 576986 bytes
-popup.js:2 ✅ Received PDF blob: 576986 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk2Ny9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [24/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 25/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807957/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807957/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807957/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 638224 bytes
-popup.js:2 ✅ Received PDF blob: 638224 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk1Ny9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [25/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 26/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807973/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807973/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807973/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 5045993 bytes
-popup.js:2 ✅ Received PDF blob: 5045993 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3My9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [26/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 27/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807931/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807931/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807931/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 153596 bytes
-popup.js:2 ✅ Received PDF blob: 153596 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzMS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [27/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 28/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807968/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807968/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807968/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 407660 bytes
-popup.js:2 ✅ Received PDF blob: 407660 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk2OC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [28/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 29/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/7128098/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/7128098/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/7128098/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 3125119 bytes
-popup.js:2 ✅ Received PDF blob: 3125119 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNzEyODA5OC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [29/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 30/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807925/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807925/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807925/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 1519633 bytes
-popup.js:2 ✅ Received PDF blob: 1519633 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyNS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [30/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 31/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807932/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807932/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807932/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 399412 bytes
-popup.js:2 ✅ Received PDF blob: 399412 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzMi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [31/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 32/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807933/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807933/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807933/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 604794 bytes
-popup.js:2 ✅ Received PDF blob: 604794 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzMy9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [32/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 33/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6957337/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6957337/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6957337/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 1090641 bytes
-popup.js:2 ✅ Received PDF blob: 1090641 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk1NzMzNy9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [33/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 34/51: Download PCAP-filen med fångade paket mellan Chromecast och Servern...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807934/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807934/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807934/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ❌ Failed to download PDF from https://canvas.education.lu.se/courses/37804/files/6807934/download?download_frd=1: Error: Cloud Function HTTP 500: 
-    at background.js:1:9891
-(anonymous) @ background.js:1
-await in (anonymous)
-(anonymous) @ background.js:1Understand this error
-popup.js:2 ❌ Failed to upload Download PCAP-filen med fångade paket mellan Chromecast och Servern: Error: Failed to download PDF: Failed to download PDF: Cloud Function HTTP 500: 
-    at Kp.saveFoundPDFsToFirestore (popup.js:2:957923)
-saveFoundPDFsToFirestore @ popup.js:2
-await in saveFoundPDFsToFirestore
-(anonymous) @ popup.js:2Understand this error
-popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzNC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ failed
-popup.js:2 📤 Uploading 35/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6957340/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6957340/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6957340/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 1448912 bytes
-popup.js:2 ✅ Received PDF blob: 1448912 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk1NzM0MC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [34/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 36/51: Wireshark Tutorial...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807971/download
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807971/download'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807971/download
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 197253 bytes
-popup.js:2 ✅ Received PDF blob: 197253 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Wireshark Tutorial
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3MS9kb3dubG9hZA__
-popup.js:2 ✅ [35/51] Uploaded: Wireshark Tutorial
-popup.js:2 📤 Uploading 37/51: Wireshark 1.2.7 tutorial...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807978/download
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807978/download'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807978/download
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 496718 bytes
-popup.js:2 ✅ Received PDF blob: 496718 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Wireshark 1.2.7 tutorial
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3OC9kb3dubG9hZA__
-popup.js:2 ✅ [36/51] Uploaded: Wireshark 1.2.7 tutorial
-popup.js:2 📤 Uploading 38/51: Projekt -2025- Beskrivning...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6967466/download
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6967466/download'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6967466/download
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 204634 bytes
-popup.js:2 ✅ Received PDF blob: 204634 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Projekt -2025- Beskrivning
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk2NzQ2Ni9kb3dubG9hZA__
-popup.js:2 ✅ [37/51] Uploaded: Projekt -2025- Beskrivning
-popup.js:2 📤 Uploading 39/51: Projekt -2025- Introduktion...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6967467/download
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6967467/download'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6967467/download
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 1961694 bytes
-popup.js:2 ✅ Received PDF blob: 1961694 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Projekt -2025- Introduktion
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk2NzQ2Ny9kb3dubG9hZA__
-popup.js:2 ✅ [38/51] Uploaded: Projekt -2025- Introduktion
-popup.js:2 📤 Uploading 40/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807939/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807939/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807939/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 212873 bytes
-popup.js:2 ✅ Received PDF blob: 212873 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzOS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [39/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 41/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807936/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807936/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807936/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 225366 bytes
-popup.js:2 ✅ Received PDF blob: 225366 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkzNi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [40/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 42/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807960/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807960/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807960/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 321876 bytes
-popup.js:2 ✅ Received PDF blob: 321876 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk2MC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [41/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 43/51: Wireshark Tutorial...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807971/download?wrap=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807971/download?wrap=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807971/download?wrap=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 197253 bytes
-popup.js:2 ✅ Received PDF blob: 197253 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: Wireshark Tutorial
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3MS9kb3dubG9hZD93cmFwPTE_
-popup.js:2 ✅ [42/51] Uploaded: Wireshark Tutorial
-popup.js:2 📤 Uploading 44/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807978/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807978/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807978/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 496718 bytes
-popup.js:2 ✅ Received PDF blob: 496718 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk3OC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [43/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 45/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807924/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807924/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807924/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 1082172 bytes
-popup.js:2 ✅ Received PDF blob: 1082172 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyNC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [44/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 46/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6957253/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6957253/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6957253/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 4198562 bytes
-popup.js:2 ✅ Received PDF blob: 4198562 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk1NzI1My9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [45/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 47/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807940/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807940/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807940/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 596270 bytes
-popup.js:2 ✅ Received PDF blob: 596270 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk0MC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [46/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 48/51: 1.pdf...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807917/download?download_frd=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807917/download?download_frd=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807917/download?download_frd=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 4463207 bytes
-popup.js:2 ✅ Received PDF blob: 4463207 bytes
-popup.js:2 📤 Uploading PDF to File Search store...
-popup.js:2 ✅ PDF uploaded and indexed: 1.pdf
-popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkxNy9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
-popup.js:2 ✅ [47/51] Uploaded: 1.pdf
-popup.js:2 📤 Uploading 49/51: Förhandsvisning...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6957561?wrap=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6957561?wrap=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6957561?wrap=1
-background.js:1 🍪 Found 3 Canvas cookies
-background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 41410 bytes
-popup.js:2 ✅ Received PDF blob: 41410 bytes
+background.js:1 ✅ PDF downloaded via Cloud Function: 43499 bytes
+popup.js:2 ✅ Received PDF blob: 0.04 MB
 popup.js:2 📤 Uploading PDF to File Search store...
 popup.js:2  POST https://europe-north1-canvas-lm.cloudfunctions.net/uploadToStore 500 (Internal Server Error)
-i @ popup.js:2
-Ip @ popup.js:2
+o @ popup.js:2
+Fm @ popup.js:2
 (anonymous) @ popup.js:2
 await in (anonymous)
 (anonymous) @ popup.js:2
@@ -841,23 +356,25 @@ await in uploadToStore
 saveFoundPDFsToFirestore @ popup.js:2
 await in saveFoundPDFsToFirestore
 (anonymous) @ popup.js:2Understand this error
-popup.js:2 ❌ Failed to upload Förhandsvisning: FirebaseError: INTERNAL
+popup.js:2 ❌ Failed to upload Youtube-videos: INTERNAL
 saveFoundPDFsToFirestore @ popup.js:2
 await in saveFoundPDFsToFirestore
 (anonymous) @ popup.js:2Understand this error
-popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjk1NzU2MT93cmFwPTE_ failed
-popup.js:2 📤 Uploading 50/51: Förhandsvisning...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807920?wrap=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807920?wrap=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807920?wrap=1
+popup.js:2 ✅ Document saved to Firestore: Youtube-videos
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvcGFnZXMveW91dHViZS12aWRlb3M_ failed
+popup.js:2 📤 Uploading 2/19: Extentor...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/pages/extentor
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/pages/extentor
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/pages/extentor'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/pages/extentor
 background.js:1 🍪 Found 3 Canvas cookies
 background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 41397 bytes
-popup.js:2 ✅ Received PDF blob: 41397 bytes
+background.js:1 ✅ PDF downloaded via Cloud Function: 43436 bytes
+popup.js:2 ✅ Received PDF blob: 0.04 MB
 popup.js:2 📤 Uploading PDF to File Search store...
 popup.js:2  POST https://europe-north1-canvas-lm.cloudfunctions.net/uploadToStore 500 (Internal Server Error)
-i @ popup.js:2
-Ip @ popup.js:2
+o @ popup.js:2
+Fm @ popup.js:2
 (anonymous) @ popup.js:2
 await in (anonymous)
 (anonymous) @ popup.js:2
@@ -873,23 +390,25 @@ await in uploadToStore
 saveFoundPDFsToFirestore @ popup.js:2
 await in saveFoundPDFsToFirestore
 (anonymous) @ popup.js:2Understand this error
-popup.js:2 ❌ Failed to upload Förhandsvisning: FirebaseError: INTERNAL
+popup.js:2 ❌ Failed to upload Extentor: INTERNAL
 saveFoundPDFsToFirestore @ popup.js:2
 await in saveFoundPDFsToFirestore
 (anonymous) @ popup.js:2Understand this error
-popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzkyMD93cmFwPTE_ failed
-popup.js:2 📤 Uploading 51/51: Förhandsvisning...
-popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/37804/files/6807984?wrap=1
-background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/37804/files/6807984?wrap=1'}
-background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/37804/files/6807984?wrap=1
+popup.js:2 ✅ Document saved to Firestore: Extentor
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvcGFnZXMvZXh0ZW50b3I_ failed
+popup.js:2 📤 Uploading 3/19: Youtube-videos...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/pages/youtube-videos
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/pages/youtube-videos
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/pages/youtube-videos'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/pages/youtube-videos
 background.js:1 🍪 Found 3 Canvas cookies
 background.js:1 ☁️ Calling Cloud Function to download PDF...
-background.js:1 ✅ PDF downloaded via Cloud Function: 41398 bytes
-popup.js:2 ✅ Received PDF blob: 41398 bytes
+background.js:1 ✅ PDF downloaded via Cloud Function: 43499 bytes
+popup.js:2 ✅ Received PDF blob: 0.04 MB
 popup.js:2 📤 Uploading PDF to File Search store...
 popup.js:2  POST https://europe-north1-canvas-lm.cloudfunctions.net/uploadToStore 500 (Internal Server Error)
-i @ popup.js:2
-Ip @ popup.js:2
+o @ popup.js:2
+Fm @ popup.js:2
 (anonymous) @ popup.js:2
 await in (anonymous)
 (anonymous) @ popup.js:2
@@ -905,14 +424,197 @@ await in uploadToStore
 saveFoundPDFsToFirestore @ popup.js:2
 await in saveFoundPDFsToFirestore
 (anonymous) @ popup.js:2Understand this error
-popup.js:2 ❌ Failed to upload Förhandsvisning: FirebaseError: INTERNAL
+popup.js:2 ❌ Failed to upload Youtube-videos: INTERNAL
 saveFoundPDFsToFirestore @ popup.js:2
 await in saveFoundPDFsToFirestore
 (anonymous) @ popup.js:2Understand this error
-popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzc4MDQvZmlsZXMvNjgwNzk4ND93cmFwPTE_ failed
-popup.js:2 ✅ saveFoundPDFsToFirestore() completed successfully
-popup.js:2 ✅ Course retrieved from Firestore: 37804
-popup.js:2 ✅ Retrieved 51 documents for course: 37804
-popup.js:2 ✅ Retrieved 0 chat sessions for user
-popup.js:2 ✅ Chat session created: VYq2L0MOxqeDcK2aRLqA
-popup.js:2 ✅ Created new chat session: VYq2L0MOxqeDcK2aRLqA
+popup.js:2 ✅ Document saved to Firestore: Youtube-videos
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvcGFnZXMveW91dHViZS12aWRlb3M_ failed
+popup.js:2 📤 Uploading 4/19: Extentor...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/pages/extentor
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/pages/extentor
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/pages/extentor'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/pages/extentor
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 43436 bytes
+popup.js:2 ✅ Received PDF blob: 0.04 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2  POST https://europe-north1-canvas-lm.cloudfunctions.net/uploadToStore 500 (Internal Server Error)
+o @ popup.js:2
+Fm @ popup.js:2
+(anonymous) @ popup.js:2
+await in (anonymous)
+(anonymous) @ popup.js:2
+r @ popup.js:2
+uploadToStore @ popup.js:2
+await in uploadToStore
+saveFoundPDFsToFirestore @ popup.js:2
+await in saveFoundPDFsToFirestore
+(anonymous) @ popup.js:2Understand this error
+popup.js:2 ❌ Error uploading to File Search store: FirebaseError: INTERNAL
+uploadToStore @ popup.js:2
+await in uploadToStore
+saveFoundPDFsToFirestore @ popup.js:2
+await in saveFoundPDFsToFirestore
+(anonymous) @ popup.js:2Understand this error
+popup.js:2 ❌ Failed to upload Extentor: INTERNAL
+saveFoundPDFsToFirestore @ popup.js:2
+await in saveFoundPDFsToFirestore
+(anonymous) @ popup.js:2Understand this error
+popup.js:2 ✅ Document saved to Firestore: Extentor
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvcGFnZXMvZXh0ZW50b3I_ failed
+popup.js:2 📤 Uploading 5/19: Föreläsning3.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6011826/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6011826/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6011826/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6011826/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 23743651 bytes
+popup.js:2 ✅ Received PDF blob: 22.64 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning3.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning3.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjAxMTgyNi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjAxMTgyNi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [1/19] Uploaded: Föreläsning3.pdf
+popup.js:2 📤 Uploading 6/19: Föreläsning4.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6031226/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6031226/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6031226/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6031226/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 18670118 bytes
+popup.js:2 ✅ Received PDF blob: 17.81 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning4.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning4.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjAzMTIyNi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjAzMTIyNi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [2/19] Uploaded: Föreläsning4.pdf
+popup.js:2 📤 Uploading 7/19: Föreläsning6_Seminar2.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6053376/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6053376/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6053376/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6053376/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 20997389 bytes
+popup.js:2 ✅ Received PDF blob: 20.02 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning6_Seminar2.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning6_Seminar2.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA1MzM3Ni9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA1MzM3Ni9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [3/19] Uploaded: Föreläsning6_Seminar2.pdf
+popup.js:2 📤 Uploading 8/19: Föreläsning7.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6055674/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6055674/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6055674/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6055674/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 21488918 bytes
+popup.js:2 ✅ Received PDF blob: 20.49 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning7.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning7.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA1NTY3NC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA1NTY3NC9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [4/19] Uploaded: Föreläsning7.pdf
+popup.js:2 📤 Uploading 9/19: Föreläsning8.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6064093/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6064093/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6064093/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6064093/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 22408499 bytes
+popup.js:2 ✅ Received PDF blob: 21.37 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning8.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning8.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA2NDA5My9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA2NDA5My9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [5/19] Uploaded: Föreläsning8.pdf
+popup.js:2 📤 Uploading 10/19: Seminar3.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6081572/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6081572/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6081572/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6081572/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 13902367 bytes
+popup.js:2 ✅ Received PDF blob: 13.26 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Seminar3.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Seminar3.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA4MTU3Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA4MTU3Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [6/19] Uploaded: Seminar3.pdf
+popup.js:2 📤 Uploading 11/19: Föreläsning10_Seminar4.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6097535/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6097535/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6097535/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6097535/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 19754396 bytes
+popup.js:2 ✅ Received PDF blob: 18.84 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning10_Seminar4.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning10_Seminar4.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA5NzUzNS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjA5NzUzNS9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [7/19] Uploaded: Föreläsning10_Seminar4.pdf
+popup.js:2 📤 Uploading 12/19: Föreläsning11.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6102197/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6102197/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6102197/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6102197/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 21702722 bytes
+popup.js:2 ✅ Received PDF blob: 20.70 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning11.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning11.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjEwMjE5Ny9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjEwMjE5Ny9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [8/19] Uploaded: Föreläsning11.pdf
+popup.js:2 📤 Uploading 13/19: Föreläsning12.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6102362/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6102362/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6102362/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6102362/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 22714356 bytes
+popup.js:2 ✅ Received PDF blob: 21.66 MB
+popup.js:2 📤 Uploading PDF to File Search store...
+popup.js:2 ✅ PDF uploaded and indexed: Föreläsning12.pdf
+popup.js:2 💾 Saving document metadata to Firestore...
+popup.js:2 ✅ Document saved to Firestore: Föreläsning12.pdf
+popup.js:2 ✅ File Search document saved: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjEwMjM2Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__
+popup.js:2 ✅ Document status updated: aHR0cHM6Ly9jYW52YXMuZWR1Y2F0aW9uLmx1LnNlL2NvdXJzZXMvMzIzMDEvZmlsZXMvNjEwMjM2Mi9kb3dubG9hZD9kb3dubG9hZF9mcmQ9MQ__ completed
+popup.js:2 ✅ [9/19] Uploaded: Föreläsning12.pdf
+popup.js:2 📤 Uploading 14/19: Föreläsning13.pdf...
+popup.js:2    URL: https://canvas.education.lu.se/courses/32301/files/6110792/download?download_frd=1
+popup.js:2 📥 Requesting PDF blob from background: https://canvas.education.lu.se/courses/32301/files/6110792/download?download_frd=1
+background.js:1 Background received message: {action: 'FETCH_PDF_BLOB', url: 'https://canvas.education.lu.se/courses/32301/files/6110792/download?download_frd=1'}
+background.js:1 📥 Background script requesting PDF via Cloud Function: https://canvas.education.lu.se/courses/32301/files/6110792/download?download_frd=1
+background.js:1 🍪 Found 3 Canvas cookies
+background.js:1 ☁️ Calling Cloud Function to download PDF...
+background.js:1 ✅ PDF downloaded via Cloud Function: 17024155 bytes
+popup.js:2 ✅ Received PDF blob: 16.24 MB
+popup.js:2 📤 Uploading PDF to File Search store...

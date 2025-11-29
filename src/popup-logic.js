@@ -248,10 +248,10 @@ export class PopupLogic {
       const coursesResult = await this.firestoreHelpers.getUserCourses(this.db, this.currentUser.id);
       
       if (coursesResult.success && coursesResult.data.length > 0) {
-        // Get actual document count for each course
+        // Get actual document count for each course (only successfully uploaded)
         const coursesWithCounts = await Promise.all(
           coursesResult.data.map(async (course) => {
-            const docsResult = await this.firestoreHelpers.getCourseDocuments(this.db, course.id);
+            const docsResult = await this.firestoreHelpers.getCourseDocuments(this.db, course.id, true);
             const actualCount = docsResult.success ? docsResult.data.length : 0;
             
             return {
@@ -471,11 +471,32 @@ export class PopupLogic {
       
       const ageMinutes = (Date.now() - scanStatus.timestamp) / 1000 / 60;
       
-      if (scanStatus.status === 'scanning' && ageMinutes < 10) {
-        // Scan is still in progress
-        console.log('⏳ Scan still in progress for this course');
+      if (scanStatus.status === 'scanning') {
+        // If scan status is older than 5 minutes, consider it stale/failed
+        if (ageMinutes > 5) {
+          console.log('🧹 Clearing stale scan status (age: ' + Math.round(ageMinutes) + ' min)');
+          chrome.storage.local.remove(scanStatusKey);
+          return;
+        }
+        
+        // Scan is in progress - restore the scanning UI state
+        console.log('⏳ Active scan detected (age: ' + Math.round(ageMinutes) + ' min)');
+        console.log('   Restoring scanning UI state...');
+        
+        // Restore scanning UI state
         this.uiCallbacks.setIsScanning?.(true);
-        this.uiCallbacks.setStatus?.('Scan in progress... (started ' + Math.round(ageMinutes) + ' min ago)');
+        
+        // Calculate elapsed time and restore progress indicators
+        const elapsedMs = Date.now() - scanStatus.timestamp;
+        const estimatedTotal = 120000; // 2 minutes estimated
+        const progress = Math.min((elapsedMs / estimatedTotal) * 100, 95); // Cap at 95% until complete
+        const timeLeft = Math.max(0, Math.ceil((estimatedTotal - elapsedMs) / 1000));
+        
+        this.uiCallbacks.setScanStartTime?.(scanStatus.timestamp);
+        this.uiCallbacks.setScanProgress?.(progress);
+        this.uiCallbacks.setScanTimeLeft?.(timeLeft);
+        
+        this.uiCallbacks.setStatus?.(`🔄 Scan in progress... (${Math.round(progress)}%)`);
       } else if (scanStatus.status === 'complete' && ageMinutes < 30) {
         // Scan completed while popup was closed
         console.log('🎉 Found completed scan results:', scanStatus);
@@ -492,13 +513,17 @@ export class PopupLogic {
         
         // Refresh course details
         await this.detectCanvas();
+      } else {
+        // Old or unknown status - clear it
+        console.log('🧹 Clearing old/unknown scan status:', scanStatus.status);
+        chrome.storage.local.remove(scanStatusKey);
       }
     } catch (error) {
       console.error('Error checking pending scan results:', error);
     }
   }
 
-  async handleScan() {
+  async handleScan(isRescan = false) {
     if (!this.currentUser) {
       alert('Please sign in to Chrome first');
       return;
@@ -509,6 +534,9 @@ export class PopupLogic {
       return;
     }
     
+    // Store re-scan flag for later use
+    this._isRescan = isRescan;
+    
     // Notify background that scan is starting
     chrome.runtime.sendMessage({
       action: 'SCAN_STARTED',
@@ -516,10 +544,8 @@ export class PopupLogic {
       courseName: this.currentCourseData.name
     }).catch(() => {});
     
-    this.uiCallbacks.setIsScanning?.(true);
-    
     try {
-      // Send scan request directly to content script in active tab
+      // Get active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       if (!tab) {
@@ -528,6 +554,54 @@ export class PopupLogic {
       
       console.log('🚀 Starting smart scan for course:', this.currentCourseData);
       
+      // Set scanning state
+      this.uiCallbacks.setIsScanning?.(true);
+      
+      // Set up a safety timeout to reset UI if scan takes too long or gets stuck
+      const SCAN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+      this._scanTimeoutId = setTimeout(() => {
+        console.warn('⚠️ Scan timeout reached, resetting UI...');
+        this.resetScanningState();
+        alert('Scan timed out after 10 minutes. Please try again.');
+      }, SCAN_TIMEOUT);
+      
+      // Wait for content script to be ready with retry logic
+      // Content scripts defined in manifest inject automatically but may not be ready immediately
+      let retries = 5;
+      let scriptReady = false;
+      
+      while (retries > 0 && !scriptReady) {
+        try {
+          const pingResponse = await new Promise((resolve) => {
+            chrome.tabs.sendMessage(tab.id, { action: 'ping' }, (response) => {
+              if (chrome.runtime.lastError) {
+                resolve(null);
+              } else {
+                resolve(response);
+              }
+            });
+          });
+          
+          if (pingResponse && pingResponse.ready) {
+            scriptReady = true;
+            console.log('✅ Content script is ready');
+            break;
+          }
+        } catch (e) {
+          console.log(`Ping attempt ${6 - retries} failed:`, e);
+        }
+        
+        retries--;
+        if (retries > 0) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+      
+      if (!scriptReady) {
+        throw new Error('Content script is not responding. Please refresh the Canvas page and try again.');
+      }
+      
+      // Now send the scan message
       chrome.tabs.sendMessage(tab.id, {
         action: 'startSmartCrawl',
         courseId: this.currentCourseData.id,
@@ -536,25 +610,55 @@ export class PopupLogic {
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('Error sending message to content script:', chrome.runtime.lastError);
-          alert('Error: Make sure you are on a Canvas course page');
-          this.uiCallbacks.setIsScanning?.(false);
+          alert('Error: Content script not responding. Please refresh the page and try again.');
+          this.resetScanningState();
           return;
         }
         
         if (response?.error) {
           console.error('Content script error:', response.error);
           alert('Error: ' + response.error);
-          this.uiCallbacks.setIsScanning?.(false);
+          this.resetScanningState();
+        } else if (!response?.success && !response?.started) {
+          console.error('Unexpected response from content script:', response);
+          alert('Error: Scan failed to start properly');
+          this.resetScanningState();
         } else {
           console.log('✅ Smart scan started successfully:', response);
-          // Keep scanning state active - will be cleared when scan completes
         }
       });
       
     } catch (error) {
       console.error('Error starting scan:', error);
       alert('Error starting scan: ' + error.message);
-      this.uiCallbacks.setIsScanning?.(false);
+      this.resetScanningState();
+    }
+  }
+
+  /**
+   * Reset the UI scanning state and clear any pending timeouts
+   */
+  resetScanningState() {
+    console.log('🔄 Resetting scanning state...');
+    
+    // Clear scan timeout if it exists
+    if (this._scanTimeoutId) {
+      clearTimeout(this._scanTimeoutId);
+      this._scanTimeoutId = null;
+    }
+    
+    // Reset UI state
+    this.uiCallbacks.setIsScanning?.(false);
+    this.uiCallbacks.setScanProgress?.(0);
+    this.uiCallbacks.setScanTimeLeft?.(0);
+    this.uiCallbacks.setStatus?.('Ready');
+    
+    // Clear re-scan flag
+    this._isRescan = false;
+    
+    // Clear scan status from storage
+    if (this.currentCourseData?.id) {
+      chrome.storage.local.remove(`scan_status_${this.currentCourseData.id}`);
     }
   }
 
@@ -566,29 +670,49 @@ export class PopupLogic {
         console.log('🎉 PDF_SCAN_COMPLETE received! PDFs found:', message.pdfCount);
         console.log('🚀 Calling saveFoundPDFsToFirestore()...');
         
+        // Show progress update - 90% means we're preparing uploads
+        this.uiCallbacks.setScanProgress?.(90);
+        this.uiCallbacks.setStatus?.(`🔍 Preparing to upload ${message.pdfCount} PDFs...`);
+        
         // PDFs are now stored in chrome.storage, safe to save to Firestore
         this.saveFoundPDFsToFirestore().then(() => {
           console.log('✅ saveFoundPDFsToFirestore() completed successfully');
-          this.uiCallbacks.setIsScanning?.(false);
-          // Refresh course details to show updated document count
-          this.detectCanvas();
+          
+          // Clear scan timeout since we completed successfully
+          if (this._scanTimeoutId) {
+            clearTimeout(this._scanTimeoutId);
+            this._scanTimeoutId = null;
+          }
+          
+          // Set to 100% and show completion
+          this.uiCallbacks.setScanProgress?.(100);
+          this.uiCallbacks.setStatus?.('Scan complete!');
+          this.uiCallbacks.setScanTimeLeft?.(0);
+          
+          // Wait a moment to show completion
+          setTimeout(() => {
+            this.uiCallbacks.setIsScanning?.(false);
+            this.uiCallbacks.setScanProgress?.(0);
+            this.uiCallbacks.setStatus?.('Ready');
+            // Refresh course details to show updated document count
+            this.detectCanvas();
+          }, 1500);
         }).catch(err => {
           console.error('❌ Error in saveFoundPDFsToFirestore:', err);
-          this.uiCallbacks.setIsScanning?.(false);
+          this.resetScanningState();
+          this.uiCallbacks.setStatus?.('Error: ' + err.message);
           alert('Error saving PDFs: ' + err.message);
         });
       }
       
-      if (message.type === 'SMART_CRAWL_COMPLETE') {
+      // Handle CRAWL_COMPLETE (the actual message sent by content script)
+      if (message.type === 'CRAWL_COMPLETE') {
+        console.log('🎉 CRAWL_COMPLETE received!', message);
+        
         // Set progress to 100% before stopping
         this.uiCallbacks.setScanProgress?.(100);
         this.uiCallbacks.setScanTimeLeft?.(0);
-        
-        // Wait a moment to show completion
-        setTimeout(() => {
-          this.uiCallbacks.setIsScanning?.(false);
-          this.uiCallbacks.setScanProgress?.(0);
-        }, 1000);
+        this.uiCallbacks.setStatus?.('Finalizing scan...');
         
         const pdfCount = message.pdfCount || message.pdfsFound || 0;
         
@@ -597,14 +721,43 @@ export class PopupLogic {
           chrome.storage.local.remove(`scan_status_${message.courseId}`);
         }
         
-        alert(`✅ Smart scan complete! Found ${pdfCount} PDFs`);
-        // Refresh course details to show updated document count
-        this.detectCanvas();
+        console.log(`✅ Scan complete! Found ${pdfCount} PDFs`);
+      }
+      
+      // Also support SMART_CRAWL_COMPLETE for backward compatibility
+      if (message.type === 'SMART_CRAWL_COMPLETE') {
+        console.log('🎉 SMART_CRAWL_COMPLETE received!', message);
+        
+        // Set progress to 100% before stopping
+        this.uiCallbacks.setScanProgress?.(100);
+        this.uiCallbacks.setScanTimeLeft?.(0);
+        this.uiCallbacks.setStatus?.('Finalizing scan...');
+        
+        const pdfCount = message.pdfCount || message.pdfsFound || 0;
+        
+        // Clear scan status from storage
+        if (message.courseId) {
+          chrome.storage.local.remove(`scan_status_${message.courseId}`);
+        }
+        
+        console.log(`✅ Smart scan complete! Found ${pdfCount} PDFs`);
       }
       
       if (message.type === 'SMART_CRAWL_PROGRESS') {
         // Update UI with progress information
-        console.log('Smart scan progress:', message);
+        console.log('📊 Smart scan progress:', message);
+        if (message.progress !== undefined) {
+          this.uiCallbacks.setScanProgress?.(message.progress);
+        }
+        if (message.status) {
+          this.uiCallbacks.setStatus?.(message.status);
+        }
+      }
+      
+      if (message.type === 'CRAWL_ERROR') {
+        console.error('❌ Crawl error:', message);
+        this.resetScanningState();
+        alert(`Scan error: ${message.error}\nStep: ${message.step}`);
       }
     });
   }
@@ -620,6 +773,7 @@ export class PopupLogic {
       // Check if user is signed in
       if (!this.currentUser || !this.db) {
         console.log('❌ User not signed in or DB not initialized');
+        this.resetScanningState();
         alert('Please sign in to Chrome to save PDFs');
         return;
       }
@@ -627,6 +781,7 @@ export class PopupLogic {
       // Check if File Search Manager is initialized
       if (!this.fileSearchManager) {
         console.warn('⚠️ File Search Manager not initialized');
+        this.resetScanningState();
         alert('File Search service is not available. Please check your internet connection.');
         return;
       }
@@ -643,6 +798,7 @@ export class PopupLogic {
       
       if (pdfs.length === 0) {
         console.log('⚠️ No PDFs found in storage');
+        this.resetScanningState();
         alert('No PDFs found during crawl');
         return;
       }
@@ -694,22 +850,73 @@ export class PopupLogic {
       
       console.log(`✅ ${enrollmentResult.isNewEnrollment ? 'User enrolled in course' : 'Enrollment updated'}`);
       
-      // Step 3: Save all PDF metadata to Firestore
-      const saveResults = await this.firestoreHelpers.saveDocuments(this.db, this.currentCourseData.id, pdfs);
-      const savedCount = saveResults.filter(r => r.success).length;
+      // Step 3: Detect new documents and failed uploads if this is a re-scan
+      let pdfsToUpload = pdfs;
       
-      console.log(`✅ Saved ${savedCount}/${pdfs.length} PDF metadata to Firestore`);
+      if (this._isRescan) {
+        console.log('🔄 Re-scan detected, checking for new and failed documents...');
+        this.uiCallbacks.setStatus?.('🔍 Analyzing documents...');
+        
+        const existingDocsResult = await this.firestoreHelpers.getCourseDocuments(this.db, this.currentCourseData.id, false);
+        
+        if (existingDocsResult.success && existingDocsResult.data.length > 0) {
+          // Separate documents by upload status
+          const successfulDocs = existingDocsResult.data.filter(doc => doc.uploadStatus === 'completed');
+          const failedOrPendingDocs = existingDocsResult.data.filter(doc => doc.uploadStatus !== 'completed');
+          
+          const successfulUrls = new Set(successfulDocs.map(doc => doc.fileUrl));
+          const failedUrls = new Set(failedOrPendingDocs.map(doc => doc.fileUrl));
+          
+          // Find truly new PDFs (not in Firestore at all)
+          const newPdfs = pdfs.filter(pdf => !successfulUrls.has(pdf.url) && !failedUrls.has(pdf.url));
+          
+          // Find failed/pending PDFs that need retry
+          const retryPdfs = pdfs.filter(pdf => failedUrls.has(pdf.url));
+          
+          console.log(`📊 Scan analysis:`);
+          console.log(`   - Total PDFs found: ${pdfs.length}`);
+          console.log(`   - Already uploaded successfully: ${successfulDocs.length}`);
+          console.log(`   - New PDFs to upload: ${newPdfs.length}`);
+          console.log(`   - Failed/pending PDFs to retry: ${retryPdfs.length}`);
+          
+          // Combine new and retry PDFs
+          pdfsToUpload = [...newPdfs, ...retryPdfs];
+          
+          if (pdfsToUpload.length === 0) {
+            this._isRescan = false;
+            this.uiCallbacks.setNewDocumentsFound?.(0);
+            this.resetScanningState();
+            this.uiCallbacks.setStatus?.('✅ All documents up to date');
+            alert('✅ All documents are already uploaded successfully. Course is up to date!');
+            return;
+          }
+          
+          console.log(`📤 Will upload ${pdfsToUpload.length} PDFs total`);
+          this.uiCallbacks.setStatus?.(`📋 Found ${newPdfs.length} new, ${retryPdfs.length} to retry. Starting upload...`);
+        }
+      }
       
-      // Step 4: Upload PDFs to File Search store
+      // Step 5: Upload PDFs to File Search store and save metadata ONLY on success
       let uploadedCount = 0;
       let uploadFailedCount = 0;
       
-      for (let i = 0; i < pdfs.length; i++) {
-        const pdf = pdfs[i];
+      for (let i = 0; i < pdfsToUpload.length; i++) {
+        const pdf = pdfsToUpload[i];
         const docId = btoa(pdf.url).replace(/[/+=]/g, '_');
         
+        // Ensure we have a proper title
+        const pdfTitle = pdf.title || pdf.fileName || pdf.filename || `Document ${i + 1}`;
+        
+        // Calculate progress percentage (90-100% range for upload phase)
+        const uploadProgress = 90 + Math.floor((i / pdfsToUpload.length) * 10);
+        
         try {
-          console.log(`📤 Uploading ${i + 1}/${pdfs.length}: ${pdf.title}...`);
+          console.log(`📤 Uploading ${i + 1}/${pdfsToUpload.length}: ${pdfTitle}...`);
+          console.log(`   URL: ${pdf.url}`);
+          
+          // Update status: Downloading
+          this.uiCallbacks.setScanProgress?.(uploadProgress);
+          this.uiCallbacks.setStatus?.(`📥 [${i + 1}/${pdfsToUpload.length}] Downloading: ${pdfTitle}`);
           
           // Download PDF from Canvas via background script (avoids CORS)
           console.log(`📥 Requesting PDF blob from background: ${pdf.url}`);
@@ -724,42 +931,89 @@ export class PopupLogic {
           
           // Convert base64 back to blob
           const pdfBlob = this.base64ToBlob(blobResponse.base64Data, blobResponse.mimeType);
-          console.log(`✅ Received PDF blob: ${pdfBlob.size} bytes`);
+          const fileSizeMB = (pdfBlob.size / 1024 / 1024).toFixed(2);
+          console.log(`✅ Received PDF blob: ${fileSizeMB} MB`);
+          
+          // Update status: Uploading
+          this.uiCallbacks.setStatus?.(`📤 [${i + 1}/${pdfsToUpload.length}] Uploading: ${pdfTitle} (${fileSizeMB} MB)`);
           
           // Upload to File Search store with metadata
           const uploadResult = await this.fileSearchManager.uploadToStore(
             fileSearchStore.name,
             pdfBlob,
-            pdf.title,
+            pdfTitle,
             {
               courseId: this.currentCourseData.id,
               courseName: this.currentCourseData.name,
-              source: pdf.type,
+              source: pdf.type || pdf.context,
               originalUrl: pdf.url
             }
           );
           
-          // Save File Search document reference to Firestore
+          // Update status: Saving metadata
+          this.uiCallbacks.setStatus?.(`💾 [${i + 1}/${pdfsToUpload.length}] Saving metadata: ${pdfTitle}`);
+          
+          // ONLY save to Firestore after successful upload
+          console.log(`💾 Saving document metadata to Firestore...`);
+          const saveResult = await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdf);
+          
+          if (!saveResult.success) {
+            console.warn(`⚠️ Uploaded to File Search but failed to save metadata: ${saveResult.error}`);
+          }
+          
+          // Update status to 'completed' and save File Search document reference
           await this.firestoreHelpers.saveDocumentFileSearch(this.db, this.currentCourseData.id, docId, uploadResult.name);
+          await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'completed');
           
           uploadedCount++;
-          console.log(`✅ [${uploadedCount}/${pdfs.length}] Uploaded: ${pdf.title}`);
+          console.log(`✅ [${uploadedCount}/${pdfsToUpload.length}] Uploaded: ${pdfTitle}`);
+          
+          // Update status: Success
+          this.uiCallbacks.setStatus?.(`✅ [${uploadedCount}/${pdfsToUpload.length}] Completed: ${pdfTitle}`);
+          
         } catch (uploadError) {
           uploadFailedCount++;
-          console.error(`❌ Failed to upload ${pdf.title}:`, uploadError);
+          const errorMsg = uploadError.message || String(uploadError);
+          console.error(`❌ Failed to upload ${pdfTitle}:`, errorMsg);
+          
+          // Update status: Failed
+          this.uiCallbacks.setStatus?.(`❌ [${i + 1}/${pdfsToUpload.length}] Failed: ${pdfTitle}`);
+          
+          // Save the document with failed status so we can retry later
+          await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdf);
           await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'failed');
+          
+          // Brief pause to show error before moving to next
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
       
-      // Final status
-      if (uploadedCount > 0) {
-        alert(`✅ Successfully uploaded ${uploadedCount} PDFs to File Search!${uploadFailedCount > 0 ? `\n⚠️ ${uploadFailedCount} uploads failed` : ''}`);
+      // Final status - notify user
+      if (this._isRescan) {
+        // Re-scan completed
+        if (uploadedCount > 0) {
+          this.uiCallbacks.setNewDocumentsFound?.(uploadedCount);
+          const failureMsg = uploadFailedCount > 0 ? `\n⚠️ ${uploadFailedCount} failed (will retry on next scan)` : '';
+          alert(`✅ Re-scan complete! Uploaded ${uploadedCount} document${uploadedCount !== 1 ? 's' : ''}!${failureMsg}`);
+        } else if (uploadFailedCount > 0) {
+          alert(`❌ All ${uploadFailedCount} uploads failed. Please check your internet connection and try again.`);
+        }
       } else {
-        alert(`❌ Upload failed for all PDFs. Please check your internet connection.`);
+        // Initial scan completed
+        if (uploadedCount > 0) {
+          const failureMsg = uploadFailedCount > 0 ? `\n⚠️ ${uploadFailedCount} failed (will retry on next scan)` : '';
+          alert(`✅ Successfully uploaded ${uploadedCount} PDF${uploadedCount !== 1 ? 's' : ''} to File Search!${failureMsg}`);
+        } else {
+          alert(`❌ Upload failed for all PDFs. Please check your internet connection and try scanning again.`);
+        }
       }
+      
+      // Reset re-scan flag
+      this._isRescan = false;
       
     } catch (err) {
       console.error('Error in saveFoundPDFsToFirestore:', err);
+      this.resetScanningState();
       throw err;
     }
   }

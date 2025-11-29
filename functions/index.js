@@ -447,14 +447,38 @@ exports.deleteStore = onCall(async (request) => {
  * Upload a PDF directly to File Search store
  * Automatically chunks, embeds, and indexes the document
  * Verifies user is enrolled in the course
+ * 
+ * Configured with 1GB memory to handle large PDFs (up to 100MB limit)
  */
-exports.uploadToStore = onCall(async (request) => {
+exports.uploadToStore = onCall(
+  {
+    memory: '1GiB',        // Increased to handle large PDFs in base64 + buffer conversion
+    timeoutSeconds: 540,   // 9 minutes for large file processing
+    cpu: 2                 // 2 vCPUs for faster processing
+  },
+  async (request) => {
   try {
     const { storeName, fileData, fileName, mimeType, metadata, userId } = request.data;
 
     if (!storeName || !fileData || !fileName || !userId) {
       throw new Error('storeName, fileData, fileName, and userId are required');
     }
+
+    // File Search API has a 100 MB limit per document
+    // Base64 is ~33% larger than original file
+    // So max base64 string should be ~133 MB (100 MB * 1.33)
+    const maxBase64Size = 140 * 1024 * 1024; // 140 MB to be safe
+    const estimatedFileSize = (fileData.length * 3) / 4; // Estimate original size from base64
+    
+    if (fileData.length > maxBase64Size) {
+      throw new Error(`File too large. Maximum size is 100 MB. This file appears to be ${Math.round(estimatedFileSize / 1024 / 1024)} MB`);
+    }
+    
+    logger.info('Upload request received', { 
+      fileName, 
+      base64Length: fileData.length,
+      estimatedSizeMB: Math.round(estimatedFileSize / 1024 / 1024)
+    });
 
     // Check rate limit (20 uploads per minute)
     await checkRateLimit(userId, 'uploadToStore');
@@ -484,53 +508,69 @@ exports.uploadToStore = onCall(async (request) => {
     }
 
     // Step 2: Decode base64 to get actual file buffer
+    // Note: This temporarily doubles memory usage (base64 string + buffer)
     const buffer = Buffer.from(fileData, 'base64');
     const fileSize = buffer.length;
-
-    // CORRECT ENDPOINT: uploadToFileSearchStore (not documents:upload)
-    const initUrl = `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${GEMINI_API_KEY}`;
     
-    logger.info('Initializing resumable upload', { 
-      url: initUrl.replace(GEMINI_API_KEY, 'REDACTED'),
+    // Verify file size is within File Search API limits (100 MB)
+    const maxFileSize = 100 * 1024 * 1024; // 100 MB
+    if (fileSize > maxFileSize) {
+      throw new Error(`File size (${Math.round(fileSize / 1024 / 1024)} MB) exceeds File Search API limit of 100 MB`);
+    }
+    
+    logger.info('File decoded successfully', { fileSizeMB: Math.round(fileSize / 1024 / 1024) });
+
+    // File Search API uses multipart/form-data (NOT resumable protocol like Files API!)
+    // Create multipart boundary
+    const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+    
+    // Build multipart body
+    const parts = [];
+    
+    // Part 1: metadata as JSON
+    parts.push(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="metadata"\r\n` +
+      `Content-Type: application/json\r\n\r\n` +
+      JSON.stringify(uploadMetadata) + '\r\n'
+    );
+    
+    // Part 2: file content
+    parts.push(
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="file"; filename="${fileName}"\r\n` +
+      `Content-Type: ${mimeType || 'application/pdf'}\r\n\r\n`
+    );
+    
+    // Create final body with buffer
+    const textParts = parts.join('');
+    const endBoundary = `\r\n--${boundary}--\r\n`;
+    
+    const bodyParts = [
+      Buffer.from(textParts, 'utf-8'),
+      buffer,
+      Buffer.from(endBoundary, 'utf-8')
+    ];
+    
+    const multipartBody = Buffer.concat(bodyParts);
+
+    // Upload directly with multipart/form-data
+    const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/${storeName}:uploadToFileSearchStore?key=${GEMINI_API_KEY}`;
+    
+    logger.info('Uploading to File Search store', { 
+      url: uploadUrl.replace(GEMINI_API_KEY, 'REDACTED'),
       fileSize,
       fileName,
       storeName 
     });
 
-    const initResponse = await fetch(initUrl, {
-      method: 'POST',
-      headers: {
-        'X-Goog-Upload-Protocol': 'resumable',
-        'X-Goog-Upload-Command': 'start',
-        'X-Goog-Upload-Header-Content-Length': fileSize.toString(),
-        'X-Goog-Upload-Header-Content-Type': mimeType || 'application/pdf',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(uploadMetadata)
-    });
-
-    if (!initResponse.ok) {
-      const errorText = await initResponse.text();
-      logger.error('Upload init failed', {
-        status: initResponse.status,
-        statusText: initResponse.statusText,
-        errorBody: errorText,
-        url: initUrl.replace(GEMINI_API_KEY, 'REDACTED')
-      });
-      throw new Error(`Upload init failed [${initResponse.status}]: ${errorText || initResponse.statusText}`);
-    }
-
-    const uploadUrl = initResponse.headers.get('x-goog-upload-url');
-
-    // Step 3: Upload file content with correct size
     const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Content-Length': fileSize.toString(),
-        'X-Goog-Upload-Offset': '0',
-        'X-Goog-Upload-Command': 'upload, finalize'
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': multipartBody.length.toString()
       },
-      body: buffer
+      body: multipartBody
     });
 
     if (!uploadResponse.ok) {

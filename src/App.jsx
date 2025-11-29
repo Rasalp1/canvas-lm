@@ -65,6 +65,17 @@ export const App = ({
   const [drawerCourse, setDrawerCourse] = useState(null);
   const [drawerDocuments, setDrawerDocuments] = useState([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [newDocumentsFound, setNewDocumentsFound] = useState(0);
+
+  // Auto-clear new documents notification after 10 seconds
+  useEffect(() => {
+    if (newDocumentsFound > 0) {
+      const timer = setTimeout(() => {
+        setNewDocumentsFound(0);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [newDocumentsFound]);
 
   // Scan progress timer
   useEffect(() => {
@@ -111,7 +122,8 @@ export const App = ({
         setChatMessages,
         setIsChatLoading,
         setCurrentCourseDocCount,
-        setEnrollmentStatus
+        setEnrollmentStatus,
+        setNewDocumentsFound
       });
       popupLogic.initialize();
     }
@@ -134,7 +146,9 @@ export const App = ({
       setScanStartTime(Date.now());
       setScanProgress(0);
       setScanTimeLeft(120);
-      popupLogic.handleScan();
+      // Pass true if documents exist (re-scan), false otherwise
+      const isRescan = currentCourseDocCount > 0;
+      popupLogic.handleScan(isRescan);
     }
   };
 
@@ -373,12 +387,14 @@ export const App = ({
                     isScanning={isScanning}
                     scanProgress={scanProgress}
                     scanTimeLeft={scanTimeLeft}
+                    scanStatus={status}
                     hasDocuments={currentCourseDocCount > 0}
                     onBack={handleBackToCourseSelector}
                     showBackButton={false}
                     enrollmentStatus={enrollmentStatus}
                     onEnroll={handleEnroll}
                     isLoggedIn={isLoggedIn}
+                    newDocumentsFound={newDocumentsFound}
                   />
                 </div>
               </div>
@@ -480,17 +496,20 @@ export const App = ({
                   isScanning={isScanning}
                   scanProgress={scanProgress}
                   scanTimeLeft={scanTimeLeft}
+                  scanStatus={status}
                   hasDocuments={currentCourseDocCount > 0}
                   onBack={handleBackToCourseSelector}
                   showBackButton={isExtensionPage && showCourseSelector === false}
                   enrollmentStatus={enrollmentStatus}
                   onEnroll={handleEnroll}
                   isLoggedIn={isLoggedIn}
+                  newDocumentsFound={newDocumentsFound}
                 />
               </div>
             )}
             
-            {isLoggedIn && showCourseInfo && enrollmentStatus.isEnrolled && (
+            {/* Only show chat if user is enrolled AND has scanned documents */}
+            {isLoggedIn && showCourseInfo && enrollmentStatus.isEnrolled && currentCourseDocCount > 0 && (
               <div className="animate-fade-in">
                 <ChatSection 
                   messages={chatMessages}

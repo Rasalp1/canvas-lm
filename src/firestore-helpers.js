@@ -337,24 +337,33 @@ export async function updateEnrollmentFavorite(db, userId, courseId, favorite) {
  */
 export async function saveDocument(db, courseId, pdfData) {
   try {
-    const { doc, setDoc, Timestamp } = window.firebaseModules;
+    const { doc, setDoc, getDoc, Timestamp } = window.firebaseModules;
     
     // Use PDF URL as document ID to prevent duplicates
     const docId = btoa(pdfData.url).replace(/[/+=]/g, '_'); // Base64 encode and sanitize
     const docRef = doc(db, 'courses', courseId, 'documents', docId);
     
+    // Extract filename properly - handle both 'filename' and 'fileName' properties
+    const displayName = pdfData.title || pdfData.fileName || pdfData.filename || 'Unknown Document';
+    
+    // Check if document already exists to preserve certain fields
+    const existingDoc = await getDoc(docRef);
+    const existingData = existingDoc.exists() ? existingDoc.data() : {};
+    
     await setDoc(docRef, {
-      fileName: pdfData.title || pdfData.fileName || 'Unknown',
+      fileName: displayName,
       fileUrl: pdfData.url,
       fileSize: pdfData.size || 0,
       fileType: pdfData.type || 'application/pdf',
-      scannedFrom: pdfData.scannedFrom || pdfData.type || 'unknown',
+      scannedFrom: pdfData.scannedFrom || pdfData.type || pdfData.context || 'unknown',
       uploadedAt: Timestamp.now(),
-      fileSearchDocumentName: null,
-      uploadStatus: 'pending'
+      // Preserve fileSearchDocumentName if it exists (document was previously uploaded successfully)
+      fileSearchDocumentName: existingData.fileSearchDocumentName || null,
+      // Set status to 'pending' only if this is a new document or previously failed
+      uploadStatus: existingData.uploadStatus === 'completed' ? 'completed' : 'pending'
     }, { merge: true });
     
-    console.log('✅ Document saved to Firestore:', pdfData.title || docId);
+    console.log('✅ Document saved to Firestore:', displayName);
     return { success: true, docId: docId };
   } catch (error) {
     console.error('❌ Error saving document:', error);
@@ -376,7 +385,7 @@ export async function saveDocuments(db, courseId, pdfsArray) {
   for (const pdf of pdfsArray) {
     const result = await saveDocument(db, courseId, pdf);
     results.push({ 
-      fileName: pdf.title || pdf.fileName, 
+      fileName: pdf.title || pdf.fileName || pdf.filename, 
       ...result 
     });
   }
@@ -392,9 +401,10 @@ export async function saveDocuments(db, courseId, pdfsArray) {
  * Get all documents for a course
  * @param {Object} db - Firestore database instance
  * @param {string} courseId - Canvas course ID
+ * @param {boolean} onlySuccessful - If true, only return successfully uploaded documents (default: true)
  * @returns {Promise<Object>} Result object with array of documents
  */
-export async function getCourseDocuments(db, courseId) {
+export async function getCourseDocuments(db, courseId, onlySuccessful = true) {
   try {
     const { collection, getDocs } = window.firebaseModules;
     
@@ -403,10 +413,15 @@ export async function getCourseDocuments(db, courseId) {
     
     const documents = [];
     querySnapshot.forEach((doc) => {
-      documents.push({ id: doc.id, ...doc.data() });
+      const data = { id: doc.id, ...doc.data() };
+      // Only include documents that were successfully uploaded (uploadStatus === 'completed')
+      // or if onlySuccessful is false, include all documents
+      if (!onlySuccessful || data.uploadStatus === 'completed') {
+        documents.push(data);
+      }
     });
     
-    console.log(`✅ Retrieved ${documents.length} documents for course:`, courseId);
+    console.log(`✅ Retrieved ${documents.length} ${onlySuccessful ? 'successfully uploaded ' : ''}documents for course:`, courseId);
     return { success: true, data: documents };
   } catch (error) {
     console.error('❌ Error getting course documents:', error);
