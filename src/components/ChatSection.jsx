@@ -221,7 +221,7 @@ export const ChatSection = ({
                           speed="1.4"
                           color="#3b82f6"
                         />
-                        <span className="text-sm text-slate-500">Thinking...</span>
+                        <span className="text-sm text-slate-500">Searching course...</span>
                       </div>
                     </div>
                   </div>
@@ -341,7 +341,7 @@ export const ChatSection = ({
                         speed="1.4"
                         color="#3b82f6"
                       />
-                      <span className="text-sm text-slate-500">Thinking...</span>
+                      <span className="text-sm text-slate-500">Searching course...</span>
                     </div>
                   </div>
                 </div>

@@ -1245,6 +1245,9 @@ export class PopupLogic {
 
     this.isStreaming = true;
 
+    // Turn off loading indicator as we start streaming
+    this.uiCallbacks.setIsChatLoading?.(false);
+
     // Split message into words (preserving whitespace and newlines)
     const tokens = fullMessage.split(/(?<=\s)|(?=\s)/);
     let currentText = '';
@@ -1445,6 +1448,7 @@ export class PopupLogic {
         }));
       
       // Query course store with the course ID and conversation history
+      // This now uses streaming on the server side and returns the complete response
       const response = await this.fileSearchManager.queryCourseStore(
         message,
         this.currentCourseData.id,
@@ -1454,10 +1458,8 @@ export class PopupLogic {
         historyForGemini
       );
       
-      // Turn off loading indicator once we receive the response
-      this.uiCallbacks.setIsChatLoading?.(false);
-      
       // Stream the response word-by-word
+      // Loading indicator will be turned off when streaming starts
       await this.streamMessage(response.answer, 20);
       
       // Save assistant message to Firestore (after streaming completes)
@@ -1471,12 +1473,9 @@ export class PopupLogic {
     } catch (error) {
       console.error('Chat error:', error);
       
-      // Turn off loading indicator on error
-      this.uiCallbacks.setIsChatLoading?.(false);
-      
       const errorMessage = '❌ Error: ' + error.message;
       
-      // Stream error message too
+      // Stream error message (loading indicator will be turned off when streaming starts)
       await this.streamMessage(errorMessage, 20);
       
       // Save error message to Firestore

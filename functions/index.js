@@ -802,12 +802,94 @@ exports.deleteDocument = onCall(async (request) => {
 // ==================== QUERY WITH FILE SEARCH ====================
 
 /**
- * Query course's shared File Search store (NEW)
+ * Parse streaming response from Gemini API (Node.js readable stream)
+ * The response comes as a JSON array with multiple objects, each containing a chunk
+ * @param {Response} response - Fetch response with Node.js readable stream
+ * @returns {Promise<{fullText: string, groundingMetadata: object}>}
+ */
+async function parseStreamingResponse(response) {
+  let fullBuffer = '';
+  let fullText = '';
+  let groundingMetadata = null;
+  
+  try {
+    // node-fetch v2 returns a Node.js readable stream
+    return new Promise((resolve, reject) => {
+      response.body.on('data', (chunk) => {
+        fullBuffer += chunk.toString();
+      });
+      
+      response.body.on('end', () => {
+        try {
+          // The entire response is a single JSON array
+          const parsed = JSON.parse(fullBuffer);
+          
+          // It's an array of response chunks
+          if (Array.isArray(parsed)) {
+            for (const item of parsed) {
+              // Extract text from each chunk
+              const text = item.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                fullText += text;
+              }
+              
+              // Extract grounding metadata (usually in last chunk)
+              if (item.candidates?.[0]?.groundingMetadata) {
+                groundingMetadata = item.candidates[0].groundingMetadata;
+              }
+            }
+          } else {
+            // Single object response
+            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) fullText = text;
+            if (parsed.candidates?.[0]?.groundingMetadata) {
+              groundingMetadata = parsed.candidates[0].groundingMetadata;
+            }
+          }
+          
+          resolve({ fullText, groundingMetadata });
+        } catch (parseError) {
+          logger.error('Failed to parse complete streaming response:', parseError.message);
+          logger.error('Buffer content (first 500 chars):', fullBuffer.substring(0, 500));
+          
+          // If we can't parse, try to extract text with regex as fallback
+          const textMatches = fullBuffer.match(/"text":\s*"([^"]*)"/g);
+          if (textMatches && textMatches.length > 0) {
+            logger.warn('Using regex fallback to extract text');
+            for (const match of textMatches) {
+              const text = match.match(/"text":\s*"([^"]*)"/)?.[1];
+              if (text) fullText += text;
+            }
+            resolve({ fullText, groundingMetadata: null });
+          } else {
+            reject(parseError);
+          }
+        }
+      });
+      
+      response.body.on('error', (streamError) => {
+        logger.error('Stream error:', streamError.message);
+        reject(streamError);
+      });
+    });
+  } catch (error) {
+    logger.error('Stream processing error:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Query course's shared File Search store with STREAMING support
  * Verifies user is enrolled in course
  * Optionally saves to user's private chat history
  * Rate limited: 50 requests per minute per user
  */
-exports.queryCourseStore = onCall(async (request) => {
+exports.queryCourseStore = onCall({
+  timeoutSeconds: 180,  // 3 minutes for complex queries with streaming
+  memory: '512MiB'      // Ensure enough memory for stream processing
+}, async (request) => {
+  const startTime = Date.now();
+  
   try {
     const { 
       question, 
@@ -847,7 +929,7 @@ exports.queryCourseStore = onCall(async (request) => {
     const requestBody = {
       system_instruction: {
         parts: [{ 
-          text: 'You are Canvas LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.\n\nSTRICT RULES:\n1. Persona: Be professional, encouraging, and helpful. You are knowledgeable and serious about the course, but also support the student in a mentor-type way.\n2. ONLY use information found in the provided course documents\n3. ALWAYS search the File Search store before answering any question\n4. Reference the course material as often as possible, and use language such as "Based on the course material,"\n5. Provide specific citations showing which document(s) you used\n6. Use quotes and paraphrasing extensively\n\nRESPONSE FORMAT:\n- Answer the question clearly and concisely based on the documents\n- Include relevant details, examples, or explanations from the course materials\n- When asked for when the exam date is, always mention only the latest date available.\n\nRemember: Your knowledge is based on what\'s been uploaded to this course. This ensures accuracy and prevents misinformation.'
+          text: 'You are Canvas LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.\n\nIMPORTANT: Answer questions directly using the documents. Do not explain what you are going to search for or describe your process. Simply provide the answer immediately.\n\nSTRICT RULES:\n1. Persona: Be professional, encouraging, and helpful. You are knowledgeable and serious about the course, but also support the student in a mentor-type way.\n2. ONLY use information found in the provided course documents\n3. Reference the course material as often as possible, and use language such as "Based on the course material,"\n4. Provide specific citations showing which document(s) you used\n5. Use quotes and paraphrasing extensively\n\nRESPONSE FORMAT:\n- Answer the question clearly and concisely based on the documents\n- Include relevant details, examples, or explanations from the course materials\n- When asked for when the exam date is, always mention only the latest date available.\n\nRemember: Your knowledge is based on what\'s been uploaded to this course. This ensures accuracy and prevents misinformation.'
         }]
       },
       contents: contents,
@@ -867,8 +949,11 @@ exports.queryCourseStore = onCall(async (request) => {
       requestBody.tools[0].fileSearch.metadataFilter = metadataFilter;
     }
 
+    // Use streamGenerateContent endpoint for complete responses
+    logger.info('Starting streaming query...', { model, courseId, userId });
+    
     const response = await fetch(
-      `${GEMINI_API_ENDPOINT}/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+      `${GEMINI_API_ENDPOINT}/models/${model}:streamGenerateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -878,18 +963,35 @@ exports.queryCourseStore = onCall(async (request) => {
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Query failed: ${error}`);
+      throw new Error(`Streaming query failed: ${error}`);
     }
 
-    const result = await response.json();
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Parse streaming response with timeout protection
+    const STREAMING_TIMEOUT = 180000; // 3 minutes
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Streaming timeout after 3 minutes')), STREAMING_TIMEOUT);
+    });
+    
+    const streamPromise = parseStreamingResponse(response);
+    
+    const { fullText, groundingMetadata } = await Promise.race([
+      streamPromise,
+      timeoutPromise
+    ]);
 
-    if (!text) {
-      throw new Error('No response from Gemini');
+    if (!fullText || fullText.trim().length === 0) {
+      throw new Error('No response text received from stream');
     }
 
-    // Extract citations if available
-    const groundingMetadata = result.candidates?.[0]?.groundingMetadata;
+    const executionTime = Date.now() - startTime;
+    logger.info('Streaming query completed', { 
+      model,
+      courseId,
+      userId,
+      responseLength: fullText.length,
+      executionTimeMs: executionTime
+    });
 
     // Save to user's private chat history if requested
     if (saveToHistory) {
@@ -923,7 +1025,7 @@ exports.queryCourseStore = onCall(async (request) => {
       
       await sessionRef.collection('messages').add({
         role: 'assistant',
-        content: text,
+        content: fullText,
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
       
@@ -934,24 +1036,16 @@ exports.queryCourseStore = onCall(async (request) => {
       });
     }
 
-    logger.info('Course query completed', { 
-      model,
-      courseId,
-      storeName,
-      userId,
-      savedToHistory: saveToHistory
-    });
-
     return {
       success: true,
-      answer: text,
+      answer: fullText,
       groundingMetadata: groundingMetadata,
       sessionId: sessionId,
       model: model
     };
 
   } catch (error) {
-    logger.error('Query course store error:', error);
+    logger.error('Streaming query error:', error);
     throw new Error(error.message);
   }
 });
