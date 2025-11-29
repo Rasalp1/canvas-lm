@@ -14,9 +14,30 @@ export class PopupLogic {
     this.currentSessionId = null; // Track current chat session
     this.streamingMessageTimer = null; // Timer for streaming animation
     this.isStreaming = false; // Flag to prevent interruptions
+    this.uploadPhase = false; // Flag to indicate we're in upload phase (don't accept scan progress updates)
     
     // Firestore helper functions
     this.firestoreHelpers = null;
+  }
+
+  /**
+   * Safely send message to background script, handling "No SW" errors
+   */
+  async sendMessageToBackground(message) {
+    try {
+      const response = await chrome.runtime.sendMessage(message);
+      return response;
+    } catch (error) {
+      // Ignore "No SW" errors - service worker may be starting up
+      if (error.message?.includes('Could not establish connection') || 
+          error.message?.includes('No SW') ||
+          error.message?.includes('Extension context invalidated')) {
+        console.log('Background script not ready, message not sent:', message.action || message.type);
+      } else {
+        console.error('Error sending message to background:', error);
+      }
+      return null;
+    }
   }
 
   setUICallbacks(callbacks) {
@@ -48,6 +69,9 @@ export class PopupLogic {
     
     // Check for pending scan results
     await this.checkPendingScanResults();
+    
+    // Check for stuck scanning state on every popup open
+    await this.checkForStuckScanState();
     
     // Listen for messages from background script
     this.setupMessageListener();
@@ -459,6 +483,33 @@ export class PopupLogic {
     console.log('✅ Navigated back to course selector');
   }
 
+  /**
+   * Check if we're stuck in a scanning state and auto-recover
+   */
+  async checkForStuckScanState() {
+    try {
+      // Check if UI thinks we're scanning but there's no active scan in storage
+      const allScanStatuses = await chrome.storage.local.get(null);
+      const scanStatusKeys = Object.keys(allScanStatuses).filter(key => key.startsWith('scan_status_'));
+      
+      // Clear any scans older than 10 minutes (definitely stuck/abandoned)
+      const now = Date.now();
+      for (const key of scanStatusKeys) {
+        const status = allScanStatuses[key];
+        const ageMinutes = (now - status.timestamp) / 1000 / 60;
+        
+        if (ageMinutes > 10) {
+          console.log(`🧹 Auto-clearing abandoned scan: ${key} (age: ${Math.round(ageMinutes)} min)`);
+          await chrome.storage.local.remove(key);
+        }
+      }
+      
+      console.log('✅ Stuck scan state check completed');
+    } catch (error) {
+      console.error('Error checking for stuck scan state:', error);
+    }
+  }
+
   async checkPendingScanResults() {
     if (!this.currentCourseData) return;
     
@@ -537,13 +588,6 @@ export class PopupLogic {
     // Store re-scan flag for later use
     this._isRescan = isRescan;
     
-    // Notify background that scan is starting
-    chrome.runtime.sendMessage({
-      action: 'SCAN_STARTED',
-      courseId: this.currentCourseData.id,
-      courseName: this.currentCourseData.name
-    }).catch(() => {});
-    
     try {
       // Get active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -554,29 +598,29 @@ export class PopupLogic {
       
       console.log('🚀 Starting smart scan for course:', this.currentCourseData);
       
-      // Set scanning state
-      this.uiCallbacks.setIsScanning?.(true);
-      
-      // Set up a safety timeout to reset UI if scan takes too long or gets stuck
-      const SCAN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
-      this._scanTimeoutId = setTimeout(() => {
-        console.warn('⚠️ Scan timeout reached, resetting UI...');
-        this.resetScanningState();
-        alert('Scan timed out after 10 minutes. Please try again.');
-      }, SCAN_TIMEOUT);
-      
       // Wait for content script to be ready with retry logic
       // Content scripts defined in manifest inject automatically but may not be ready immediately
+      console.log('🔍 Checking content script readiness...');
+      console.log('   Tab ID:', tab.id);
+      console.log('   Tab URL:', tab.url);
+      console.log('   Tab Status:', tab.status);
+      
       let retries = 5;
       let scriptReady = false;
+      let lastError = null;
       
       while (retries > 0 && !scriptReady) {
         try {
+          console.log(`   Ping attempt ${6 - retries}/5...`);
+          
           const pingResponse = await new Promise((resolve) => {
             chrome.tabs.sendMessage(tab.id, { action: 'ping' }, (response) => {
               if (chrome.runtime.lastError) {
+                lastError = chrome.runtime.lastError.message;
+                console.log(`   ❌ Ping failed: ${lastError}`);
                 resolve(null);
               } else {
+                console.log(`   ✅ Received response:`, response);
                 resolve(response);
               }
             });
@@ -584,22 +628,82 @@ export class PopupLogic {
           
           if (pingResponse && pingResponse.ready) {
             scriptReady = true;
-            console.log('✅ Content script is ready');
+            console.log('✅ Content script is ready and responsive');
             break;
+          } else if (pingResponse) {
+            console.log(`   ⚠️ Got response but not ready:`, pingResponse);
           }
         } catch (e) {
-          console.log(`Ping attempt ${6 - retries} failed:`, e);
+          console.log(`   ❌ Ping attempt ${6 - retries} exception:`, e);
+          lastError = e.message;
         }
         
         retries--;
         if (retries > 0) {
+          console.log(`   ⏳ Waiting 300ms before retry... (${retries} attempts left)`);
           await new Promise(r => setTimeout(r, 300));
         }
       }
       
       if (!scriptReady) {
-        throw new Error('Content script is not responding. Please refresh the Canvas page and try again.');
+        // Provide detailed diagnostics about why content script isn't responding
+        const diagnostics = [];
+        diagnostics.push(`Tab Status: ${tab.status}`);
+        diagnostics.push(`Tab URL: ${tab.url}`);
+        diagnostics.push(`Last Error: ${lastError || 'No response received'}`);
+        
+        // Check if URL matches content script patterns
+        const canvasPatterns = [
+          /\.instructure\.com/,
+          /canvas\.education\.lu\.se/,
+          /\.canvas\.com/,
+          /\.canvaslms\.com/
+        ];
+        const urlMatchesPattern = canvasPatterns.some(pattern => pattern.test(tab.url));
+        diagnostics.push(`URL matches Canvas pattern: ${urlMatchesPattern}`);
+        
+        if (!urlMatchesPattern) {
+          diagnostics.push('⚠️ This page may not be a supported Canvas page');
+        }
+        
+        if (tab.status !== 'complete') {
+          diagnostics.push('⚠️ Page may still be loading');
+        }
+        
+        console.error('❌ Content script not responding. Diagnostics:');
+        diagnostics.forEach(d => console.error('   ' + d));
+        
+        const errorMsg = 'Content script is not responding.\n\n' +
+          'Diagnostics:\n' + diagnostics.join('\n') + '\n\n' +
+          'Possible solutions:\n' +
+          '• Refresh the Canvas page\n' +
+          '• Check if you\'re on a Canvas course page\n' +
+          '• Reload the extension\n' +
+          '• Check browser console for errors';
+        
+        throw new Error(errorMsg);
       }
+      
+      // Content script is ready - NOW we can set scanning state and notify background
+      console.log('✅ Content script ready, entering scanning mode...');
+      
+      this.uiCallbacks.setIsScanning?.(true);
+      
+    // Notify background that scan is starting
+    this.sendMessageToBackground({
+      action: 'SCAN_STARTED',
+      courseId: this.currentCourseData.id,
+      courseName: this.currentCourseData.name
+    });      // Set up a safety timeout to reset UI if scan takes too long or gets stuck
+      const SCAN_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+      this._scanTimeoutId = setTimeout(() => {
+        console.warn('⚠️ Scan timeout reached, resetting UI...');
+        this.resetScanningState();
+        alert('Scan timed out after 10 minutes. Please try again.');
+      }, SCAN_TIMEOUT);
+      
+      // Start a health check to verify scan is still active
+      this.startScanHealthCheck();
       
       // Now send the scan message
       chrome.tabs.sendMessage(tab.id, {
@@ -636,7 +740,60 @@ export class PopupLogic {
   }
 
   /**
+   * Start periodic health check to ensure scan hasn't died silently
+   */
+  startScanHealthCheck() {
+    // Clear any existing health check
+    if (this._scanHealthCheckId) {
+      clearInterval(this._scanHealthCheckId);
+    }
+    
+    // Check every 30 seconds if scan is still alive
+    this._scanHealthCheckId = setInterval(async () => {
+      if (!this.currentCourseData?.id) {
+        this.stopScanHealthCheck();
+        return;
+      }
+      
+      const scanStatusKey = `scan_status_${this.currentCourseData.id}`;
+      const result = await chrome.storage.local.get(scanStatusKey);
+      const scanStatus = result[scanStatusKey];
+      
+      if (!scanStatus) {
+        // Scan status disappeared but UI still thinks we're scanning - recovery needed
+        console.warn('⚠️ Health check: Scan status missing, recovering...');
+        this.resetScanningState();
+        alert('Scan was interrupted. Please try again.');
+        return;
+      }
+      
+      const ageMinutes = (Date.now() - scanStatus.timestamp) / 1000 / 60;
+      
+      // If scan hasn't updated in 5 minutes, it's probably stuck
+      if (ageMinutes > 5 && scanStatus.status === 'scanning') {
+        console.warn('⚠️ Health check: Scan appears stuck (no updates for 5+ min), recovering...');
+        this.resetScanningState();
+        alert('Scan appears to be stuck. Please refresh the Canvas page and try again.');
+      }
+    }, 30000); // Check every 30 seconds
+    
+    console.log('✅ Scan health check started');
+  }
+  
+  /**
+   * Stop the scan health check
+   */
+  stopScanHealthCheck() {
+    if (this._scanHealthCheckId) {
+      clearInterval(this._scanHealthCheckId);
+      this._scanHealthCheckId = null;
+      console.log('🛑 Scan health check stopped');
+    }
+  }
+
+  /**
    * Reset the UI scanning state and clear any pending timeouts
+   * Can be called synchronously but storage clear happens async in background
    */
   resetScanningState() {
     console.log('🔄 Resetting scanning state...');
@@ -647,6 +804,9 @@ export class PopupLogic {
       this._scanTimeoutId = null;
     }
     
+    // Stop health check
+    this.stopScanHealthCheck();
+    
     // Reset UI state
     this.uiCallbacks.setIsScanning?.(false);
     this.uiCallbacks.setScanProgress?.(0);
@@ -656,10 +816,20 @@ export class PopupLogic {
     // Clear re-scan flag
     this._isRescan = false;
     
-    // Clear scan status from storage
+    // Clear upload phase flag
+    this.uploadPhase = false;
+    
+    // Clear scan status from storage - do this immediately and don't wait
     if (this.currentCourseData?.id) {
-      chrome.storage.local.remove(`scan_status_${this.currentCourseData.id}`);
+      const statusKey = `scan_status_${this.currentCourseData.id}`;
+      chrome.storage.local.remove(statusKey).then(() => {
+        console.log(`✅ Cleared scan status: ${statusKey}`);
+      }).catch(err => {
+        console.error('Error clearing scan status:', err);
+      });
     }
+    
+    console.log('✅ Scanning state reset complete');
   }
 
   setupMessageListener() {
@@ -683,6 +853,9 @@ export class PopupLogic {
             clearTimeout(this._scanTimeoutId);
             this._scanTimeoutId = null;
           }
+          
+          // Stop health check
+          this.stopScanHealthCheck();
           
           // Set to 100% and show completion
           this.uiCallbacks.setScanProgress?.(100);
@@ -709,6 +882,9 @@ export class PopupLogic {
       if (message.type === 'CRAWL_COMPLETE') {
         console.log('🎉 CRAWL_COMPLETE received!', message);
         
+        // Stop health check
+        this.stopScanHealthCheck();
+        
         // Set progress to 100% before stopping
         this.uiCallbacks.setScanProgress?.(100);
         this.uiCallbacks.setScanTimeLeft?.(0);
@@ -728,6 +904,9 @@ export class PopupLogic {
       if (message.type === 'SMART_CRAWL_COMPLETE') {
         console.log('🎉 SMART_CRAWL_COMPLETE received!', message);
         
+        // Stop health check
+        this.stopScanHealthCheck();
+        
         // Set progress to 100% before stopping
         this.uiCallbacks.setScanProgress?.(100);
         this.uiCallbacks.setScanTimeLeft?.(0);
@@ -744,7 +923,11 @@ export class PopupLogic {
       }
       
       if (message.type === 'SMART_CRAWL_PROGRESS') {
-        // Update UI with progress information
+        // Update UI with progress information ONLY if not in upload phase
+        if (this.uploadPhase) {
+          console.log('📊 Ignoring scan progress (in upload phase):', message);
+          return; // Don't process progress updates during upload
+        }
         console.log('📊 Smart scan progress:', message);
         if (message.progress !== undefined) {
           this.uiCallbacks.setScanProgress?.(message.progress);
@@ -765,6 +948,10 @@ export class PopupLogic {
   async saveFoundPDFsToFirestore() {
     console.log('📥 saveFoundPDFsToFirestore() called');
     
+    // Enter upload phase - ignore scan progress updates from now on
+    this.uploadPhase = true;
+    console.log('🚀 Entered upload phase - scan progress updates will be ignored');
+    
     try {
       console.log('🔍 Checking user sign-in status...');
       console.log('Current user:', this.currentUser);
@@ -773,6 +960,7 @@ export class PopupLogic {
       // Check if user is signed in
       if (!this.currentUser || !this.db) {
         console.log('❌ User not signed in or DB not initialized');
+        this.uploadPhase = false;
         this.resetScanningState();
         alert('Please sign in to Chrome to save PDFs');
         return;
@@ -893,6 +1081,13 @@ export class PopupLogic {
           
           console.log(`📤 Will upload ${pdfsToUpload.length} PDFs total`);
           this.uiCallbacks.setStatus?.(`📋 Found ${newPdfs.length} new, ${retryPdfs.length} to retry. Starting upload...`);
+          
+          // Set timer based on PDF count: 20 seconds per PDF
+          const estimatedSeconds = pdfsToUpload.length * 20;
+          this.uiCallbacks.setScanStartTime?.(Date.now());
+          this.uiCallbacks.setScanTimeLeft?.(estimatedSeconds);
+          this.uiCallbacks.setEstimatedScanTime?.(estimatedSeconds);
+          console.log(`⏱️ Estimated upload time: ${estimatedSeconds} seconds (${pdfsToUpload.length} PDFs × 20s)`);
         }
       }
       
@@ -917,6 +1112,7 @@ export class PopupLogic {
           // Update status: Downloading
           this.uiCallbacks.setScanProgress?.(uploadProgress);
           this.uiCallbacks.setStatus?.(`📥 [${i + 1}/${pdfsToUpload.length}] Downloading: ${pdfTitle}`);
+          await new Promise(resolve => setTimeout(resolve, 300)); // Let UI render
           
           // Download PDF from Canvas via background script (avoids CORS)
           console.log(`📥 Requesting PDF blob from background: ${pdf.url}`);
@@ -936,6 +1132,7 @@ export class PopupLogic {
           
           // Update status: Uploading
           this.uiCallbacks.setStatus?.(`📤 [${i + 1}/${pdfsToUpload.length}] Uploading: ${pdfTitle} (${fileSizeMB} MB)`);
+          await new Promise(resolve => setTimeout(resolve, 300)); // Let UI render
           
           // Upload to File Search store with metadata
           const uploadResult = await this.fileSearchManager.uploadToStore(
@@ -952,10 +1149,13 @@ export class PopupLogic {
           
           // Update status: Saving metadata
           this.uiCallbacks.setStatus?.(`💾 [${i + 1}/${pdfsToUpload.length}] Saving metadata: ${pdfTitle}`);
+          await new Promise(resolve => setTimeout(resolve, 200)); // Let UI render
           
           // ONLY save to Firestore after successful upload
           console.log(`💾 Saving document metadata to Firestore...`);
-          const saveResult = await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdf);
+          // Add the actual file size to the pdf object before saving
+          const pdfWithSize = { ...pdf, size: pdfBlob.size };
+          const saveResult = await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdfWithSize);
           
           if (!saveResult.success) {
             console.warn(`⚠️ Uploaded to File Search but failed to save metadata: ${saveResult.error}`);
@@ -970,6 +1170,7 @@ export class PopupLogic {
           
           // Update status: Success
           this.uiCallbacks.setStatus?.(`✅ [${uploadedCount}/${pdfsToUpload.length}] Completed: ${pdfTitle}`);
+          await new Promise(resolve => setTimeout(resolve, 400)); // Let UI render success message
           
         } catch (uploadError) {
           uploadFailedCount++;
@@ -978,13 +1179,11 @@ export class PopupLogic {
           
           // Update status: Failed
           this.uiCallbacks.setStatus?.(`❌ [${i + 1}/${pdfsToUpload.length}] Failed: ${pdfTitle}`);
+          await new Promise(resolve => setTimeout(resolve, 600)); // Let user see the error
           
           // Save the document with failed status so we can retry later
           await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdf);
           await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'failed');
-          
-          // Brief pause to show error before moving to next
-          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
       
@@ -1011,8 +1210,13 @@ export class PopupLogic {
       // Reset re-scan flag
       this._isRescan = false;
       
+      // Exit upload phase
+      this.uploadPhase = false;
+      console.log('✅ Exited upload phase');
+      
     } catch (err) {
       console.error('Error in saveFoundPDFsToFirestore:', err);
+      this.uploadPhase = false; // Clear flag on error too
       this.resetScanningState();
       throw err;
     }

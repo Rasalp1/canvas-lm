@@ -771,6 +771,21 @@ async function openAndScanTab(url, courseId) {
 async function downloadPDFAsBlob(url) {
   console.log(`📥 Background script requesting PDF via Cloud Function: ${url}`);
   
+  // Ensure URL is a download URL, not a preview URL
+  let downloadUrl = url;
+  if (url.includes('/files/') && !url.includes('/download')) {
+    const fileIdMatch = url.match(/\/files\/(\d+)/);
+    if (fileIdMatch) {
+      const fileId = fileIdMatch[1];
+      const baseUrl = url.split('/files/')[0];
+      downloadUrl = `${baseUrl}/files/${fileId}/download?download_frd=1`;
+      console.log(`🔄 Converted to download URL: ${downloadUrl}`);
+    }
+  } else if (url.includes('/download') && !url.includes('download_frd=1')) {
+    downloadUrl = url.includes('?') ? `${url}&download_frd=1` : `${url}?download_frd=1`;
+    console.log(`🔄 Added download_frd parameter: ${downloadUrl}`);
+  }
+  
   try {
     // Get Canvas cookies to pass to Cloud Function
     const cookies = await chrome.cookies.getAll({ domain: 'canvas.education.lu.se' });
@@ -799,7 +814,7 @@ async function downloadPDFAsBlob(url) {
       },
       body: JSON.stringify({
         data: {
-          url: url,
+          url: downloadUrl,  // Use converted download URL
           cookies: cookiesObj
         }
       })

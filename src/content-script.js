@@ -57,10 +57,13 @@ class CanvasContentScript {
 
   init() {
     try {
+      console.log('Canvas RAG Assistant: Starting initialization...');
+      
       // Check if we're resuming a smart navigation crawl session
       this.checkForSmartNavigationResume();
       
       // Always listen for messages from popup, regardless of course detection
+      console.log('Canvas RAG Assistant: Setting up message listener...');
       chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('📨 Content script received message:', request.action);
         try {
@@ -69,10 +72,12 @@ class CanvasContentScript {
           return result === true;
         } catch (error) {
           console.error('❌ Error in message listener:', error);
-          sendResponse({ error: error.message });
+          console.error('   Error details:', error.stack);
+          sendResponse({ error: error.message, stack: error.stack });
           return false;
         }
       });
+      console.log('Canvas RAG Assistant: ✅ Message listener registered');
       
       // Initialize crawler state
       this.crawlerState = {
@@ -399,13 +404,15 @@ class CanvasContentScript {
           if (itemType === 'wiki_page') return true;
           
           // Check for PDF-like or lecture-like text in Canvas context
-          const lowerText = text.toLowerCase();
-          if (lowerText.includes('pdf') || lowerText.includes('manual') || 
-              lowerText.includes('lab') || lowerText.includes('guide') ||
-              lowerText.includes('document') || lowerText.includes('handout') ||
-              lowerText.includes('föreläsning') || lowerText.includes('lecture') ||
-              lowerText.includes('fö') || lowerText.includes('opt')) {
-            return true;
+          if (text) {
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes('pdf') || lowerText.includes('manual') || 
+                lowerText.includes('lab') || lowerText.includes('guide') ||
+                lowerText.includes('document') || lowerText.includes('handout') ||
+                lowerText.includes('föreläsning') || lowerText.includes('lecture') ||
+                lowerText.includes('fö') || lowerText.includes('opt')) {
+              return true;
+            }
           }
         }
       }
@@ -414,15 +421,17 @@ class CanvasContentScript {
     }
     
     // Text-based indicators
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('pdf') || lowerText.includes('.pdf')) return true;
-    
-    // Canvas-specific text patterns with academic context
-    const academicTerms = ['manual', 'lab', 'guide', 'document', 'handout', 'assignment', 
-                          'worksheet', 'instructions', 'slides', 'notes', 'reading'];
-    if (academicTerms.some(term => lowerText.includes(term))) {
-      // Additional check for Canvas context
-      if (url.includes('/courses/') || url.includes('/files/') || url.includes('/modules/')) return true;
+    if (text) {
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('pdf') || lowerText.includes('.pdf')) return true;
+      
+      // Canvas-specific text patterns with academic context
+      const academicTerms = ['manual', 'lab', 'guide', 'document', 'handout', 'assignment', 
+                            'worksheet', 'instructions', 'slides', 'notes', 'reading'];
+      if (academicTerms.some(term => lowerText.includes(term))) {
+        // Additional check for Canvas context
+        if (url.includes('/courses/') || url.includes('/files/') || url.includes('/modules/')) return true;
+      }
     }
     
     // Element-based indicators
@@ -1791,8 +1800,15 @@ class CanvasContentScript {
 
       case 'ping':
         // Respond to ping to verify content script is ready
-        console.log('🏓 Ping received, responding with ready status');
-        sendResponse({ ready: true, courseId: this.courseId });
+        const readyStatus = {
+          ready: true,
+          courseId: this.courseId,
+          courseName: this.courseName,
+          url: window.location.href,
+          timestamp: Date.now()
+        };
+        console.log('🏓 Ping received, responding with ready status:', readyStatus);
+        sendResponse(readyStatus);
         return false; // Synchronous response
 
       case 'startAutoCrawl':
@@ -3179,7 +3195,7 @@ class CanvasContentScript {
         links.add(href);
         pdfData.push({
           url: href,
-          title: text || 'Course File',
+          title: cleanText || 'Course File',
           filename: this.extractFilename(href),
           context: this.findContext(a),
           type: 'course_file'

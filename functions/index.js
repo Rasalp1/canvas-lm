@@ -518,7 +518,21 @@ exports.uploadToStore = onCall(
       throw new Error(`File size (${Math.round(fileSize / 1024 / 1024)} MB) exceeds File Search API limit of 100 MB`);
     }
     
-    logger.info('File decoded successfully', { fileSizeMB: Math.round(fileSize / 1024 / 1024) });
+    // Validate PDF format by checking magic bytes
+    const pdfMagicBytes = buffer.slice(0, 5).toString();
+    if (!pdfMagicBytes.startsWith('%PDF-')) {
+      logger.error('Invalid PDF file', {
+        fileName,
+        firstBytes: buffer.slice(0, 20).toString('hex'),
+        mimeType
+      });
+      throw new Error(`Invalid PDF file: ${fileName}. File does not have PDF magic bytes.`);
+    }
+    
+    logger.info('File decoded and validated successfully', { 
+      fileSizeMB: Math.round(fileSize / 1024 / 1024),
+      pdfVersion: pdfMagicBytes
+    });
 
     // File Search API uses multipart/form-data (NOT resumable protocol like Files API!)
     // Create multipart boundary
@@ -574,12 +588,37 @@ exports.uploadToStore = onCall(
     });
 
     if (!uploadResponse.ok) {
-      const error = await uploadResponse.text();
+      const errorText = await uploadResponse.text();
+      let errorDetails;
+      try {
+        errorDetails = JSON.parse(errorText);
+      } catch {
+        errorDetails = errorText;
+      }
+      
       logger.error('Upload failed', { 
-        status: uploadResponse.status, 
-        error 
+        status: uploadResponse.status,
+        statusText: uploadResponse.statusText,
+        error: errorDetails,
+        fileName,
+        fileSize: Math.round(fileSize / 1024 / 1024) + ' MB',
+        storeName,
+        requestHeaders: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'Content-Length': multipartBody.length
+        }
       });
-      throw new Error(`Upload failed [${uploadResponse.status}]: ${error}`);
+      
+      // Provide more helpful error messages
+      if (uploadResponse.status === 500) {
+        throw new Error(`Google API Internal Error (500). This may be due to: invalid file format, corrupted PDF, or temporary API issues. File: ${fileName}`);
+      } else if (uploadResponse.status === 429) {
+        throw new Error(`Rate limit exceeded. Please wait a moment and try again.`);
+      } else if (uploadResponse.status === 403) {
+        throw new Error(`Permission denied. Check API key and store access.`);
+      } else {
+        throw new Error(`Upload failed [${uploadResponse.status}]: ${JSON.stringify(errorDetails)}`);
+      }
     }
 
     // uploadToFileSearchStore returns a long-running operation

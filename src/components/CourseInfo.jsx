@@ -109,7 +109,9 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, scanProgress, sc
                       <div className="space-y-2">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-slate-600 font-medium">Scanning course materials...</span>
-                          <span className="text-slate-500 tabular-nums">{formatTime(scanTimeLeft)} left</span>
+                          <span className="text-slate-500 tabular-nums">
+                            {scanTimeLeft === 0 ? 'Calculating time estimate...' : `${formatTime(scanTimeLeft)} left`}
+                          </span>
                         </div>
                         <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
                           <div 
@@ -168,47 +170,18 @@ export const CourseInfo = ({ courseDetails, onScan, isScanning, scanProgress, sc
                 ) : null}
               </>
             ) : (
-              /* User NOT enrolled - show enrollment options */
+              /* User NOT enrolled - show same enrollment screen regardless of course existence */
               <>
                 <Separator />
                 
-                {enrollmentStatus.courseExists ? (
-                  /* Course exists - prompt to enroll */
-                  <>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200/60">
-                        <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <AlertCircle className="w-4 h-4 text-amber-600" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-amber-900 mb-1">Already in Database</p>
-                          <p className="text-xs text-amber-700 leading-relaxed">
-                            This course has been scanned by another student. Click below to join and access all course materials.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button
-                      onClick={onEnroll}
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
-                      size="lg"
-                    >
-                      <UserPlus className="w-5 h-5 mr-2" />
-                      I'm Taking This Course
-                    </Button>
-                  </>
-                ) : (
-                  /* Course doesn't exist - prompt to enroll & scan */
-                  <Button
-                    onClick={onEnroll}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
-                    size="lg"
-                  >
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    Enroll & Scan Course
-                  </Button>
-                )}
+                <Button
+                  onClick={onEnroll}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
+                  size="lg"
+                >
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  I'm taking this course
+                </Button>
               </>
             )}
           </>
