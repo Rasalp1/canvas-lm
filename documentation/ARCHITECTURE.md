@@ -1,6 +1,6 @@
 # Architecture Overview: Canvas LM - AI Study Assistant
 
-**Last Updated:** November 24, 2025  
+**Last Updated:** November 30, 2025  
 **Version:** 1.0.0
 
 ## System Flow Diagram
@@ -84,7 +84,7 @@
 ```
 Canvas Page
     │
-    │ (1) User clicks "Scan Course"
+    │ (1) User clicks "Scan Course" or "Re-scan Course"
     ▼
 content-script.js
     │
@@ -92,12 +92,14 @@ content-script.js
     ▼
 App.jsx (React UI)
     │
-    │ (3) Calls popup-logic.js.scanCurrentCourse()
+    │ (3) Determines if re-scan (documents already exist)
+    │    Calls popup-logic.js.handleScan(isRescan)
     ▼
 popup-logic.js
     │
     │ (4) Saves course + enrollment to Firestore
     │    (via firestore-helpers.js)
+    │    Stores _isRescan flag for later use
     ▼
 Firestore (courses, enrollments)
     │
@@ -166,28 +168,37 @@ Gemini File Search API
     │ (8) Semantic search across course PDFs
     │    → Retrieves relevant chunks
     │    → Generates contextualized answer
+    │    → STREAMING: Returns response in chunks (NDJSON format)
     ▼
 Gemini 2.5 Flash Model
     │
-    │ (9) Returns AI response with citations
+    │ (9) Streams AI response parts with citations
     ▼
 Cloud Functions
     │
-    │ (10) Saves chat message to Firestore
+    │ (10) Aggregates streaming chunks server-side
+    │     • Parses NDJSON stream line-by-line
+    │     • Concatenates all text parts
+    │     • Extracts grounding metadata from final chunk
+    │     • Returns complete response (no truncation)
+    ▼
+Cloud Functions
+    │
+    │ (11) Saves complete chat message to Firestore
     ▼
 Firestore (chatSessions/)
     │
-    │ (11) Returns response to client
+    │ (12) Returns full response to client
     ▼
 popup-logic.js
     │
-    │ (12) Streams message to UI (10ms delay)
+    │ (13) Streams message to UI (10ms delay for typing effect)
     ▼
 ChatSection.jsx
     │
-    │ (13) Displays answer with typing animation
+    │ (14) Displays answer with typing animation
     ▼
-User sees response
+User sees complete response (no truncation)
 ```
 
 ## Authentication Flow (Chrome Identity API)
@@ -350,8 +361,10 @@ chatSessions/                        ← Root-level chat sessions
 - ✅ Orchestrate all extension operations
 - ✅ User authentication (Chrome Identity)
 - ✅ Course detection and enrollment
-- ✅ PDF scanning coordination
-- ✅ Chat message handling
+- ✅ PDF scanning coordination (initial scan + re-scan)
+- ✅ Re-scan detection (new/failed documents)
+- ✅ Enhanced status messaging with context awareness
+- ✅ Chat message handling with streaming support
 - ✅ Session management
 - ✅ Bridge between UI and services
 
@@ -414,10 +427,13 @@ chatSessions/                        ← Root-level chat sessions
 
 - ✅ `queryCourseStore`
   - RAG query with Gemini 2.5 Flash
+  - **Streaming API** (`streamGenerateContent`) for complete responses
+  - Server-side stream aggregation (parses NDJSON chunks)
   - System prompt injection (course focus)
-  - Conversation history support
+  - Conversation history support (last 10 messages)
   - Saves chat messages to Firestore
   - Rate limit: 50 requests/minute
+  - Timeout: 180 seconds (3 minutes)
   - Requires: userId, courseId, question
 
 - ✅ `deleteDocument`
@@ -436,8 +452,11 @@ GET    /v1beta/files/{name}       - Get file metadata
 GET    /v1beta/files              - List all files
 DELETE /v1beta/files/{name}       - Delete file
 
-POST   /v1beta/models/{model}:generateContent
-                                   - Chat with context
+POST   /v1beta/models/{model}:streamGenerateContent
+                                   - Chat with streaming (USED)
+                                   - Returns NDJSON stream
+                                   - Handles multi-part responses
+                                   - Prevents response truncation
 ```
 
 ### Firebase/Firestore

@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0  
 **Target:** Chrome Web Store Submission  
-**Last Updated:** November 24, 2025
+**Last Updated:** November 30, 2025
 
 ---
 
@@ -10,15 +10,19 @@
 
 Canvas LM is an AI-powered Chrome extension that helps students interact with their Canvas course materials using advanced RAG (Retrieval-Augmented Generation) technology. This document outlines the steps required to prepare the extension for Chrome Web Store submission and production release.
 
-**Current Status:** Pre-Production (90% Complete)
+**Current Status:** Pre-Production (95% Complete)
 
-### 🚀 Recent Progress (November 24, 2025)
+### 🚀 Recent Progress (November 30, 2025)
 
 **✅ Major Milestones Completed:**
-1. **Legal Documents Created** - Comprehensive Privacy Policy and Terms of Service
-2. **Security Hardened** - Rate limiting implemented on all Cloud Functions
-3. **Documentation Complete** - Security model and architecture fully documented
-4. **Firestore Rules Finalized** - Rules validated with Chrome Identity API
+1. **Streaming Responses Implemented** - Full API response streaming to handle multi-part assistant responses
+2. **Re-scanning Functionality Added** - Users can re-scan courses to upload new/failed documents
+3. **Status Messages Enhanced** - More informative and context-aware status updates throughout the app
+4. **Code Cleanup** - Removed legacy functions and deprecated code
+5. **Legal Documents Created** - Comprehensive Privacy Policy and Terms of Service
+6. **Security Hardened** - Rate limiting implemented on all Cloud Functions
+7. **Documentation Complete** - Security model and architecture fully documented
+8. **Firestore Rules Finalized** - Rules validated with Chrome Identity API
 
 **⚠️ Critical Remaining Tasks:**
 1. Take 5 screenshots (1280x800px) for Chrome Web Store listing
@@ -41,8 +45,10 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 - [x] Multi-course support with enrollment management
 - [x] Conversation history and chat sessions
 - [x] System prompt configured for AI assistant behavior
-- [x] Streaming responses for better UX
+- [x] Streaming responses for better UX (server-side stream aggregation)
 - [x] File Search RAG implementation with Gemini
+- [x] Re-scanning functionality for updating course documents
+- [x] Enhanced status messages with contextual updates
 - [x] Rate limiting implemented on all Cloud Functions
 - [x] Security model documented and validated
 - [x] Firestore rules finalized with comprehensive documentation
@@ -194,17 +200,20 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
   - [ ] Unenroll from course
   
 - [ ] PDF scanning:
-  - [ ] Scan course with PDFs
+  - [ ] Initial scan course with PDFs
+  - [ ] Re-scan to detect new documents
+  - [ ] Re-scan to retry failed uploads
   - [ ] Handle missing PDFs gracefully
   - [ ] Progress indication
   - [ ] Error handling
   
 - [ ] Chat functionality:
   - [ ] Send messages
-  - [ ] Receive streamed responses
+  - [ ] Receive streamed responses (server-side aggregation)
   - [ ] View conversation history
   - [ ] Citations and sources
   - [ ] Multi-turn conversations
+  - [ ] Complete responses (no truncation)
 
 **Browser Compatibility**
 - [ ] Chrome (latest version)

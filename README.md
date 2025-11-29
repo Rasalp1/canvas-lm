@@ -32,9 +32,11 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 - **Encrypted storage** - All data encrypted at rest and in transit
 
 ### ⚡ Smart Features
-- **Streaming responses** - See AI answers appear in real-time with typing animation
+- **Streaming responses** - See AI answers appear in real-time with typing animation (server-side aggregation ensures complete responses)
+- **Re-scanning capability** - Easily update your course store with new documents or retry failed uploads
 - **Source citations** - Every answer includes references to source documents
 - **Shared course stores** - Collaborate with classmates on the same course materials
+- **Enhanced status messages** - Clear, contextual feedback throughout the scanning and upload process
 - **Modern UI** - Built with React 19 and Tailwind CSS for a polished experience
 
 ---
@@ -107,11 +109,20 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 **Automatic Detection:**
 Canvas LM automatically detects when you're viewing a Canvas course page and displays course information.
 
-**Manual Scanning:**
+**Initial Scanning:**
 1. Navigate to any page within your Canvas course
 2. Click the Canvas LM extension icon
 3. Click "Scan Course for PDFs"
 4. Wait for completion - you'll see progress updates
+
+**Re-scanning for Updates:**
+When you need to add new documents or retry failed uploads:
+1. Navigate to your Canvas course
+2. Click "Scan Course for PDFs" again
+3. Canvas LM will automatically detect:
+   - New documents added since last scan
+   - Previously failed uploads that need retry
+4. Only new/failed documents will be uploaded (no duplicates)
 
 **What Gets Scanned:**
 - PDF files in the Files section
