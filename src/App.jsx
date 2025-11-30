@@ -10,6 +10,9 @@ import { CourseSelector } from './components/CourseSelector';
 import { AllCoursesView } from './components/AllCoursesView';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/dialog';
 import { Button } from './components/ui/button';
+import { getCourseColor } from './lib/course-colors';
+import Aurora from './components/ui/aurora';
+import RotatingText from './components/ui/rotating-text';
 import './styles.css';
 
 const CSS_VARS = `
@@ -235,9 +238,19 @@ export const App = ({
     return (
       <>
         <style>{CSS_VARS}</style>
-        <div className="w-screen h-screen bg-slate-50 flex overflow-hidden">
+        <div className="w-screen h-screen bg-slate-50 flex overflow-hidden relative">
+          {/* Aurora Background - positioned behind everything */}
+          <div className="absolute inset-0 z-0">
+            <Aurora 
+              colorStops={['#fd68baff', '#3bd161ff', '#3B82F6']}
+              amplitude={1.0}
+              blend={0.5}
+              speed={0.5}
+            />
+          </div>
+          
           {/* Left Sidebar - Course List */}
-          <div className={`bg-slate-100 border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out rounded-r-3xl ${
+          <div className={`bg-slate-100 border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out rounded-r-3xl relative z-10 ${
             sidebarCollapsed ? 'w-16' : 'w-80'
           }`}>
             {/* Header */}
@@ -269,7 +282,9 @@ export const App = ({
             <div className="flex-1 overflow-y-auto p-3">
               <div className="space-y-1">
                 {courseList && courseList.length > 0 ? (
-                  courseList.map((course) => (
+                  courseList.map((course) => {
+                    const courseColor = getCourseColor(course.enrollment);
+                    return (
                     <div key={course.id}>
                       <button
                         onClick={() => handleSelectCourse(course)}
@@ -282,12 +297,17 @@ export const App = ({
                       >
                         {sidebarCollapsed ? (
                           <div className="flex justify-center">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: courseColor.hex }}
+                            ></div>
                           </div>
                         ) : (
                           <>
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-sky-500 rounded-lg flex items-center justify-center flex-shrink-0 text-xs">
+                              <div 
+                                className={`w-8 h-8 bg-gradient-to-br ${courseColor.gradient} rounded-lg flex items-center justify-center flex-shrink-0 text-xs`}
+                              >
                                 📚
                               </div>
                               <div className="flex-1 min-w-0">
@@ -331,7 +351,8 @@ export const App = ({
                         </>
                       )}
                     </div>
-                  ))
+                  );
+                  })
                 ) : (
                   !sidebarCollapsed && (
                     <div className="text-center py-8 text-slate-500 text-sm">
@@ -366,10 +387,10 @@ export const App = ({
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col bg-white">
+          <div className="flex-1 flex flex-col relative z-10">
             {showCourseInfo && currentCourseDocCount > 0 && enrollmentStatus.isEnrolled ? (
               /* Chat Interface */
-              <>
+              <div className="flex-1 bg-white">
                 <ChatSection 
                   messages={chatMessages}
                   inputValue={chatInput}
@@ -379,10 +400,10 @@ export const App = ({
                   isFullScreen={true}
                   user={user}
                 />
-              </>
+              </div>
             ) : showCourseInfo ? (
               /* Course Info - Need to Scan */
-              <div className="flex-1 flex items-center justify-center p-8">
+              <div className="flex-1 flex items-center justify-center p-8 bg-white">
                 <div className="max-w-2xl w-full">
                   <CourseInfo 
                     courseDetails={courseDetails}
@@ -403,12 +424,50 @@ export const App = ({
               </div>
             ) : (
               /* Welcome Screen */
-              <div className="flex-1 flex items-center justify-center p-8">
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-sky-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <span className="text-4xl">💬</span>
+              <div className="flex-1 flex items-center justify-center p-8 relative">
+                <div className="text-center relative z-20">
+                  <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg overflow-hidden">
+                    <img 
+                      src={chrome.runtime.getURL('Canvas LM Logo.png')}
+                      alt="Canvas LM Logo" 
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <h2 className="text-3xl font-bold text-slate-900 mb-3">Welcome to Canvas LM</h2>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-3 flex flex-wrap items-center justify-center gap-2">
+                    <span>Welcome to</span>
+                    <div className="flex items-center gap-2">
+                      <RotatingText 
+                        texts={[
+                          '',
+                          'your',
+                          'your digital'
+                        ]}
+                        rotationInterval={3000}
+                        staggerDuration={0.02}
+                        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        mainClassName="inline-flex"
+                        splitBy="characters"
+                      />
+                      <RotatingText 
+                        texts={[
+                          'Canvas LM',
+                          'course expert',
+                          'study buddy'
+                        ]}
+                        rotationInterval={3000}
+                        staggerDuration={0.02}
+                        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        mainClassName="bg-blue-600 text-white px-4 py-2 rounded-2xl inline-flex"
+                        splitBy="characters"
+                      />
+                    </div>
+                  </h2>
                   <p className="text-slate-600">
                     Select a course from the sidebar to start chatting with your course materials
                   </p>

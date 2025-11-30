@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BookOpen, FileText, GraduationCap, X } from 'lucide-react';
+import { getCourseColor } from '../lib/course-colors';
 
 export const CourseSelector = ({ courses, onSelectCourse, onRemoveEnrollment, isExtensionPage }) => {
   const [confirmDialog, setConfirmDialog] = useState({ open: false, course: null });
@@ -38,16 +39,24 @@ export const CourseSelector = ({ courses, onSelectCourse, onRemoveEnrollment, is
         <ScrollArea className="h-[320px]">
           <div className="space-y-2 pr-4">
             {courses && courses.length > 0 ? (
-              courses.map((course) => (
+              courses.map((course) => {
+                const courseColor = getCourseColor(course.enrollment);
+                return (
                 <div key={course.id} className="relative group/item">
                   <Button
                     onClick={() => onSelectCourse(course)}
                     variant="outline"
-                    className="w-full h-auto p-4 justify-start hover:border-blue-500 hover:bg-blue-50 transition-all group"
+                    className={`w-full h-auto p-4 justify-start hover:border-${courseColor.id}-500 hover:bg-${courseColor.id}-50 transition-all group`}
+                    style={{
+                      '--hover-border-color': courseColor.hex,
+                      '--hover-bg-color': courseColor.hex + '10'
+                    }}
                   >
                     <div className="flex items-start gap-3 w-full text-left">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-sky-100 group-hover:from-blue-200 group-hover:to-sky-200 rounded-lg flex items-center justify-center flex-shrink-0 transition-all">
-                        <BookOpen className="w-5 h-5 text-blue-600" />
+                      <div 
+                        className={`w-10 h-10 bg-gradient-to-br ${courseColor.gradient} rounded-lg flex items-center justify-center flex-shrink-0 transition-all opacity-80 group-hover:opacity-100`}
+                      >
+                        <BookOpen className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-slate-900 text-sm mb-1 line-clamp-2">
@@ -77,7 +86,8 @@ export const CourseSelector = ({ courses, onSelectCourse, onRemoveEnrollment, is
                     </Button>
                   )}
                 </div>
-              ))
+              );
+              })
             ) : (
               <div className="text-center py-8">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">

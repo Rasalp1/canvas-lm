@@ -162,18 +162,24 @@ export async function getCourse(db, courseId) {
  */
 export async function getUserCourses(db, userId) {
   try {
-    const { collection, getDocs, doc, getDoc } = window.firebaseModules;
+    const { collection, getDocs, doc, getDoc, setDoc } = window.firebaseModules;
     
     // Get user's enrollments
     const enrollmentsRef = collection(db, 'users', userId, 'enrollments');
     const enrollmentsSnap = await getDocs(enrollmentsRef);
     
     const courses = [];
+    let needsColorMigration = false;
     
     // Fetch shared course data for each enrollment
     for (const enrollDoc of enrollmentsSnap.docs) {
       const courseId = enrollDoc.id;
       const enrollmentData = enrollDoc.data();
+      
+      // Check if enrollment needs color assignment (backward compatibility)
+      if (!enrollmentData.colorId) {
+        needsColorMigration = true;
+      }
       
       // Get shared course data
       const courseRef = doc(db, 'courses', courseId);
@@ -185,6 +191,28 @@ export async function getUserCourses(db, userId) {
           enrollment: enrollmentData, // Private: enrolledAt, favorite, etc.
           ...courseSnap.data() // Shared: courseName, pdfCount, etc.
         });
+      }
+    }
+    
+    // Migrate colors for existing enrollments if needed
+    if (needsColorMigration) {
+      console.log('🎨 Migrating colors for existing enrollments...');
+      const { assignCourseColor } = await import('./lib/course-colors.js');
+      
+      for (let i = 0; i < courses.length; i++) {
+        const course = courses[i];
+        if (!course.enrollment.colorId) {
+          // Assign color based on courses that already have colors
+          const colorId = assignCourseColor(courses.slice(0, i).filter(c => c.enrollment?.colorId));
+          
+          // Update in Firestore
+          const enrollmentRef = doc(db, 'users', userId, 'enrollments', course.id);
+          await setDoc(enrollmentRef, { colorId }, { merge: true });
+          
+          // Update in memory
+          course.enrollment.colorId = colorId;
+          console.log(`✅ Assigned color ${colorId} to course ${course.id}`);
+        }
       }
     }
     
@@ -242,22 +270,32 @@ export async function incrementCourseEnrollments(db, courseId) {
  */
 export async function enrollUserInCourse(db, userId, enrollmentData) {
   try {
-    const { doc, setDoc, getDoc, Timestamp } = window.firebaseModules;
+    const { doc, setDoc, getDoc, Timestamp, getDocs, collection } = window.firebaseModules;
     
     const enrollmentRef = doc(db, 'users', userId, 'enrollments', enrollmentData.courseId);
     const enrollmentSnap = await getDoc(enrollmentRef);
     const isNewEnrollment = !enrollmentSnap.exists();
     
     if (isNewEnrollment) {
+      // Get existing enrollments to assign a color
+      const enrollmentsRef = collection(db, 'users', userId, 'enrollments');
+      const enrollmentsSnap = await getDocs(enrollmentsRef);
+      const existingCourses = enrollmentsSnap.docs.map(doc => doc.data());
+      
+      // Dynamically import the color assignment function
+      const { assignCourseColor } = await import('./lib/course-colors.js');
+      const colorId = assignCourseColor(existingCourses);
+      
       // New enrollment
       await setDoc(enrollmentRef, {
         courseId: enrollmentData.courseId,
         courseName: enrollmentData.courseName,
         enrolledAt: Timestamp.now(),
         lastAccessedAt: Timestamp.now(),
-        favorite: false
+        favorite: false,
+        colorId: colorId
       });
-      console.log('✅ User enrolled in course:', enrollmentData.courseId);
+      console.log('✅ User enrolled in course with color:', enrollmentData.courseId, colorId);
       
       // Increment course enrollment count
       await incrementCourseEnrollments(db, enrollmentData.courseId);
