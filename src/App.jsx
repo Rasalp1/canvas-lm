@@ -397,17 +397,15 @@ export const App = ({
           <div className="flex-1 flex flex-col relative z-10">
             {showCourseInfo && currentCourseDocCount > 0 && enrollmentStatus.isEnrolled ? (
               /* Chat Interface */
-              <div className="flex-1 bg-white">
-                <ChatSection 
-                  messages={chatMessages}
-                  inputValue={chatInput}
-                  onInputChange={setChatInput}
-                  onSend={handleChatSend}
-                  isLoading={isChatLoading}
-                  isFullScreen={true}
-                  user={user}
-                />
-              </div>
+              <ChatSection 
+                messages={chatMessages}
+                inputValue={chatInput}
+                onInputChange={setChatInput}
+                onSend={handleChatSend}
+                isLoading={isChatLoading}
+                isFullScreen={true}
+                user={user}
+              />
             ) : showCourseInfo ? (
               /* Course Info - Need to Scan */
               <div className="flex-1 flex items-center justify-center p-8 bg-white">

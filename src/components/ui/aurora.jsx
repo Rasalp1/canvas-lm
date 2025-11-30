@@ -101,12 +101,7 @@ void main() {
   float midPoint = 0.20;
   float auroraAlpha = smoothstep(midPoint - uBlend * 0.5, midPoint + uBlend * 0.5, intensity);
   
-  // Brighten the colors and add a minimum brightness to prevent dark edges
-  vec3 auroraColor = (intensity + 0.4) * rampColor;
-  auroraColor = pow(auroraColor, vec3(0.7)); // Gamma correction for brightness
-  
-  // Increase overall alpha for better visibility
-  auroraAlpha = pow(auroraAlpha, 0.6) * 0.8;
+  vec3 auroraColor = intensity * rampColor;
   
   fragColor = vec4(auroraColor * auroraAlpha, auroraAlpha);
 }

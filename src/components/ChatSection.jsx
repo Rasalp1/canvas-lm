@@ -152,9 +152,9 @@ export const ChatSection = ({
   if (isFullScreen) {
     // Full-screen layout for extended page
     return (
-      <div className="flex-1 flex flex-col h-full">
+      <div className="flex-1 flex flex-col h-full min-h-0">
         {/* Messages Area */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0">
           <div className="w-full px-8 py-8">
             <div className="space-y-6">
               {messages.length === 0 ? (
