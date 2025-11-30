@@ -239,15 +239,22 @@ export const App = ({
       <>
         <style>{CSS_VARS}</style>
         <div className="w-screen h-screen bg-slate-50 flex overflow-hidden relative">
-          {/* Aurora Background - positioned behind everything */}
-          <div className="absolute inset-0 z-0">
-            <Aurora 
-              colorStops={['#fd68baff', '#3bd161ff', '#3B82F6']}
-              amplitude={1.0}
-              blend={0.5}
-              speed={0.5}
-            />
-          </div>
+          {/* Aurora Background - only show on welcome screen */}
+          {!showCourseInfo && (
+            <div className="absolute inset-0 z-0">
+              <Aurora 
+                colorStops={['#3bd161ff', '#68e9fdff', '#3B82F6']}
+                amplitude={0.6}
+                blend={0.8}
+                speed={0.5}
+              />
+            </div>
+          )}
+          
+          {/* White Background - show when course is selected */}
+          {showCourseInfo && (
+            <div className="absolute inset-0 z-0 bg-white" />
+          )}
           
           {/* Left Sidebar - Course List */}
           <div className={`bg-slate-100 border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out rounded-r-3xl relative z-10 ${
@@ -435,38 +442,15 @@ export const App = ({
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-3 flex flex-wrap items-center justify-center gap-2">
                     <span>Welcome to</span>
-                    <div className="flex items-center gap-2">
-                      <RotatingText 
-                        texts={[
-                          '',
-                          'your',
-                          'your digital'
-                        ]}
-                        rotationInterval={3000}
-                        staggerDuration={0.02}
-                        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        mainClassName="inline-flex"
-                        splitBy="characters"
-                      />
-                      <RotatingText 
-                        texts={[
-                          'Canvas LM',
-                          'course expert',
-                          'study buddy'
-                        ]}
-                        rotationInterval={3000}
-                        staggerDuration={0.02}
-                        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        mainClassName="bg-blue-600 text-white px-4 py-2 rounded-2xl inline-flex"
-                        splitBy="characters"
-                      />
-                    </div>
+                    <RotatingText 
+                      texts={[
+                        'Canvas LM',
+                        'your course expert',
+                        'your digital study buddy'
+                      ]}
+                      rotationInterval={3000}
+                      mainClassName="bg-blue-600 text-white px-4 py-2 rounded-2xl inline-flex overflow-hidden"
+                    />
                   </h2>
                   <p className="text-slate-600">
                     Select a course from the sidebar to start chatting with your course materials

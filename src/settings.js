@@ -58,10 +58,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Clear API key
   clearBtn.addEventListener('click', async () => {
-    if (!confirm('Are you sure you want to remove your API key?')) {
-      return;
-    }
-
     try {
       await chrome.storage.sync.remove('geminiApiKey');
       apiKeyInput.value = '';

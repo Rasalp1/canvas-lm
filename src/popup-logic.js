@@ -376,7 +376,7 @@ export class PopupLogic {
   async enrollInCurrentCourse() {
     if (!this.currentUser) {
       console.error('No user signed in');
-      alert('Please sign in to enroll in courses.');
+      this.uiCallbacks.setStatus?.('❌ Please sign in to enroll in courses.');
       return;
     }
 
@@ -417,11 +417,11 @@ export class PopupLogic {
         this.uiCallbacks.setStatus?.(`✅ Enrolled in ${this.currentCourseData.name}`);
       } else {
         console.error('Failed to enroll:', enrollmentResult.error);
-        alert('Failed to enroll in course. Please try again.');
+        this.uiCallbacks.setStatus?.('❌ Failed to enroll in course. Please try again.');
       }
     } catch (error) {
       console.error('Error enrolling in course:', error);
-      alert('An error occurred while enrolling in the course.');
+      this.uiCallbacks.setStatus?.('❌ An error occurred while enrolling in the course.');
     }
   }
 
@@ -463,11 +463,11 @@ export class PopupLogic {
         }
       } else {
         console.error('Failed to remove enrollment:', result.error);
-        alert('Failed to remove enrollment. Please try again.');
+        this.uiCallbacks.setStatus?.('❌ Failed to remove enrollment. Please try again.');
       }
     } catch (error) {
       console.error('Error removing enrollment:', error);
-      alert('An error occurred while removing enrollment.');
+      this.uiCallbacks.setStatus?.('❌ An error occurred while removing enrollment.');
     }
   }
 
@@ -576,12 +576,12 @@ export class PopupLogic {
 
   async handleScan(isRescan = false) {
     if (!this.currentUser) {
-      alert('Please sign in to Chrome first');
+      this.uiCallbacks.setStatus?.('❌ Please sign in to Chrome first');
       return;
     }
     
     if (!this.currentCourseData) {
-      alert('Please navigate to a Canvas course page first');
+      this.uiCallbacks.setStatus?.('❌ Please navigate to a Canvas course page first');
       return;
     }
     
@@ -699,7 +699,7 @@ export class PopupLogic {
       this._scanTimeoutId = setTimeout(() => {
         console.warn('⚠️ Scan timeout reached, resetting UI...');
         this.resetScanningState();
-        alert('Scan timed out after 10 minutes. Please try again.');
+        this.uiCallbacks.setStatus?.('❌ Scan timed out after 10 minutes. Please try again.');
       }, SCAN_TIMEOUT);
       
       // Start a health check to verify scan is still active
@@ -714,18 +714,18 @@ export class PopupLogic {
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('Error sending message to content script:', chrome.runtime.lastError);
-          alert('Error: Content script not responding. Please refresh the page and try again.');
+          this.uiCallbacks.setStatus?.('❌ Content script not responding. Please refresh the page and try again.');
           this.resetScanningState();
           return;
         }
         
         if (response?.error) {
           console.error('Content script error:', response.error);
-          alert('Error: ' + response.error);
+          this.uiCallbacks.setStatus?.('❌ Error: ' + response.error);
           this.resetScanningState();
         } else if (!response?.success && !response?.started) {
           console.error('Unexpected response from content script:', response);
-          alert('Error: Scan failed to start properly');
+          this.uiCallbacks.setStatus?.('❌ Error: Scan failed to start properly');
           this.resetScanningState();
         } else {
           console.log('✅ Smart scan started successfully:', response);
@@ -734,7 +734,7 @@ export class PopupLogic {
       
     } catch (error) {
       console.error('Error starting scan:', error);
-      alert('Error starting scan: ' + error.message);
+      this.uiCallbacks.setStatus?.('❌ Error starting scan: ' + error.message);
       this.resetScanningState();
     }
   }
@@ -763,7 +763,7 @@ export class PopupLogic {
         // Scan status disappeared but UI still thinks we're scanning - recovery needed
         console.warn('⚠️ Health check: Scan status missing, recovering...');
         this.resetScanningState();
-        alert('Scan was interrupted. Please try again.');
+        this.uiCallbacks.setStatus?.('❌ Scan was interrupted. Please try again.');
         return;
       }
       
@@ -773,7 +773,7 @@ export class PopupLogic {
       if (ageMinutes > 5 && scanStatus.status === 'scanning') {
         console.warn('⚠️ Health check: Scan appears stuck (no updates for 5+ min), recovering...');
         this.resetScanningState();
-        alert('Scan appears to be stuck. Please refresh the Canvas page and try again.');
+        this.uiCallbacks.setStatus?.('❌ Scan appears to be stuck. Please refresh the Canvas page and try again.');
       }
     }, 30000); // Check every 30 seconds
     
@@ -873,8 +873,7 @@ export class PopupLogic {
         }).catch(err => {
           console.error('❌ Error in saveFoundPDFsToFirestore:', err);
           this.resetScanningState();
-          this.uiCallbacks.setStatus?.('Error: ' + err.message);
-          alert('Error saving PDFs: ' + err.message);
+          this.uiCallbacks.setStatus?.('❌ Error saving PDFs: ' + err.message);
         });
       }
       
@@ -940,7 +939,7 @@ export class PopupLogic {
       if (message.type === 'CRAWL_ERROR') {
         console.error('❌ Crawl error:', message);
         this.resetScanningState();
-        alert(`Scan error: ${message.error}\nStep: ${message.step}`);
+        this.uiCallbacks.setStatus?.(`❌ Scan error: ${message.error} (Step: ${message.step})`);
       }
     });
   }
@@ -962,7 +961,7 @@ export class PopupLogic {
         console.log('❌ User not signed in or DB not initialized');
         this.uploadPhase = false;
         this.resetScanningState();
-        alert('Please sign in to Chrome to save PDFs');
+        this.uiCallbacks.setStatus?.('❌ Please sign in to Chrome to save PDFs');
         return;
       }
       
@@ -970,7 +969,7 @@ export class PopupLogic {
       if (!this.fileSearchManager) {
         console.warn('⚠️ File Search Manager not initialized');
         this.resetScanningState();
-        alert('File Search service is not available. Please check your internet connection.');
+        this.uiCallbacks.setStatus?.('❌ File Search service is not available. Please check your internet connection.');
         return;
       }
       
@@ -987,7 +986,7 @@ export class PopupLogic {
       if (pdfs.length === 0) {
         console.log('⚠️ No PDFs found in storage');
         this.resetScanningState();
-        alert('No PDFs found during crawl');
+        this.uiCallbacks.setStatus?.('⚠️ No PDFs found during crawl');
         return;
       }
       
@@ -1074,8 +1073,7 @@ export class PopupLogic {
             this._isRescan = false;
             this.uiCallbacks.setNewDocumentsFound?.(0);
             this.resetScanningState();
-            this.uiCallbacks.setStatus?.('✅ All documents up to date');
-            alert('✅ All documents are already uploaded successfully. Course is up to date!');
+            this.uiCallbacks.setStatus?.('✅ All documents are already uploaded successfully. Course is up to date!');
             return;
           }
           
@@ -1192,18 +1190,18 @@ export class PopupLogic {
         // Re-scan completed
         if (uploadedCount > 0) {
           this.uiCallbacks.setNewDocumentsFound?.(uploadedCount);
-          const failureMsg = uploadFailedCount > 0 ? `\n⚠️ ${uploadFailedCount} failed (will retry on next scan)` : '';
-          alert(`✅ Re-scan complete! Uploaded ${uploadedCount} document${uploadedCount !== 1 ? 's' : ''}!${failureMsg}`);
+          const failureMsg = uploadFailedCount > 0 ? ` ⚠️ ${uploadFailedCount} failed (will retry on next scan)` : '';
+          this.uiCallbacks.setStatus?.(`✅ Re-scan complete! Uploaded ${uploadedCount} document${uploadedCount !== 1 ? 's' : ''}!${failureMsg}`);
         } else if (uploadFailedCount > 0) {
-          alert(`❌ All ${uploadFailedCount} uploads failed. Please check your internet connection and try again.`);
+          this.uiCallbacks.setStatus?.(`❌ All ${uploadFailedCount} uploads failed. Please check your internet connection and try again.`);
         }
       } else {
         // Initial scan completed
         if (uploadedCount > 0) {
-          const failureMsg = uploadFailedCount > 0 ? `\n⚠️ ${uploadFailedCount} failed (will retry on next scan)` : '';
-          alert(`✅ Successfully uploaded ${uploadedCount} PDF${uploadedCount !== 1 ? 's' : ''} to File Search!${failureMsg}`);
+          const failureMsg = uploadFailedCount > 0 ? ` ⚠️ ${uploadFailedCount} failed (will retry on next scan)` : '';
+          this.uiCallbacks.setStatus?.(`✅ Successfully uploaded ${uploadedCount} PDF${uploadedCount !== 1 ? 's' : ''} to File Search!${failureMsg}`);
         } else {
-          alert(`❌ Upload failed for all PDFs. Please check your internet connection and try scanning again.`);
+          this.uiCallbacks.setStatus?.(`❌ Upload failed for all PDFs. Please check your internet connection and try scanning again.`);
         }
       }
       
@@ -1282,7 +1280,7 @@ export class PopupLogic {
   }
 
   handleLogin() {
-    alert('Please sign in to Chrome by clicking your profile icon in the top-right corner of Chrome, then reload this extension.');
+    this.uiCallbacks.setStatus?.('❌ Please sign in to Chrome by clicking your profile icon in the top-right corner of Chrome, then reload this extension.');
   }
 
   handleDetect() {
