@@ -15,6 +15,7 @@ export class PopupLogic {
     this.streamingMessageTimer = null; // Timer for streaming animation
     this.isStreaming = false; // Flag to prevent interruptions
     this.uploadPhase = false; // Flag to indicate we're in upload phase (don't accept scan progress updates)
+    this.contextEnabled = true; // Context toggle state (enabled by default)
     
     // Firestore helper functions
     this.firestoreHelpers = null;
@@ -42,6 +43,16 @@ export class PopupLogic {
 
   setUICallbacks(callbacks) {
     this.uiCallbacks = callbacks;
+    
+    // Subscribe to context toggle updates
+    if (callbacks.setContextEnabled) {
+      this.contextEnabled = true; // Initialize with default value
+    }
+  }
+  
+  setContextEnabled(enabled) {
+    this.contextEnabled = enabled;
+    console.log('🔄 Context toggle updated:', enabled);
   }
 
   async initialize() {
@@ -255,6 +266,9 @@ export class PopupLogic {
         await this.loadOrCreateChatSession();
       }
       
+      // NEW: Check if viewing a specific file
+      await this.updatePageContext();
+      
     } catch (error) {
       console.error('Error detecting Canvas:', error);
       this.uiCallbacks.setStatus?.('❌ Error detecting course');
@@ -371,6 +385,9 @@ export class PopupLogic {
     
     // Load or create chat session for this enrolled course
     await this.loadOrCreateChatSession();
+    
+    // Check if viewing a specific file
+    await this.updatePageContext();
   }
 
   async enrollInCurrentCourse() {
@@ -1140,6 +1157,7 @@ export class PopupLogic {
             {
               courseId: this.currentCourseData.id,
               courseName: this.currentCourseData.name,
+              fileName: pdfTitle,
               source: pdf.type || pdf.context,
               originalUrl: pdf.url
             }
@@ -1422,7 +1440,27 @@ export class PopupLogic {
       }
     }
     
-    // Add user message
+    // NEW: Check if user is viewing a specific file
+    const currentPagePDF = await this.getCurrentPagePDF();
+    let contextualMessage = message;
+    let metadataFilter = null;
+    
+    // Only apply context if toggle is enabled
+    const contextEnabled = this.contextEnabled !== false; // Default to true if undefined
+    
+    if (currentPagePDF && contextEnabled) {
+      // Add natural context hint to the message
+      contextualMessage = `Regarding "${currentPagePDF.fileName}": ${message}`;
+      
+      // Create metadata filter to prioritize this document
+      metadataFilter = `fileName = "${currentPagePDF.fileName}"`;
+      
+      console.log('🎯 Using page context for query:', currentPagePDF.fileName);
+    } else if (currentPagePDF && !contextEnabled) {
+      console.log('⏸️ Context available but disabled by user');
+    }
+    
+    // Add user message (original, clean message to history)
     this.conversationHistory.push({ role: 'user', content: message });
     this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
     this.uiCallbacks.setIsChatLoading?.(true);
@@ -1445,14 +1483,13 @@ export class PopupLogic {
           parts: [{ text: msg.content }]
         }));
       
-      // Query course store with the course ID and conversation history
-      // This now uses streaming on the server side and returns the complete response
+      // Query course store with enhanced message and metadata filter
       const response = await this.fileSearchManager.queryCourseStore(
-        message,
+        contextualMessage,  // Enhanced with context
         this.currentCourseData.id,
         'gemini-2.5-flash',
-        null,
-        5,
+        metadataFilter,  // NEW: Prioritize current document
+        currentPagePDF ? 10 : 5,  // Retrieve more chunks if we have context
         historyForGemini
       );
       
@@ -1510,6 +1547,114 @@ export class PopupLogic {
     } catch (error) {
       console.error('Error fetching course documents for drawer:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get the PDF document that corresponds to the current Canvas page
+   * @returns {Promise<Object|null>} Document data or null if not viewing a file
+   */
+  async getCurrentPagePDF() {
+    try {
+      // Check if user is on a Canvas page
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tabs || tabs.length === 0) {
+        console.log('No active tab found');
+        return null;
+      }
+      
+      const tab = tabs[0];
+      
+      // Only check Canvas URLs
+      if (!tab.url?.includes('canvas.')) {
+        console.log('Not on a Canvas page');
+        return null;
+      }
+      
+      // Ask content script for current file context
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'getCurrentFileContext'
+        });
+        
+        if (!response?.success || !response.context) {
+          console.log('No file context on current page');
+          return null;
+        }
+        
+        const fileContext = response.context;
+        console.log('📄 Detected file context:', fileContext);
+        
+        // Match fileId to a document in Firestore
+        if (!this.currentCourseData?.id) {
+          console.log('No current course data');
+          return null;
+        }
+        
+        const docsResult = await this.firestoreHelpers.getCourseDocuments(
+          this.db,
+          this.currentCourseData.id
+        );
+        
+        if (!docsResult.success || !docsResult.data) {
+          console.log('No documents found for course');
+          return null;
+        }
+        
+        // Try to match by fileId in URL
+        const matchingDoc = docsResult.data.find(doc => {
+          if (!doc.fileUrl) return false;
+          
+          // Extract file ID from stored URL
+          const storedFileIdMatch = doc.fileUrl.match(/\/files\/(\d+)/);
+          if (!storedFileIdMatch) return false;
+          
+          return storedFileIdMatch[1] === fileContext.fileId;
+        });
+        
+        if (matchingDoc) {
+          console.log('✅ Matched current page to PDF:', matchingDoc.fileName);
+          return {
+            ...matchingDoc,
+            contextType: 'page_file',
+            pageUrl: fileContext.url,
+            moduleItemId: fileContext.moduleItemId
+          };
+        }
+        
+        console.log('No matching document found for file ID:', fileContext.fileId);
+        return null;
+        
+      } catch (messageError) {
+        // Content script might not be loaded yet
+        console.log('Could not communicate with content script:', messageError.message);
+        return null;
+      }
+      
+    } catch (error) {
+      console.error('Error getting current page PDF:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check for current page context and update UI
+   */
+  async updatePageContext() {
+    try {
+      console.log('🔍 Checking for page context...');
+      const currentPDF = await this.getCurrentPagePDF();
+      
+      if (currentPDF) {
+        this.uiCallbacks.setCurrentPagePDF?.(currentPDF);
+        console.log('✅ Page context active:', currentPDF.fileName);
+        console.log('📄 Context set in UI callbacks');
+      } else {
+        this.uiCallbacks.setCurrentPagePDF?.(null);
+        console.log('ℹ️ No page context detected');
+      }
+    } catch (error) {
+      console.error('❌ Error updating page context:', error);
     }
   }
 }

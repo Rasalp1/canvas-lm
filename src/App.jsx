@@ -72,6 +72,8 @@ export const App = ({
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [newDocumentsFound, setNewDocumentsFound] = useState(0);
   const [showAbout, setShowAbout] = useState(false);
+  const [currentPagePDF, setCurrentPagePDF] = useState(null);
+  const [contextEnabled, setContextEnabled] = useState(true);
 
   // Auto-clear new documents notification after 10 seconds
   useEffect(() => {
@@ -130,7 +132,9 @@ export const App = ({
         setIsChatLoading,
         setCurrentCourseDocCount,
         setEnrollmentStatus,
-        setNewDocumentsFound
+        setNewDocumentsFound,
+        setCurrentPagePDF,
+        setContextEnabled
       });
       popupLogic.initialize();
     }
@@ -179,6 +183,13 @@ export const App = ({
     }
     // Close drawer when selecting a course for main view
     setDrawerOpen(false);
+  };
+
+  const handleContextToggle = (enabled) => {
+    setContextEnabled(enabled);
+    if (popupLogic) {
+      popupLogic.setContextEnabled(enabled);
+    }
   };
 
   const handleRemoveEnrollment = (course) => {
@@ -270,11 +281,11 @@ export const App = ({
             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
               {!sidebarCollapsed && (
                 <div className="flex items-center gap-3 transition-opacity duration-200">
-                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
+                  <div className="w-10 h-10 flex items-center justify-center">
                     <img 
                       src={chrome.runtime.getURL('Canvas LM Logo.png')}
                       alt="Canvas LM" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div>
@@ -417,6 +428,7 @@ export const App = ({
                 isLoading={isChatLoading}
                 isFullScreen={true}
                 user={user}
+                currentPagePDF={null}
               />
             ) : showCourseInfo ? (
               /* Course Info - Need to Scan */
@@ -443,11 +455,11 @@ export const App = ({
               /* Welcome Screen */
               <div className="flex-1 flex items-center justify-center p-8 relative">
                 <div className="text-center relative z-20">
-                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg overflow-hidden">
+                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
                     <img 
                       src={chrome.runtime.getURL('Canvas LM Logo.png')}
                       alt="Canvas LM Logo" 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <h2 className="text-3xl font-bold text-slate-900 mb-3 flex flex-wrap items-center justify-center gap-2">
@@ -579,6 +591,8 @@ export const App = ({
                   onSend={handleChatSend}
                   isLoading={isChatLoading}
                   user={user}
+                  currentPagePDF={currentPagePDF}
+                  onContextToggle={handleContextToggle}
                 />
               </div>
             )}

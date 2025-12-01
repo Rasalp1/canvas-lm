@@ -1737,6 +1737,66 @@ class CanvasContentScript {
     return document.title.replace(/Canvas|^\s*-\s*|\s*-\s*.*$/, '').trim();
   }
 
+  /**
+   * Detect if user is currently viewing a specific Canvas file
+   * @returns {Object|null} File context information or null
+   */
+  getCurrentFileContext() {
+    const url = window.location.href;
+    
+    // Match Canvas file URLs: /courses/{courseId}/files/{fileId}
+    const fileMatch = url.match(/\/courses\/(\d+)\/files\/(\d+)/);
+    
+    // Extract module_item_id if present (indicates lecture context)
+    const moduleMatch = url.match(/[?&]module_item_id=(\d+)/);
+    
+    if (fileMatch) {
+      const [, courseId, fileId] = fileMatch;
+      
+      return {
+        type: 'canvas_file_view',
+        courseId: courseId,
+        fileId: fileId,
+        moduleItemId: moduleMatch ? moduleMatch[1] : null,
+        url: url,
+        timestamp: Date.now()
+      };
+    }
+    
+    return null;
+  }
+
+  /**
+   * Get detailed file info from current page (title, metadata)
+   */
+  getCurrentFileMetadata() {
+    const context = this.getCurrentFileContext();
+    if (!context) return null;
+    
+    // Try to extract file title from page
+    const titleSelectors = [
+      '.page-title',
+      'h1.file-name',
+      '.ef-file-preview-header-title',
+      '[data-testid="file-preview-title"]'
+    ];
+    
+    let title = null;
+    for (const selector of titleSelectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        title = element.textContent.trim();
+        break;
+      }
+    }
+    
+    return {
+      ...context,
+      pageTitle: title || document.title,
+      isPDFViewer: document.querySelector('.ef-file-preview-frame, iframe[src*=".pdf"]') !== null
+    };
+  }
+
   storeCourseInfo() {
     const courseInfo = {
       courseId: this.courseId,
@@ -1809,6 +1869,17 @@ class CanvasContentScript {
         };
         console.log('🏓 Ping received, responding with ready status:', readyStatus);
         sendResponse(readyStatus);
+        return false; // Synchronous response
+
+      case 'getCurrentFileContext':
+        try {
+          const context = this.getCurrentFileMetadata();
+          console.log('📄 Current file context:', context);
+          sendResponse({ success: true, context: context });
+        } catch (error) {
+          console.error('Error getting file context:', error);
+          sendResponse({ success: false, error: error.message });
+        }
         return false; // Synchronous response
 
       case 'startAutoCrawl':

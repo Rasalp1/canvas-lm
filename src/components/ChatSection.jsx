@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -123,10 +123,28 @@ export const ChatSection = ({
   onSend, 
   isLoading,
   isFullScreen = false,
-  user
+  user,
+  currentPagePDF = null,
+  onContextToggle = null
 }) => {
   const scrollContainerRef = useRef(null);
   const scrollAreaRef = useRef(null);
+  const [contextEnabled, setContextEnabled] = useState(true);
+
+  // Notify parent when context toggle changes
+  useEffect(() => {
+    if (onContextToggle && currentPagePDF) {
+      onContextToggle(contextEnabled);
+    }
+  }, [contextEnabled, currentPagePDF, onContextToggle]);
+
+  // Debug logging
+  useEffect(() => {
+    if (currentPagePDF) {
+      console.log('📄 ChatSection received currentPagePDF:', currentPagePDF);
+      console.log('🎯 Context enabled:', contextEnabled);
+    }
+  }, [currentPagePDF, contextEnabled]);
 
   // Auto-scroll to bottom when messages change or when loading
   useEffect(() => {
@@ -156,6 +174,32 @@ export const ChatSection = ({
         {/* Messages Area */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto min-h-0">
           <div className="w-full px-8 py-8">
+            {/* Context Indicator */}
+            {currentPagePDF && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 flex items-start gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      📄 Viewing Context
+                    </p>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1 truncate">
+                    {currentPagePDF.fileName}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Questions will prioritize this document
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="space-y-6">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -277,6 +321,41 @@ export const ChatSection = ({
       </CardHeader>
       
       <CardContent className="space-y-3">
+        {/* Context Indicator for Popup */}
+        {currentPagePDF && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 mb-3 flex items-center gap-2">
+            <div className="flex-shrink-0">
+              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-medium text-blue-900">
+                  Lecture detected
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-xs text-blue-600 truncate flex-1">
+                  Focus this lecture when answering
+                </p>
+                <button
+                  onClick={() => setContextEnabled(!contextEnabled)}
+                  className={`flex-shrink-0 relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
+                    contextEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                  aria-label="Toggle context"
+                >
+                  <span
+                    className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                      contextEnabled ? 'translate-x-3.5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <ScrollArea ref={scrollAreaRef} className="h-[320px] pr-4">
           <div className="space-y-4">
             {messages.length === 0 ? (
