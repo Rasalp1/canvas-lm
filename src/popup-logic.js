@@ -157,6 +157,9 @@ export class PopupLogic {
       this.uiCallbacks.setUser?.(null);
       this.uiCallbacks.setIsLoggedIn?.(false);
     }
+    
+    // Auth check complete
+    this.uiCallbacks.setAuthLoading?.(false);
   }
 
   async displayUserStats(userId) {

@@ -47,6 +47,7 @@ export const App = ({
 }) => {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [userStats, setUserStats] = useState('');
   const [status, setStatus] = useState('Checking current page...');
   const [courseDetails, setCourseDetails] = useState(null);
@@ -75,7 +76,7 @@ export const App = ({
   const [showAbout, setShowAbout] = useState(false);
   const [currentPagePDF, setCurrentPagePDF] = useState(null);
   const [contextEnabled, setContextEnabled] = useState(true);
-  const [usageStatus, setUsageStatus] = useState({ allowed: true, remaining: 40, resetTime: null, loading: true });
+  const [usageStatus, setUsageStatus] = useState({ allowed: true, remaining: 20, resetTime: null, loading: true });
 
   // Auto-clear new documents notification after 10 seconds
   useEffect(() => {
@@ -119,6 +120,7 @@ export const App = ({
       popupLogic.setUICallbacks({
         setUser,
         setIsLoggedIn,
+        setAuthLoading,
         setUserStats,
         setStatus,
         setCourseDetails,
@@ -159,11 +161,11 @@ export const App = ({
           setUsageStatus({ ...status, loading: false });
         } else {
           console.warn('[UsageLimit] fileSearchManager not available');
-          setUsageStatus({ allowed: true, remaining: 40, resetTime: null, loading: false });
+          setUsageStatus({ allowed: true, remaining: 20, resetTime: null, loading: false });
         }
       } catch (error) {
         console.error('[UsageLimit] Error checking usage:', error);
-        setUsageStatus({ allowed: true, remaining: 40, resetTime: null, loading: false });
+        setUsageStatus({ allowed: true, remaining: 20, resetTime: null, loading: false });
       }
     };
 
@@ -450,10 +452,29 @@ export const App = ({
                 )}
                 <button
                   onClick={() => setSettingsOpen(!settingsOpen)}
-                  className="w-full flex items-center gap-2 px-7 py-4 text-sm text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+                  className="w-full flex items-center justify-between px-7 py-4 text-sm text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
                 >
-                  <Settings size={16} className="text-slate-600" />
-                  <span>Settings</span>
+                  <div className="flex items-center gap-2">
+                    <Settings size={16} className="text-slate-600" />
+                    <span>Settings</span>
+                  </div>
+                  {!usageStatus.loading && (
+                    <div>
+                      {(usageStatus.isAdmin || usageStatus.tier === 'admin') ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700 border border-amber-200">
+                          Admin
+                        </span>
+                      ) : usageStatus.tier === 'premium' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700 border border-purple-200">
+                          Premium
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600 border border-slate-200">
+                          Free
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </button>
               </div>
             )}
@@ -462,11 +483,8 @@ export const App = ({
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col relative z-10">
             {showCourseInfo && currentCourseDocCount > 0 && enrollmentStatus.isEnrolled ? (
-              /* Chat Interface with Usage Display */
+              /* Chat Interface */
               <div className="flex-1 flex flex-col min-h-0">
-                <div className="px-8 pt-4">
-                  <UsageLimitDisplay usageStatus={usageStatus} />
-                </div>
                 <ChatSection 
                   messages={chatMessages}
                   inputValue={chatInput}
@@ -570,6 +588,83 @@ export const App = ({
     );
   }
 
+  // Show loading skeleton while auth is being checked
+  if (authLoading) {
+    // Extended mode skeleton
+    if (isExtensionPage) {
+      return (
+        <>
+          <style>{CSS_VARS}</style>
+          <div className="w-screen h-screen bg-slate-50 flex overflow-hidden">
+            {/* Sidebar skeleton */}
+            <div className="w-80 bg-slate-100 border-r border-slate-200 flex flex-col">
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-200 rounded-lg animate-pulse" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-slate-200 rounded w-24 mb-1 animate-pulse" />
+                    <div className="h-3 bg-slate-200 rounded w-32 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 p-3 space-y-2">
+                <div className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+                <div className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+                <div className="h-16 bg-slate-200 rounded-lg animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Main content skeleton */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="max-w-2xl w-full px-8">
+                <div className="h-8 bg-slate-200 rounded w-3/4 mb-4 animate-pulse" />
+                <div className="h-4 bg-slate-200 rounded w-full mb-2 animate-pulse" />
+                <div className="h-4 bg-slate-200 rounded w-5/6 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+    
+    // Popup mode skeleton
+    return (
+      <>
+        <style>{CSS_VARS}</style>
+        <div className="w-[550px] min-h-[600px] bg-gradient-to-br from-slate-50 via-white to-slate-50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/40 to-sky-200/40 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          <div className="relative z-10 p-6">
+            {/* Header skeleton */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 bg-slate-200 rounded-2xl animate-pulse" />
+                <div>
+                  <div className="h-6 w-32 bg-slate-200 rounded animate-pulse mb-1" />
+                  <div className="h-3 w-40 bg-slate-200 rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 bg-slate-200 rounded-full animate-pulse" />
+                <div className="w-9 h-9 bg-slate-200 rounded-full animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Content skeleton */}
+            <div className="space-y-4 mt-6">
+              <div className="bg-white border border-slate-200 rounded-xl p-6">
+                <div className="h-4 bg-slate-200 rounded w-3/4 mb-3 animate-pulse" />
+                <div className="h-3 bg-slate-200 rounded w-full mb-2 animate-pulse" />
+                <div className="h-3 bg-slate-200 rounded w-5/6 animate-pulse" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   // Popup layout (original)
   return (
     <>
@@ -580,7 +675,7 @@ export const App = ({
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         
         <div className="relative z-10 p-6">
-          <Header user={user} onExpandWindow={handleExpandWindow} isExtensionPage={isExtensionPage} />
+          <Header user={user} onExpandWindow={handleExpandWindow} isExtensionPage={isExtensionPage} usageStatus={usageStatus} />
           
           <div className="space-y-4 mt-6">
             <AuthSection 
@@ -629,8 +724,8 @@ export const App = ({
               </div>
             )}
             
-            {/* Usage Limit Display */}
-            {isLoggedIn && (
+            {/* Usage Limit Display - Only show when limit is reached */}
+            {isLoggedIn && usageStatus.remaining === 0 && !usageStatus.loading && (
               <div className="animate-fade-in mb-4">
                 <UsageLimitDisplay usageStatus={usageStatus} />
               </div>

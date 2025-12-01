@@ -1,9 +1,38 @@
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { Maximize2 } from 'lucide-react';
 
-export const Header = ({ user, onExpandWindow, isExtensionPage }) => {
+export const Header = ({ user, onExpandWindow, isExtensionPage, usageStatus }) => {
+  // Determine tier badge
+  const getTierBadge = () => {
+    if (!usageStatus || usageStatus.loading) return null;
+    
+    if (usageStatus.isAdmin || usageStatus.tier === 'admin') {
+      return (
+        <Badge className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 border-amber-200">
+          Admin
+        </Badge>
+      );
+    }
+    
+    if (usageStatus.tier === 'premium') {
+      return (
+        <Badge className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 border-purple-200">
+          Premium
+        </Badge>
+      );
+    }
+    
+    // Free tier (default)
+    return (
+      <Badge className="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 border-slate-200">
+        Free
+      </Badge>
+    );
+  };
+
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-3">
@@ -32,6 +61,8 @@ export const Header = ({ user, onExpandWindow, isExtensionPage }) => {
             </AvatarFallback>
           </Avatar>
         )}
+        
+        {!isExtensionPage && user && getTierBadge()}
         
         {!isExtensionPage && (
           <Button

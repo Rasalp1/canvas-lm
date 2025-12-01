@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Lecture Context Detection**: AI automatically detects which lecture, module, or week you're viewing in Canvas and uses this context to provide more relevant answers
-- **Usage Limiting System**: Implemented fair usage limits (40 messages per 3-hour rolling window) for free tier users
+- **Usage Limiting System**: Implemented fair usage limits (20 messages per 3-hour rolling window) for free tier users
 - **User Tier System**: Three-tier user management system:
-  - Free tier: 40 messages per 3 hours with all standard features
+  - Free tier: 20 messages per 3 hours with all standard features
   - Premium tier: Unlimited messages with priority support (payment integration coming soon)
   - Admin tier: Full system access for instructors and administrators
 - **Usage Tracking Display**: New UI component showing:
-  - Current message count (e.g., "23 / 40")
+  - Current message count (e.g., "13 / 20")
   - Progress bar visualization
   - Countdown timer showing when next message becomes available
   - Admin/Premium badge for unlimited users
