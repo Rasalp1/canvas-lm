@@ -1,8 +1,8 @@
 # Canvas LM - Production Readiness Checklist
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Target:** Chrome Web Store Submission  
-**Last Updated:** November 30, 2025
+**Last Updated:** December 1, 2025
 
 ---
 
@@ -10,9 +10,9 @@
 
 Canvas LM is an AI-powered Chrome extension that helps students interact with their Canvas course materials using advanced RAG (Retrieval-Augmented Generation) technology. This document outlines the steps required to prepare the extension for Chrome Web Store submission and production release.
 
-**Current Status:** Pre-Production (95% Complete)
+**Current Status:** Pre-Production (98% Complete)
 
-### Recent Progress (November 30, 2025)
+### Recent Progress (December 1, 2025)
 
 ** Major Milestones Completed:**
 1. **Streaming Responses Implemented** - Full API response streaming to handle multi-part assistant responses
@@ -23,6 +23,10 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 6. **Security Hardened** - Rate limiting implemented on all Cloud Functions
 7. **Documentation Complete** - Security model and architecture fully documented
 8. **Firestore Rules Finalized** - Rules validated with Chrome Identity API
+9. **Lecture Context Detection** - AI automatically detects and uses current lecture/module context
+10. **Usage Limiting System** - Fair usage limits (40 messages/3hrs) for free tier
+11. **User Tier System** - Free, Premium, and Admin tiers with database-driven management
+12. **Usage Tracking & Display** - Clear UI showing remaining messages and reset timers
 
 ** Critical Remaining Tasks:**
 1. Take 5 screenshots (1280x800px) for Chrome Web Store listing
@@ -48,6 +52,11 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 - [x] Streaming responses for better UX (server-side stream aggregation)
 - [x] File Search RAG implementation with Gemini
 - [x] Re-scanning functionality for updating course documents
+- [x] Lecture context detection and injection into AI prompts
+- [x] Usage limiting system (40 messages per 3-hour rolling window)
+- [x] User tier system (Free, Premium, Admin) with database management
+- [x] Usage tracking display component with countdown timers
+- [x] Cloud Functions for usage limit checking and recording
 - [x] Enhanced status messages with contextual updates
 - [x] Rate limiting implemented on all Cloud Functions
 - [x] Security model documented and validated

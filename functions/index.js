@@ -43,6 +43,38 @@ setGlobalOptions({
 // Get Firestore instance
 const db = admin.firestore();
 
+// ==================== USER TIER MANAGEMENT ====================
+
+/**
+ * Get user's tier/role from database
+ * @param {string} userId - User ID
+ * @returns {Promise<string>} User tier: 'free', 'premium', or 'admin'
+ */
+async function getUserTier(userId) {
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return 'free'; // Default tier for new users
+    }
+    
+    const userData = userDoc.data();
+    return userData.tier || 'free'; // Default to 'free' if tier not set
+  } catch (error) {
+    logger.error('Error getting user tier:', error);
+    return 'free'; // Default to free on error
+  }
+}
+
+/**
+ * Check if user has admin privileges
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} True if user is admin
+ */
+async function isAdminUser(userId) {
+  const tier = await getUserTier(userId);
+  return tier === 'admin';
+}
+
 // ==================== RATE LIMITING ====================
 
 // Rate limit configuration
@@ -1189,5 +1221,259 @@ exports.onCourseDeleted = onDocumentDeleted('courses/{courseId}', async (event) 
   } catch (error) {
     logger.error(`❌ Error in cascade delete for course ${courseId}:`, error);
     throw error;
+  }
+});
+
+// ==================== USAGE LIMITING ====================
+
+/**
+ * Check if user has remaining message quota
+ * Returns allowed status, remaining count, and reset time
+ */
+exports.checkUsageLimit = onCall(async (request) => {
+  const userId = request.auth?.uid;
+  
+  if (!userId) {
+    throw new https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const now = admin.firestore.Timestamp.now();
+  
+  try {
+    // Check user tier - admins and premium users have unlimited usage
+    const userTier = await getUserTier(userId);
+    
+    if (userTier === 'admin' || userTier === 'premium') {
+      logger.info(`User ${userId} with tier '${userTier}' bypassing usage limits`);
+      return {
+        allowed: true,
+        remaining: 999,
+        resetTime: null,
+        isAdmin: userTier === 'admin',
+        tier: userTier
+      };
+    }
+    
+    // Get user's usage document
+    const usageDoc = await db.collection('userUsageLimits')
+      .doc(userId)
+      .get();
+    
+    // Get config
+    const configDoc = await db.collection('usageLimitConfig')
+      .doc('default')
+      .get();
+    
+    if (!configDoc.exists) {
+      // If config doesn't exist, allow unlimited usage
+      logger.warn('Usage limit config not found, allowing unlimited usage');
+      return {
+        allowed: true,
+        remaining: 999,
+        resetTime: null
+      };
+    }
+    
+    const config = configDoc.data();
+    
+    if (!config.enabled) {
+      return {
+        allowed: true,
+        remaining: 999,
+        resetTime: null
+      };
+    }
+    
+    // Calculate 3-hour window
+    const windowStart = new Date(now.toDate().getTime() - (config.windowDurationHours * 60 * 60 * 1000));
+    
+    // Filter messages within window
+    const messages = usageDoc.exists ? (usageDoc.data().messages || []) : [];
+    const messagesInWindow = messages.filter(msg => 
+      msg.timestamp.toDate() >= windowStart
+    );
+    
+    const remaining = config.maxMessagesPerWindow - messagesInWindow.length;
+    
+    if (remaining <= 0) {
+      // Find oldest message to determine reset time
+      const oldestMessage = messagesInWindow.sort((a, b) => 
+        a.timestamp.toDate() - b.timestamp.toDate()
+      )[0];
+      
+      const resetTime = new Date(
+        oldestMessage.timestamp.toDate().getTime() + (config.windowDurationHours * 60 * 60 * 1000)
+      );
+      
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: resetTime.toISOString(),
+        waitMinutes: Math.ceil((resetTime - now.toDate()) / 60000)
+      };
+    }
+    
+    return {
+      allowed: true,
+      remaining: remaining,
+      resetTime: null,
+      isAdmin: false,
+      tier: 'free'
+    };
+  } catch (error) {
+    logger.error('Error checking usage limit:', error);
+    // On error, allow the request (fail open)
+    return {
+      allowed: true,
+      remaining: 40,
+      resetTime: null
+    };
+  }
+});
+
+/**
+ * Record a message usage
+ * Called after successfully sending a message
+ */
+exports.recordMessageUsage = onCall(async (request) => {
+  const userId = request.auth?.uid;
+  const { courseChatId, messageId } = request.data;
+  
+  if (!userId) {
+    throw new https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const now = admin.firestore.Timestamp.now();
+  
+  try {
+    // Check user tier - skip recording for admin and premium users
+    const userTier = await getUserTier(userId);
+    
+    if (userTier === 'admin' || userTier === 'premium') {
+      logger.info(`User ${userId} with tier '${userTier}' - skipping usage recording`);
+      return { success: true, recorded: false, reason: `${userTier}_user` };
+    }
+    
+    // Get config
+    const configDoc = await db.collection('usageLimitConfig')
+      .doc('default')
+      .get();
+    
+    if (!configDoc.exists) {
+      return { success: true, recorded: false, reason: 'config_not_found' };
+    }
+    
+    const config = configDoc.data();
+    
+    if (!config.enabled) {
+      return { success: true, recorded: false, reason: 'limiting_disabled' };
+    }
+    
+    const userUsageRef = db.collection('userUsageLimits').doc(userId);
+    
+    // Use transaction to ensure atomicity
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(userUsageRef);
+      
+      const windowStart = new Date(
+        now.toDate().getTime() - (config.windowDurationHours * 60 * 60 * 1000)
+      );
+      
+      let messages = doc.exists ? (doc.data().messages || []) : [];
+      
+      // Clean up old messages outside window (keep data lean)
+      messages = messages.filter(msg => msg.timestamp.toDate() >= windowStart);
+      
+      // Add new message
+      messages.push({
+        timestamp: now,
+        messageId: messageId || `msg_${Date.now()}`,
+        courseChatId: courseChatId || 'unknown'
+      });
+      
+      const updateData = {
+        messages: messages,
+        'metadata.updatedAt': now
+      };
+      
+      if (doc.exists) {
+        transaction.update(userUsageRef, {
+          ...updateData,
+          'metadata.totalMessagesAllTime': admin.firestore.FieldValue.increment(1)
+        });
+      } else {
+        transaction.set(userUsageRef, {
+          userId: userId,
+          ...updateData,
+          metadata: {
+            totalMessagesAllTime: 1,
+            createdAt: now,
+            updatedAt: now
+          }
+        });
+      }
+    });
+    
+    logger.info(`Recorded message usage for user ${userId}`);
+    
+    return { success: true, recorded: true };
+  } catch (error) {
+    logger.error('Error recording message usage:', error);
+    throw new https.HttpsError('internal', 'Failed to record usage');
+  }
+});
+
+/**
+ * Get detailed usage information for the user
+ * Shows current usage, message history, and reset times
+ */
+exports.getUsageDetails = onCall(async (request) => {
+  const userId = request.auth?.uid;
+  
+  if (!userId) {
+    throw new https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const now = admin.firestore.Timestamp.now();
+  
+  try {
+    const usageDoc = await db.collection('userUsageLimits')
+      .doc(userId)
+      .get();
+    
+    const configDoc = await db.collection('usageLimitConfig')
+      .doc('default')
+      .get();
+    
+    if (!configDoc.exists) {
+      return {
+        currentUsage: 0,
+        maxMessages: 40,
+        windowHours: 3,
+        messages: []
+      };
+    }
+    
+    const config = configDoc.data();
+    const windowStart = new Date(now.toDate().getTime() - (config.windowDurationHours * 60 * 60 * 1000));
+    
+    const messages = usageDoc.exists ? (usageDoc.data().messages || []) : [];
+    const messagesInWindow = messages.filter(msg => 
+      msg.timestamp.toDate() >= windowStart
+    ).sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
+    
+    return {
+      currentUsage: messagesInWindow.length,
+      maxMessages: config.maxMessagesPerWindow,
+      windowHours: config.windowDurationHours,
+      messages: messagesInWindow.map(msg => ({
+        timestamp: msg.timestamp.toDate().toISOString(),
+        courseChatId: msg.courseChatId,
+        expiresAt: new Date(msg.timestamp.toDate().getTime() + (config.windowDurationHours * 60 * 60 * 1000)).toISOString()
+      }))
+    };
+  } catch (error) {
+    logger.error('Error getting usage details:', error);
+    throw new https.HttpsError('internal', 'Failed to get usage details');
   }
 });

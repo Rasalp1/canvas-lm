@@ -2,18 +2,18 @@
 
 **AI-Powered Study Assistant for Canvas LMS**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Rasalp1/canvas-lm)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/Rasalp1/canvas-lm)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome](https://img.shields.io/badge/chrome-v88%2B-brightgreen.svg)](https://www.google.com/chrome/)
 
-Canvas LM transforms your Canvas course materials into an intelligent, conversational study companion. Automatically extract and index PDFs, lecture notes, and course documents, then ask questions and get instant, accurate answers powered by Google's advanced Gemini AI with RAG (Retrieval-Augmented Generation).
+Canvas LM transforms your Canvas course materials into an intelligent, conversational study companion. Automatically extract and index PDFs, lecture notes, and course documents, then ask questions and get instant, accurate answers powered by Google's advanced Gemini AI with RAG (Retrieval-Augmented Generation). With context-aware responses, usage-based tiering, and seamless integration with Canvas, Canvas LM is your AI-powered study partner.
 
 ---
 
 ## Features
 
-### Intelligent Q&A
-Ask questions about your course materials in natural language and receive contextual answers with citations from your actual course documents.
+### Intelligent Q&A with Lecture Context
+Ask questions about your course materials in natural language and receive contextual answers with citations from your actual course documents. Canvas LM automatically detects which lecture or module you're viewing and provides context-aware responses.
 
 ### Automatic PDF Extraction
 One-click scanning automatically discovers and indexes all PDF files from your Canvas courses, making them searchable and queryable.
@@ -24,18 +24,28 @@ All your study sessions are saved with full conversation history, allowing you t
 ### Multi-Course Support
 Seamlessly switch between multiple courses. Each course maintains its own document store and conversation threads.
 
+### User Tiers & Usage Limits
+- **Free Tier**: 40 messages per 3-hour rolling window - perfect for casual studying
+- **Premium Tier**: Unlimited messages with priority support ($9.99/month)
+- **Admin Tier**: Full system access for instructors and administrators
+- **Fair Usage**: Prevents abuse while providing generous free access
+
 ### Privacy & Security
 - **Chrome Identity authentication** - No passwords stored
 - **Server-side API key** - Never exposed to client
+- **Usage limiting** - Fair limits with premium upgrade options
 - **Rate limiting** - Prevents abuse and controls costs
 - **Enrollment verification** - Only access courses you're enrolled in
 - **Encrypted storage** - All data encrypted at rest and in transit
+- **Tier-based access** - Protected user roles and permissions
 
 ### Smart Features
+- **Lecture context awareness** - AI knows which lecture/module you're viewing for more relevant answers
 - **Streaming responses** - See AI answers appear in real-time with typing animation (server-side aggregation ensures complete responses)
 - **Re-scanning capability** - Easily update your course store with new documents or retry failed uploads
 - **Source citations** - Every answer includes references to source documents
 - **Shared course stores** - Collaborate with classmates on the same course materials
+- **Usage tracking** - Clear display of remaining messages and reset timers
 - **Enhanced status messages** - Clear, contextual feedback throughout the scanning and upload process
 - **Modern UI** - Built with React 19 and Tailwind CSS for a polished experience
 
@@ -130,18 +140,39 @@ When you need to add new documents or retry failed uploads:
 - Assignment attachments
 - Module resources
 
+### Understanding Usage Limits
+
+**Free Tier (40 messages per 3 hours):**
+- Canvas LM shows your remaining messages at the top of the chat
+- The limit resets on a rolling 3-hour window
+- When you reach the limit, a countdown timer shows when you can send more messages
+- Perfect for regular studying and homework help
+
+**Premium Tier (Unlimited):**
+- No message limits - study as much as you need
+- Priority support
+- Upgrade anytime from Settings
+
+**Lecture Context Detection:**
+When viewing a Canvas lecture or module, Canvas LM automatically:
+- Detects the current lecture name, module, and week
+- Provides this context to the AI for more relevant answers
+- Shows the detected context in the chat interface
+
 ### Asking Questions
 
 **Tips for Great Questions:**
 - Be specific: "What topics are covered in Chapter 3?" is better than "What's in the readings?"
 - Reference documents: "According to the lecture notes, what is..."
 - Ask follow-ups: Canvas LM remembers conversation context
+- Use lecture context: Ask questions while viewing specific lectures for more targeted answers
 
 **Example Questions:**
 - "Summarize the main concepts from today's lecture"
 - "What does the textbook say about photosynthesis?"
 - "Give me practice problems similar to Assignment 2"
 - "Explain the difference between X and Y from the readings"
+- "What are the key takeaways from this week's module?"
 
 ### Managing Courses
 
@@ -172,14 +203,19 @@ Canvas LM uses a modern, secure architecture:
           Chrome Extension (React)           
   • App.jsx - Main UI                        
   • popup-logic.js - Business logic          
+  • Lecture context detection               
+  • Usage limit display                     
   • Firebase SDK - Cloud Functions client    
 
                    
                    ↓
 
        Firebase Cloud Functions (Node.js)    
+  • Usage limiting (40 msg/3hrs)            
+  • User tier management                    
   • Rate limiting & security                 
   • Enrollment verification                  
+  • Lecture context injection               
   • Gemini API proxy                         
 
                    
@@ -187,9 +223,10 @@ Canvas LM uses a modern, secure architecture:
          ↓                   ↓
   
  Firestore DB        Gemini File Search  
-  • User data         • RAG queries      
-  • Courses           • Document corpus  
-  • Chat history      • Semantic search  
+  • User tiers        • RAG queries      
+  • Usage limits      • Document corpus  
+  • Courses           • Semantic search  
+  • Chat history                          
   
 ```
 
@@ -299,7 +336,14 @@ For bugs or feature requests, open an issue on [GitHub Issues](https://github.co
 
 ## Roadmap
 
-### Version 1.1 (Q1 2026)
+### Version 1.1 (Completed - December 2025)
+- [x] Lecture context detection and injection
+- [x] Usage limiting system (40 messages per 3 hours)
+- [x] User tier system (Free, Premium, Admin)
+- [x] Usage tracking and display
+
+### Version 1.2 (Q1 2026)
+- [ ] Stripe payment integration for Premium tier
 - [ ] Support for PowerPoint and Word documents
 - [ ] Flashcard generation from course materials
 - [ ] Export chat history to PDF

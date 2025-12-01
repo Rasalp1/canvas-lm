@@ -163,6 +163,54 @@ class GeminiCloudClient {
       reader.onerror = error => reject(error);
     });
   }
+
+  /**
+   * Check if user has remaining message quota
+   * @returns {Promise<Object>} Usage status with allowed, remaining, resetTime
+   */
+  async checkUsageLimit() {
+    try {
+      const checkLimit = httpsCallable(this.functions, 'checkUsageLimit');
+      const result = await checkLimit({});
+      return result.data;
+    } catch (error) {
+      console.error('Error checking usage limit:', error);
+      // On error, allow the request (fail open)
+      return { allowed: true, remaining: 40, resetTime: null };
+    }
+  }
+
+  /**
+   * Record a message usage after sending
+   * @param {string} courseChatId - ID of the current chat session
+   * @param {string} messageId - ID of the message
+   * @returns {Promise<Object>} Result of recording
+   */
+  async recordMessageUsage(courseChatId, messageId) {
+    try {
+      const recordUsage = httpsCallable(this.functions, 'recordMessageUsage');
+      const result = await recordUsage({ courseChatId, messageId });
+      return result.data;
+    } catch (error) {
+      console.error('Error recording message usage:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed usage information
+   * @returns {Promise<Object>} Usage details with message history
+   */
+  async getUsageDetails() {
+    try {
+      const getDetails = httpsCallable(this.functions, 'getUsageDetails');
+      const result = await getDetails({});
+      return result.data;
+    } catch (error) {
+      console.error('Error getting usage details:', error);
+      throw error;
+    }
+  }
 }
 
 // Make available globally for other scripts

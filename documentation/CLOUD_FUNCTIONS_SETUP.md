@@ -217,13 +217,32 @@ firebase deploy --only functions
 
 ## Available Cloud Functions
 
-| Function | Purpose |
-|----------|---------|
-| `uploadPDF` | Upload PDF to Gemini File API |
-| `chatWithContext` | Ask questions with file context |
-| `listFiles` | List all uploaded files |
-| `deleteFile` | Delete a file from Gemini |
-| `getFile` | Get file metadata |
+### File Search & RAG Functions
+| Function | Purpose | Rate Limit |
+|----------|---------|------------|
+| `queryCourseStore` | Ask questions with RAG context and lecture detection | 50 req/min |
+| `uploadToStore` | Upload PDF to Gemini File Search corpus | 20 req/min |
+| `createCourseStore` | Create new File Search store for course | 5 req/min |
+| `deleteDocument` | Delete document from corpus | 30 req/min |
+| `downloadCanvasPdf` | Download PDF from Canvas with auth cookies | 20 req/min |
+| `listDocuments` | List all documents in course store | 30 req/min |
+| `deleteStore` | Delete entire course store | 5 req/min |
+| `getStore` | Get store metadata | 30 req/min |
+| `listStores` | List all stores for user | 30 req/min |
+
+### Usage Limiting Functions (NEW)
+| Function | Purpose | Details |
+|----------|---------|---------|
+| `checkUsageLimit` | Check if user can send message | Returns allowed status, remaining messages, tier info |
+| `recordMessageUsage` | Record message after sending | Skips recording for premium/admin users |
+| `getUsageDetails` | Get detailed usage history | Returns messages in window, total all-time |
+
+### Event-Driven Functions
+| Function | Purpose | Trigger |
+|----------|---------|---------|
+| `onCourseDeleted` | Clean up when course deleted | Firestore trigger on courses/{courseId} |
+
+**Note:** Legacy functions (`uploadPDF`, `chatWithContext`, etc.) have been replaced by the File Search functions above.
 
 ---
 

@@ -9,6 +9,7 @@ import { ChatSection } from './components/ChatSection';
 import { CourseSelector } from './components/CourseSelector';
 import { AllCoursesView } from './components/AllCoursesView';
 import { About } from './components/About';
+import { UsageLimitDisplay } from './components/UsageLimitDisplay';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/dialog';
 import { Button } from './components/ui/button';
 import { getCourseColor } from './lib/course-colors';
@@ -74,6 +75,7 @@ export const App = ({
   const [showAbout, setShowAbout] = useState(false);
   const [currentPagePDF, setCurrentPagePDF] = useState(null);
   const [contextEnabled, setContextEnabled] = useState(true);
+  const [usageStatus, setUsageStatus] = useState({ allowed: true, remaining: 40, resetTime: null, loading: true });
 
   // Auto-clear new documents notification after 10 seconds
   useEffect(() => {
@@ -134,11 +136,36 @@ export const App = ({
         setEnrollmentStatus,
         setNewDocumentsFound,
         setCurrentPagePDF,
-        setContextEnabled
+        setContextEnabled,
+        setUsageStatus
       });
       popupLogic.initialize();
     }
   }, [popupLogic]);
+
+  // Check usage limit periodically when logged in
+  useEffect(() => {
+    if (!isLoggedIn || !popupLogic) return;
+
+    const checkUsage = async () => {
+      try {
+        if (popupLogic.fileSearchManager) {
+          const status = await popupLogic.fileSearchManager.checkUsageLimit();
+          setUsageStatus({ ...status, loading: false });
+        }
+      } catch (error) {
+        console.error('Error checking usage:', error);
+      }
+    };
+
+    // Check immediately
+    checkUsage();
+
+    // Check every 30 seconds
+    const interval = setInterval(checkUsage, 30000);
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn, popupLogic]);
 
   const handleLogin = () => {
     if (popupLogic) {
@@ -419,17 +446,22 @@ export const App = ({
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col relative z-10">
             {showCourseInfo && currentCourseDocCount > 0 && enrollmentStatus.isEnrolled ? (
-              /* Chat Interface */
-              <ChatSection 
-                messages={chatMessages}
-                inputValue={chatInput}
-                onInputChange={setChatInput}
-                onSend={handleChatSend}
-                isLoading={isChatLoading}
-                isFullScreen={true}
-                user={user}
-                currentPagePDF={null}
-              />
+              /* Chat Interface with Usage Display */
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="px-8 pt-4">
+                  <UsageLimitDisplay usageStatus={usageStatus} />
+                </div>
+                <ChatSection 
+                  messages={chatMessages}
+                  inputValue={chatInput}
+                  onInputChange={setChatInput}
+                  onSend={handleChatSend}
+                  isLoading={isChatLoading}
+                  isFullScreen={true}
+                  user={user}
+                  currentPagePDF={null}
+                />
+              </div>
             ) : showCourseInfo ? (
               /* Course Info - Need to Scan */
               <div className="flex-1 flex items-center justify-center p-8 bg-white">
@@ -581,6 +613,13 @@ export const App = ({
               </div>
             )}
             
+            {/* Usage Limit Display */}
+            {isLoggedIn && showCourseInfo && enrollmentStatus.isEnrolled && currentCourseDocCount > 0 && (
+              <div className="animate-fade-in mb-4">
+                <UsageLimitDisplay usageStatus={usageStatus} />
+              </div>
+            )}
+
             {/* Only show chat if user is enrolled AND has scanned documents */}
             {isLoggedIn && showCourseInfo && enrollmentStatus.isEnrolled && currentCourseDocCount > 0 && (
               <div className="animate-fade-in">

@@ -1413,6 +1413,23 @@ export class PopupLogic {
       this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
       return;
     }
+
+    // Check usage limit before sending
+    try {
+      const limitCheck = await this.fileSearchManager.checkUsageLimit();
+      
+      if (!limitCheck.allowed) {
+        this.conversationHistory.push({ 
+          role: 'assistant', 
+          content: `⏳ You've reached your message limit (40 messages per 3 hours). Please wait ${limitCheck.waitMinutes} minutes before sending another message.` 
+        });
+        this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking usage limit:', error);
+      // Continue anyway if check fails (fail open)
+    }
     
     // Get course and check if File Search store exists
     const courseResult = await this.firestoreHelpers.getCourse(this.db, this.currentCourseData.id);
@@ -1504,6 +1521,17 @@ export class PopupLogic {
         this.currentSessionId,
         { role: 'assistant', content: response.answer }
       );
+
+      // Record usage after successful message
+      try {
+        await this.fileSearchManager.recordMessageUsage(
+          this.currentSessionId,
+          `msg_${Date.now()}`
+        );
+      } catch (error) {
+        console.error('Error recording usage:', error);
+        // Don't block the chat flow if recording fails
+      }
       
     } catch (error) {
       console.error('Chat error:', error);

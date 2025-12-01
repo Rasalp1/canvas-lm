@@ -1,7 +1,7 @@
 # Architecture Overview: Canvas LM - AI Study Assistant
 
-**Last Updated:** November 30, 2025  
-**Version:** 1.0.0
+**Last Updated:** December 1, 2025  
+**Version:** 1.1.0
 
 ## System Flow Diagram
 
@@ -50,10 +50,13 @@
                         
                                                                   
      queryCourseStore()          users/{userId}             
+       • Lecture context injection     • tier (free/premium/admin)
        • System prompt injection       courses/{courseId}         
-       • Rate limit: 50/min            enrollments/               
-       • Enrollment verification       chatSessions/              
-                                       rateLimits/                
+       • Usage limit check (40/3hrs)   enrollments/               
+       • Rate limit: 50/min            chatSessions/              
+       • Enrollment verification       rateLimits/                
+                                       userUsageLimits/           
+                                       usageLimitConfig/                
      uploadToStore()                                            
        • Rate limit: 20/min            
                                                                      
@@ -140,15 +143,23 @@ ChatSection.jsx
     
 popup-logic.js
     
-     (3) Gets conversation history + courseId
+     (3) Checks usage limit (checkUsageLimit Cloud Function)
+        • Free users: 40 messages per 3 hours
+        • Premium/Admin: Unlimited
+    
+gemini-cloud-functions.js
+    
+     (4) Gets conversation history + courseId + lectureContext
+        • Extracts lecture metadata from current Canvas page
+        • Includes: lectureName, moduleNumber, weekNumber
     
 gemini-file-search-cloud.js
     
-     (4) Calls Cloud Function: queryCourseStore()
+     (5) Calls Cloud Function: queryCourseStore()
     
 Firebase Cloud Functions
     
-     (5) Rate limit check (50 req/min)
+     (6) Rate limit check (50 req/min)
         → Enrollment verification
         → Get shared store name from Firestore
     
@@ -160,6 +171,8 @@ Cloud Functions
     
      (7) Builds Gemini request:
         • System prompt (course material focus)
+        • Lecture context injection (if available)
+          "Currently viewing: Week 3, Module 2, Lecture: Introduction to Algorithms"
         • User question + conversation history
         • File Search tool with corpus reference
     
@@ -192,7 +205,13 @@ Firestore (chatSessions/)
     
 popup-logic.js
     
-     (13) Streams message to UI (10ms delay for typing effect)
+     (13) Records message usage (recordMessageUsage)
+        • Free users: Message added to usage tracking
+        • Premium/Admin: Usage not recorded
+    
+popup-logic.js
+    
+     (14) Streams message to UI (10ms delay for typing effect)
     
 ChatSection.jsx
     
@@ -290,13 +309,37 @@ users/
   {userId}/                          ← Chrome Identity user ID
     email: string
     displayName: string
+    tier: string                     ← "free" | "premium" | "admin"
     lastSeenAt: timestamp
     createdAt: timestamp
-    isAdmin: boolean                 ← Admin privileges
+    
+    // Stripe fields (for premium users)
+    stripeCustomerId: string         ← Optional
+    subscriptionId: string           ← Optional
+    subscriptionStatus: string       ← Optional
+    subscriptionStartDate: timestamp ← Optional
     
   {userId}/rateLimits/               ← Rate limiting (per user, per operation)
     {operation}/                     ← e.g., "queryCourseStore", "uploadToStore"
       requestTimestamps: array<timestamp>
+
+userUsageLimits/                     ← NEW: Usage limiting for free users
+  {userId}/
+    messages: array<{
+      timestamp: timestamp,
+      messageId: string,
+      courseChatId: string
+    }>
+    metadata: {
+      totalMessagesAllTime: number,
+      lastResetDate: timestamp
+    }
+
+usageLimitConfig/                    ← NEW: Usage limit configuration
+  default/
+    maxMessagesPerWindow: 40
+    windowDurationHours: 3
+    enabled: boolean
 
 courses/
   {courseId}/                        ← SHARED across all enrolled users

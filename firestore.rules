@@ -23,10 +23,15 @@ service cloud.firestore {
     
     // ==================== USERS COLLECTION ====================
     match /users/{userId} {
-      // Allow all read/write operations
+      // Allow read and most updates
       // Security: Users can only harm themselves, sensitive ops in Cloud Functions
-      allow read, create, update: if true;
+      allow read, create: if true;
       allow delete: if false; // Prevent accidental deletion
+      
+      // Allow updates but protect the tier field from user modification
+      allow update: if true && 
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tier']) ||
+         request.resource.data.tier == resource.data.tier);
       
       // Enrollments subcollection
       match /enrollments/{enrollmentId} {
@@ -64,6 +69,21 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read, write, delete: if true;
       }
+    }
+    
+    // ==================== USAGE LIMITS ====================
+    match /userUsageLimits/{userId} {
+      // Users can only read their own usage data
+      allow read: if true;
+      // Only cloud functions can write
+      allow write: if false;
+    }
+    
+    match /usageLimitConfig/{document=**} {
+      // Anyone can read the config (to show limits in UI)
+      allow read: if true;
+      // Only admins can modify config (through Firebase Console)
+      allow write: if false;
     }
   }
 }

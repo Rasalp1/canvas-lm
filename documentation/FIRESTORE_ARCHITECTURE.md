@@ -56,9 +56,15 @@ firestore (root)
    A123/                                  [Document - Chrome User ID]
      email: "alice@example.com"         (Field)
      displayName: "alice"               (Field)
-     isAdmin: false                     (Field - NEW: Admin privileges)
+     tier: "free"                       (Field - "free" | "premium" | "admin")
      createdAt: Timestamp               (Field)
      lastSeenAt: Timestamp              (Field)
+     
+     // Optional Stripe fields (for premium users)
+     stripeCustomerId: "cus_xxxxx"      (Field - Optional)
+     subscriptionId: "sub_xxxxx"        (Field - Optional)
+     subscriptionStatus: "active"       (Field - Optional)
+     subscriptionStartDate: Timestamp   (Field - Optional)
     
      enrollments/                       [Subcollection -  PRIVATE]
        
@@ -79,9 +85,10 @@ firestore (root)
    B456/                                  [Document - Another User]
       email: "bob@example.com"
       displayName: "bob"
-      isAdmin: false                     (Field)
+      tier: "premium"                    (Field - Bob is a premium user)
       createdAt: Timestamp
       lastSeenAt: Timestamp
+      subscriptionId: "sub_yyyyy"        (Field - Bob's Stripe subscription)
      
       enrollments/                       [Subcollection - Bob's courses]
          12345/                          [Same course, different enrollment]
@@ -142,6 +149,39 @@ firestore (root)
       documents/                         [Subcollection]
          ... (PDFs for MATH201 - shared)
          ...
+
+ userUsageLimits/                          [Collection - NEW: Usage tracking]
+   
+    A123/                                  [Document - User ID]
+      messages: [                          (Array of message records)
+        {
+          timestamp: Timestamp,
+          messageId: "msg_123",
+          courseChatId: "session_abc"
+        },
+        {
+          timestamp: Timestamp,
+          messageId: "msg_124",
+          courseChatId: "session_abc"
+        }
+        // ... up to 40 messages in 3-hour window
+      ]
+      metadata: {                          (Object)
+        totalMessagesAllTime: 156,
+        lastResetDate: Timestamp
+      }
+   
+    B456/                                  [Document - Premium user]
+      // No messages array - premium users not tracked
+
+ usageLimitConfig/                         [Collection - NEW: Global config]
+   
+    default/                               [Document - Config settings]
+      maxMessagesPerWindow: 40            (Number)
+      windowDurationHours: 3              (Number)
+      enabled: true                       (Boolean)
+      createdAt: Timestamp                (Timestamp)
+      updatedAt: Timestamp                (Timestamp)
 
  chatSessions/                             [Collection - TOP-LEVEL with userId]
    
