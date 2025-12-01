@@ -51,11 +51,11 @@ import { db, doc, setDoc } from './firebase-config.js';
 ### Custom Approach (Current Implementation)
 
 **Why `window` object?**
-1. ✅ **Works without bundler** - No webpack/rollup needed for basic scripts
-2. ✅ **Accessible everywhere** - Any script can access `window.firebaseDb`
-3. ✅ **Simple debugging** - Can inspect in DevTools console: `window.firebaseDb`
-4. ✅ **No CSP issues** - Regular script tags work fine
-5. ✅ **Gradual migration** - Can add bundler later if needed
+1.  **Works without bundler** - No webpack/rollup needed for basic scripts
+2.  **Accessible everywhere** - Any script can access `window.firebaseDb`
+3.  **Simple debugging** - Can inspect in DevTools console: `window.firebaseDb`
+4.  **No CSP issues** - Regular script tags work fine
+5.  **Gradual migration** - Can add bundler later if needed
 
 ## Is This Custom Initialization Needed?
 
@@ -65,16 +65,16 @@ import { db, doc, setDoc } from './firebase-config.js';
 
 #### Option 1: Keep Current Approach (Recommended for Now)
 **Pros:**
-- ✅ No build process required
-- ✅ Works immediately
-- ✅ Easy to debug
-- ✅ Good for rapid prototyping
-- ✅ Familiar pattern for extension development
+-  No build process required
+-  Works immediately
+-  Easy to debug
+-  Good for rapid prototyping
+-  Familiar pattern for extension development
 
 **Cons:**
-- ❌ Pollutes global namespace
-- ❌ Not ideal for large codebases
-- ❌ Less type safety (if using TypeScript)
+-  Pollutes global namespace
+-  Not ideal for large codebases
+-  Less type safety (if using TypeScript)
 
 **When to use:** 
 - Small to medium extensions
@@ -114,25 +114,25 @@ module.exports = {
 ```
 
 **Pros:**
-- ✅ Clean ES modules
-- ✅ Tree-shaking (smaller bundle)
-- ✅ TypeScript support
-- ✅ Better for large projects
+-  Clean ES modules
+-  Tree-shaking (smaller bundle)
+-  TypeScript support
+-  Better for large projects
 
 **Cons:**
-- ❌ Build step required
-- ❌ More complex setup
-- ❌ Slower development iteration
-- ❌ Debugging is harder (need source maps)
+-  Build step required
+-  More complex setup
+-  Slower development iteration
+-  Debugging is harder (need source maps)
 
 ## Current Project Assessment
 
 Looking at your `webpack.config.js`, you **already have** a bundler setup! This means:
 
 ### You're in a Hybrid State
-- ✅ Webpack configured
-- ❌ Firebase not bundled (loaded via global window)
-- ❌ Other scripts may or may not be bundled
+-  Webpack configured
+-  Firebase not bundled (loaded via global window)
+-  Other scripts may or may not be bundled
 
 ### Recommendation: **Keep Current Approach** Until Phase 4
 
@@ -200,17 +200,17 @@ module.exports = {
 
 ## Next Steps
 
-1. ✅ **Keep current Firebase setup** - Don't change it
-2. ✅ **Focus on Firestore helper functions** - Build on what works
-3. ⏭️ **Migrate to modules in Phase 4** - When doing UI overhaul
-4. ⏭️ **Add TypeScript in Phase 5** - When codebase is stable
+1.  **Keep current Firebase setup** - Don't change it
+2.  **Focus on Firestore helper functions** - Build on what works
+3. ⏭ **Migrate to modules in Phase 4** - When doing UI overhaul
+4. ⏭ **Add TypeScript in Phase 5** - When codebase is stable
 
 ## Summary
 
 Your custom Firebase initialization using `window` object is:
-- ✅ **Intentional** - Right choice for Chrome extension development
-- ✅ **Appropriate** - Fits your current development stage  
-- ✅ **Practical** - Simpler than module bundling
-- ✅ **Temporary** - Can migrate to standard approach later
+-  **Intentional** - Right choice for Chrome extension development
+-  **Appropriate** - Fits your current development stage  
+-  **Practical** - Simpler than module bundling
+-  **Temporary** - Can migrate to standard approach later
 
 **Don't change it now** - focus on building features!

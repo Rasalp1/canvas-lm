@@ -1,10 +1,10 @@
 # Firestore Helper Functions - Next Steps
 
-## 🎯 Overview
+## Overview
 
 Now that authentication is working (Chrome Identity) and Firebase is initialized (Firestore only), we need to create helper functions to manage data storage and retrieval.
 
-## 📋 Data We Need to Store
+## Data We Need to Store
 
 Based on the current implementation, we have:
 
@@ -31,7 +31,7 @@ Based on the current implementation, we have:
 - Associated course/documents
 - Timestamps
 
-## 🏗️ Firestore Schema Design
+## Firestore Schema Design
 
 ```javascript
 // Firestore structure:
@@ -69,7 +69,7 @@ chatSessions/{sessionId}/
   - messages: subcollection (future)
 ```
 
-## 📝 Helper Functions to Create
+## Helper Functions to Create
 
 ### Phase 1: Core CRUD Operations
 
@@ -371,7 +371,7 @@ export async function waitForFirebase(maxWaitMs = 5000) {
 }
 ```
 
-## 🔧 Integration with Existing Code
+## Integration with Existing Code
 
 ### Update `popup.js` to Use Helpers
 
@@ -424,7 +424,7 @@ async function onPDFScanComplete(courseData, pdfs) {
 }
 ```
 
-## 📋 Implementation Checklist
+## Implementation Checklist
 
 ### Step 1: Create Helper Functions File
 - [ ] Create `src/firestore-helpers.js`
@@ -474,7 +474,7 @@ export {
 - [ ] Show sync status
 - [ ] Add "View stored PDFs" button
 
-## 🎯 Benefits of Helper Functions
+## Benefits of Helper Functions
 
 1. **Consistency** - Same logic used everywhere
 2. **Error Handling** - Centralized error management
@@ -483,7 +483,7 @@ export {
 5. **Type Safety** - Can add JSDoc or TypeScript later
 6. **Logging** - Centralized logging for debugging
 
-## 🚀 Next Phase: After Helpers
+## Next Phase: After Helpers
 
 Once helper functions are working:
 
@@ -493,7 +493,7 @@ Once helper functions are working:
 4. **Chat History** - Store conversations in Firestore
 5. **Settings** - Store user preferences
 
-## 📝 Example Usage Flow
+## Example Usage Flow
 
 ```
 User Action: Scan Canvas Course
@@ -512,15 +512,15 @@ User Action: Scan Canvas Course
 9. User can now chat with PDFs using stored Gemini file IDs
 ```
 
-## 🎯 Success Criteria
+## Success Criteria
 
 Helper functions are working when:
-- ✅ Users persist across extension reloads
-- ✅ Courses appear in popup after scanning
-- ✅ PDFs don't duplicate in Firestore
-- ✅ Can retrieve all user's courses
-- ✅ Can see PDF count per course
-- ✅ Error messages are helpful
-- ✅ Loading states work properly
+-  Users persist across extension reloads
+-  Courses appear in popup after scanning
+-  PDFs don't duplicate in Firestore
+-  Can retrieve all user's courses
+-  Can see PDF count per course
+-  Error messages are helpful
+-  Loading states work properly
 
-Ready to implement? Start with Step 1! 🚀
+Ready to implement? Start with Step 1! 

@@ -18,11 +18,11 @@
 ### 1. Storage & Persistence
 
 #### File API
-- ⏱️ Files expire after **48 hours**
-- 🔄 Must re-upload files regularly
-- 💾 No persistent storage
-- 📊 Manual expiration tracking required
-- ⚠️ Risk of data loss if re-upload fails
+- ⏱ Files expire after **48 hours**
+-  Must re-upload files regularly
+-  No persistent storage
+-  Manual expiration tracking required
+-  Risk of data loss if re-upload fails
 
 **Firestore structure:**
 ```javascript
@@ -34,11 +34,11 @@
 ```
 
 #### File Search
-- ✅ Files stored **permanently**
-- 🎯 Upload once, use forever
-- 🗄️ Organized in persistent stores
-- 📦 No expiration management needed
-- 🔒 Reliable long-term storage
+-  Files stored **permanently**
+-  Upload once, use forever
+-  Organized in persistent stores
+-  No expiration management needed
+-  Reliable long-term storage
 
 **Firestore structure:**
 ```javascript
@@ -91,20 +91,20 @@ Savings: $62.50 - $0.81 = $61.69 (98.7% reduction!)
 ### 3. Performance & Speed
 
 #### File API
-- 🐌 Model processes entire files
-- ⏱️ Slow response times (10-30 seconds)
-- 🔄 Redundant processing of irrelevant content
-- 💰 High token usage
-- 📉 Degrades with more files
+-  Model processes entire files
+- ⏱ Slow response times (10-30 seconds)
+-  Redundant processing of irrelevant content
+-  High token usage
+-  Degrades with more files
 
 **Response time**: 15-30 seconds for 10 large PDFs
 
 #### File Search
-- ⚡ Semantic search finds relevant chunks instantly
-- 🎯 Model only processes relevant content
-- 🚀 Fast response times (2-5 seconds)
-- 💎 Efficient token usage
-- 📈 Scales well with more documents
+-  Semantic search finds relevant chunks instantly
+-  Model only processes relevant content
+-  Fast response times (2-5 seconds)
+-  Efficient token usage
+-  Scales well with more documents
 
 **Response time**: 2-5 seconds regardless of total document count
 
@@ -154,12 +154,12 @@ Benefit:
 |---------|----------|-------------|
 | Max file size | 2GB | 100MB |
 | Storage duration | 48 hours | Permanent |
-| Automatic chunking | ❌ No | ✅ Yes |
-| Semantic search | ❌ No | ✅ Yes |
-| Metadata filtering | ❌ No | ✅ Yes (20 fields) |
-| Citations | ❌ No | ✅ Yes |
-| Configurable chunking | ❌ No | ✅ Yes |
-| Batch operations | Limited | ✅ Full support |
+| Automatic chunking |  No |  Yes |
+| Semantic search |  No |  Yes |
+| Metadata filtering |  No |  Yes (20 fields) |
+| Citations |  No |  Yes |
+| Configurable chunking |  No |  Yes |
+| Batch operations | Limited |  Full support |
 | Cost per query | High | Low |
 | Setup complexity | Low | Medium |
 
@@ -184,7 +184,7 @@ const answer = await geminiRAG.chatWithContext(
   [file.uri]
 );
 
-// ⚠️ File expires in 48 hours!
+//  File expires in 48 hours!
 ```
 
 #### File Search
@@ -214,7 +214,7 @@ const result = await fileSearch.chatWithFileSearch(
 console.log(result.text);      // Answer
 console.log(result.citations); // Sources!
 
-// ✅ No expiration, ever!
+//  No expiration, ever!
 ```
 
 **Winner**: Tie - File API is simpler, File Search is more powerful
@@ -224,23 +224,23 @@ console.log(result.citations); // Sources!
 ### 7. Use Case Recommendations
 
 #### When to use File API:
-- ✅ Quick prototypes
-- ✅ Temporary documents (< 48 hours)
-- ✅ Few queries per document
-- ✅ Small document sets
-- ✅ Using Gemini 1.5 models
-- ✅ Files > 100MB
+-  Quick prototypes
+-  Temporary documents (< 48 hours)
+-  Few queries per document
+-  Small document sets
+-  Using Gemini 1.5 models
+-  Files > 100MB
 
 #### When to use File Search:
-- ✅ **Production applications** ⭐
-- ✅ **Long-term storage**
-- ✅ **Many queries per document**
-- ✅ **Large document collections**
-- ✅ **Cost-sensitive applications**
-- ✅ **Accuracy-critical applications**
-- ✅ **Need metadata filtering**
-- ✅ **Need citations**
-- ✅ **Using Gemini 2.5 models**
+-  **Production applications** 
+-  **Long-term storage**
+-  **Many queries per document**
+-  **Large document collections**
+-  **Cost-sensitive applications**
+-  **Accuracy-critical applications**
+-  **Need metadata filtering**
+-  **Need citations**
+-  **Using Gemini 2.5 models**
 
 ---
 
@@ -296,17 +296,17 @@ Benefits:
 ### 9. Model Compatibility
 
 #### File API
-✅ Gemini 1.5 Pro
-✅ Gemini 1.5 Flash
-✅ Gemini 2.0 Flash
-✅ Gemini 2.5 Pro (limited)
-✅ Gemini 2.5 Flash (limited)
+ Gemini 1.5 Pro
+ Gemini 1.5 Flash
+ Gemini 2.0 Flash
+ Gemini 2.5 Pro (limited)
+ Gemini 2.5 Flash (limited)
 
 #### File Search
-❌ Gemini 1.5 Pro (not supported)
-❌ Gemini 1.5 Flash (not supported)
-✅ Gemini 2.5 Pro ⭐
-✅ Gemini 2.5 Flash ⭐
+ Gemini 1.5 Pro (not supported)
+ Gemini 1.5 Flash (not supported)
+ Gemini 2.5 Pro 
+ Gemini 2.5 Flash 
 
 **Note**: File Search only works with 2.5 models, which are more advanced!
 
@@ -372,7 +372,7 @@ Effort: Medium (6-10 hours)
 
 ## Final Recommendation
 
-### For Your Canvas Extension: **File Search** 🏆
+### For Your Canvas Extension: **File Search** 
 
 **Reasons:**
 
@@ -431,10 +431,10 @@ npm run build
 
 ## Support & Resources
 
-- 📚 [File Search Docs](https://ai.google.dev/gemini-api/docs/file-search)
-- 🔧 [API Reference](https://ai.google.dev/api/file-search/file-search-stores)
-- 💬 [Community Forum](https://discuss.ai.google.dev/c/gemini-api/)
-- 📖 [Migration Guide](./FILE_SEARCH_MIGRATION_GUIDE.md)
+-  [File Search Docs](https://ai.google.dev/gemini-api/docs/file-search)
+-  [API Reference](https://ai.google.dev/api/file-search/file-search-stores)
+-  [Community Forum](https://discuss.ai.google.dev/c/gemini-api/)
+-  [Migration Guide](./FILE_SEARCH_MIGRATION_GUIDE.md)
 
 ---
 

@@ -95,17 +95,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             pagesVisited: request.report?.pagesVisited || 0,
             report: request.report
           }
-        }).then(() => {
+        }).then(async () => {
           console.log('✅ Scan results stored persistently for course:', courseId);
           
-          // Set badge to show completion
-          chrome.action.setBadgeText({ text: '✓' });
-          chrome.action.setBadgeBackgroundColor({ color: '#00AA00' });
+          // Get the tab where scan was running
+          const scanStatusKey = `scan_status_${courseId}`;
+          const result = await chrome.storage.local.get(scanStatusKey);
+          const scanTabId = result[scanStatusKey]?.tabId;
           
-          // Clear badge after 5 seconds
-          setTimeout(() => {
-            chrome.action.setBadgeText({ text: '' });
-          }, 5000);
+          // Clear scanning status
+          chrome.storage.local.remove(scanStatusKey);
+          
+          // Set badge to show completion on the specific tab
+          if (scanTabId) {
+            chrome.action.setBadgeText({ text: '✓', tabId: scanTabId });
+            chrome.action.setBadgeBackgroundColor({ color: '#00AA00', tabId: scanTabId });
+            
+            // After 3 seconds, update to show PDF count
+            setTimeout(async () => {
+              // Get course data to show PDF count
+              const { [`course_${courseId}`]: courseData } = await chrome.storage.local.get(`course_${courseId}`);
+              const pdfCount = courseData?.pdfCount || 0;
+              
+              if (pdfCount > 0) {
+                chrome.action.setBadgeText({ text: String(pdfCount), tabId: scanTabId });
+                chrome.action.setBadgeBackgroundColor({ color: '#4CAF50', tabId: scanTabId });
+              }
+            }, 3000);
+          }
         });
       }
       
@@ -132,13 +149,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           status: 'scanning',
           timestamp: Date.now(),
           courseId: request.courseId,
-          courseName: request.courseName
+          courseName: request.courseName,
+          tabId: sender.tab?.id // Store the tab where scan started
         }
       });
       
-      // Set badge to show scanning
-      chrome.action.setBadgeText({ text: '...' });
-      chrome.action.setBadgeBackgroundColor({ color: '#0066CC' });
+      // Set badge to show scanning ONLY on the tab where scan started
+      if (sender.tab?.id) {
+        chrome.action.setBadgeText({ text: '...', tabId: sender.tab.id });
+        chrome.action.setBadgeBackgroundColor({ color: '#0066CC', tabId: sender.tab.id });
+      }
       
       sendResponse({ received: true });
       break;
@@ -883,25 +903,50 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 // Tab update listener - detect when user navigates to Canvas pages
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only act when page is completely loaded
   if (changeInfo.status === 'complete' && tab.url) {
     const isCanvas = /canvas\.|instructure\.com/.test(tab.url);
     const courseMatch = tab.url.match(/\/courses\/(\d+)/);
     
     if (isCanvas && courseMatch) {
-      console.log(`Canvas course detected: ${courseMatch[1]} on tab ${tabId}`);
+      const courseId = courseMatch[1];
+      console.log(`Canvas course detected: ${courseId} on tab ${tabId}`);
       
-      // Badge the extension icon when on Canvas
-      chrome.action.setBadgeText({
-        text: '📚',
-        tabId: tabId
-      });
+      // Check if there's an active scan for this course
+      const scanStatusKey = `scan_status_${courseId}`;
+      const result = await chrome.storage.local.get([scanStatusKey, `course_${courseId}`]);
+      const scanStatus = result[scanStatusKey];
+      const courseData = result[`course_${courseId}`];
       
-      chrome.action.setBadgeBackgroundColor({
-        color: '#4CAF50',
-        tabId: tabId
-      });
+      // If actively scanning, keep the "..." badge
+      if (scanStatus && scanStatus.status === 'scanning') {
+        return; // Don't override scanning badge
+      }
+      
+      // If course has been scanned, show PDF count
+      if (courseData && courseData.pdfCount > 0) {
+        chrome.action.setBadgeText({
+          text: String(courseData.pdfCount),
+          tabId: tabId
+        });
+        
+        chrome.action.setBadgeBackgroundColor({
+          color: '#4CAF50',
+          tabId: tabId
+        });
+      } else {
+        // Course not scanned yet, show book emoji
+        chrome.action.setBadgeText({
+          text: '📚',
+          tabId: tabId
+        });
+        
+        chrome.action.setBadgeBackgroundColor({
+          color: '#2196F3',
+          tabId: tabId
+        });
+      }
     } else {
       // Clear badge when not on Canvas
       chrome.action.setBadgeText({

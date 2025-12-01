@@ -1,6 +1,6 @@
 # Authentication Architecture
 
-## ⚠️ Why NOT Firebase Auth?
+## Why NOT Firebase Auth?
 
 **Firebase Authentication CANNOT be used in Chrome extensions** due to fundamental technical limitations:
 
@@ -12,7 +12,7 @@
 
 ### Failed Attempt
 ```javascript
-// ❌ THIS DOES NOT WORK IN CHROME EXTENSIONS
+//  THIS DOES NOT WORK IN CHROME EXTENSIONS
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 const auth = getAuth();
@@ -20,7 +20,7 @@ const provider = new GoogleAuthProvider();
 signInWithPopup(auth, provider); // Popup closes immediately, auth fails
 ```
 
-## ✅ Solution: Chrome Identity API
+## Solution: Chrome Identity API
 
 Chrome provides a built-in Identity API specifically designed for extensions.
 
@@ -92,12 +92,12 @@ async function checkUserSignedIn() {
 ```
 
 ### What Chrome Identity Provides
-- ✅ **Email address** - User's Google account email
-- ✅ **User ID** - Unique identifier for the user
-- ❌ **No photo URL** - Must generate avatar or use placeholder
-- ❌ **No display name** - Must derive from email or ask user
+-  **Email address** - User's Google account email
+-  **User ID** - Unique identifier for the user
+-  **No photo URL** - Must generate avatar or use placeholder
+-  **No display name** - Must derive from email or ask user
 
-## 🔥 Firebase's Role
+## Firebase's Role
 
 Firebase is ONLY used for **Firestore database**, not authentication.
 
@@ -105,7 +105,7 @@ Firebase is ONLY used for **Firestore database**, not authentication.
 ```javascript
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
-// ❌ NO AUTH IMPORTS - Auth is handled by Chrome Identity
+//  NO AUTH IMPORTS - Auth is handled by Chrome Identity
 
 const firebaseConfig = {
   apiKey: "AIzaSyD4xXyZxYzAbCdEfGhIjKlMnOpQrStUvWxY",
@@ -126,7 +126,7 @@ window.firebaseDb = db;
 window.firebaseModules = { doc, setDoc, getDoc, Timestamp };
 ```
 
-## 🔐 Security Model
+## Security Model
 
 ### Firestore Security Rules
 Since we're using Chrome Identity (not Firebase Auth), Firestore security rules must be configured differently:
@@ -151,9 +151,9 @@ service cloud.firestore {
 }
 ```
 
-⚠️ **Note:** Since we're not using Firebase Auth, `request.auth` won't be available in security rules. You'll need to implement custom security logic or use API keys with proper restrictions.
+ **Note:** Since we're not using Firebase Auth, `request.auth` won't be available in security rules. You'll need to implement custom security logic or use API keys with proper restrictions.
 
-## 📋 User Flow
+## User Flow
 
 1. User installs extension
 2. User clicks extension icon
@@ -163,24 +163,24 @@ service cloud.firestore {
 6. User profile saved to Firestore for persistence
 7. Extension can now make Gemini API calls and store data
 
-## 🎯 Benefits
+## Benefits
 
-- ✅ No popup/redirect issues
-- ✅ Works in all extension contexts (popup, background, content scripts)
-- ✅ Leverages Chrome's existing authentication
-- ✅ No OAuth configuration needed
-- ✅ Simple implementation
-- ✅ Reliable and secure
+-  No popup/redirect issues
+-  Works in all extension contexts (popup, background, content scripts)
+-  Leverages Chrome's existing authentication
+-  No OAuth configuration needed
+-  Simple implementation
+-  Reliable and secure
 
-## 🚫 Limitations
+## Limitations
 
-- ❌ User MUST be signed into Chrome browser
-- ❌ Only works for users with Google accounts
-- ❌ No profile photo from Chrome Identity API
-- ❌ Limited profile information (email + ID only)
-- ❌ Can't use Firebase Auth security rules (need custom rules)
+-  User MUST be signed into Chrome browser
+-  Only works for users with Google accounts
+-  No profile photo from Chrome Identity API
+-  Limited profile information (email + ID only)
+-  Can't use Firebase Auth security rules (need custom rules)
 
-## 🔄 Migration Notes
+## Migration Notes
 
 If you previously attempted Firebase Auth:
 1. Remove all `firebase/auth` imports

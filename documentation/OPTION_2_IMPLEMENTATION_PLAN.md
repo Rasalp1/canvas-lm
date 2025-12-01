@@ -1,6 +1,6 @@
-# 🔄 Option 2: Smart Navigation with State Persistence - Implementation Plan
+# Option 2: Smart Navigation with State Persistence - Implementation Plan
 
-## 🎯 **Current Problem Analysis**
+## **Current Problem Analysis**
 
 The existing codebase has implemented DOM mining (Option 1) but it's not working because:
 
@@ -8,7 +8,7 @@ The existing codebase has implemented DOM mining (Option 1) but it's not working
 2. **Limited Depth**: Only scans the current page without exploring linked content
 3. **Missing PDFs**: Can't access PDFs that are behind assignment pages, module items, or file preview pages
 
-## 🏗️ **Option 2: Smart Navigation Implementation Strategy**
+## **Option 2: Smart Navigation Implementation Strategy**
 
 ### **Core Concept**
 Navigate to each Canvas page, but **persist crawler state** across navigation using `chrome.storage` so the content script can resume after page loads.
@@ -47,7 +47,7 @@ const persistentCrawlerState = {
 };
 ```
 
-## 🔧 **Implementation Steps**
+## **Implementation Steps**
 
 ### **Phase 1: State Management Infrastructure**
 
@@ -162,7 +162,7 @@ class SmartNavigator {
   }
   
   async navigateToUrl(url) {
-    console.log(`🧭 Smart navigation to: ${url}`);
+    console.log(` Smart navigation to: ${url}`);
     
     // Save state before navigation
     const state = await this.stateManager.loadState();
@@ -172,11 +172,11 @@ class SmartNavigator {
     
     // Perform navigation
     if (window.location.href !== url) {
-      console.log(`📍 Navigating from ${window.location.href} to ${url}`);
+      console.log(` Navigating from ${window.location.href} to ${url}`);
       window.location.href = url;
       // Execution stops here - new content script instance will load
     } else {
-      console.log(`✅ Already on target page: ${url}`);
+      console.log(` Already on target page: ${url}`);
       return true; // Already on page
     }
     
@@ -185,14 +185,14 @@ class SmartNavigator {
   
   async processNavigationQueue() {
     if (this.navigationAttempts >= this.maxNavigationAttempts) {
-      console.log('🛑 Max navigation attempts reached, stopping crawler');
+      console.log(' Max navigation attempts reached, stopping crawler');
       await this.stopCrawler();
       return;
     }
     
     const nextItem = await this.queueManager.getNextUrl();
     if (!nextItem) {
-      console.log('🎉 Navigation queue empty, crawler complete!');
+      console.log(' Navigation queue empty, crawler complete!');
       await this.stopCrawler();
       return;
     }
@@ -235,7 +235,7 @@ class StatefulPageScanner {
   }
   
   async scanCurrentPage() {
-    console.log(`🔍 Scanning page: ${window.location.href}`);
+    console.log(` Scanning page: ${window.location.href}`);
     
     // Wait for page to load
     await this.waitForPageLoad();
@@ -268,7 +268,7 @@ class StatefulPageScanner {
       
       await this.stateManager.saveState(state);
       
-      console.log(`✅ Page scan complete: ${pdfs.length} PDFs found, ${newUrls.length} new URLs queued`);
+      console.log(` Page scan complete: ${pdfs.length} PDFs found, ${newUrls.length} new URLs queued`);
     }
   }
   
@@ -336,16 +336,16 @@ class CanvasContentScript {
     const existingState = await this.stateManager.loadState();
     
     if (existingState && existingState.isActive) {
-      console.log('🔄 Resuming crawler session...');
+      console.log(' Resuming crawler session...');
       await this.resumeCrawlerSession(existingState);
     } else {
-      console.log('🆕 Fresh content script initialization');
+      console.log(' Fresh content script initialization');
       this.setupMessageHandlers();
     }
   }
   
   async resumeCrawlerSession(state) {
-    console.log(`📋 Resuming crawl session for course ${state.courseId}`);
+    console.log(` Resuming crawl session for course ${state.courseId}`);
     
     // Scan current page first
     await this.scanner.scanCurrentPage();
@@ -362,7 +362,7 @@ class CanvasContentScript {
 #### **4.2 Enhanced Start Crawler Method**
 ```javascript
 async startSmartNavigationCrawl() {
-  console.log('🚀 Starting smart navigation crawler...');
+  console.log(' Starting smart navigation crawler...');
   
   // Initialize crawler state
   const initialState = {
@@ -414,11 +414,11 @@ async buildInitialNavigationQueue() {
     await this.queueManager.addToQueue(page.url, page.priority, page.phase);
   }
   
-  console.log(`📋 Built initial navigation queue with ${priorityPages.length} priority pages`);
+  console.log(` Built initial navigation queue with ${priorityPages.length} priority pages`);
 }
 ```
 
-## 🔍 **Error Handling & Recovery**
+## **Error Handling & Recovery**
 
 ### **Navigation Failure Recovery**
 ```javascript
@@ -435,7 +435,7 @@ class NavigationErrorHandler {
     state.currentRetries++;
     
     if (state.currentRetries >= state.maxRetries) {
-      console.log('🛑 Max retries reached, stopping crawler');
+      console.log(' Max retries reached, stopping crawler');
       state.isActive = false;
     }
     
@@ -444,7 +444,7 @@ class NavigationErrorHandler {
 }
 ```
 
-## 🎯 **Expected Outcomes**
+## **Expected Outcomes**
 
 ### **Coverage Improvement**
 - **Current**: ~20-30% of course PDFs (surface scanning only)
@@ -464,7 +464,7 @@ class NavigationErrorHandler {
 4. **Error Recovery**: Handles navigation failures gracefully
 5. **Canvas SPA Compatibility**: Works with Canvas single-page application behavior
 
-## 🚧 **Implementation Timeline**
+## **Implementation Timeline**
 
 1. **Phase 1** (Day 1): State management infrastructure
 2. **Phase 2** (Day 2): Navigation queue and smart navigator
@@ -472,7 +472,7 @@ class NavigationErrorHandler {
 4. **Phase 4** (Day 4): Content script integration and testing
 5. **Phase 5** (Day 5): Error handling and polish
 
-## 🧪 **Testing Strategy**
+## **Testing Strategy**
 
 1. **Unit Tests**: Test state persistence and queue management
 2. **Integration Tests**: Test navigation and scanning flow

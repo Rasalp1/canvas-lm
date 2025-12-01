@@ -1,4 +1,4 @@
-# Canvas LM 🎓
+# Canvas LM 
 
 **AI-Powered Study Assistant for Canvas LMS**
 
@@ -10,28 +10,28 @@ Canvas LM transforms your Canvas course materials into an intelligent, conversat
 
 ---
 
-## ✨ Features
+## Features
 
-### 🤖 Intelligent Q&A
+### Intelligent Q&A
 Ask questions about your course materials in natural language and receive contextual answers with citations from your actual course documents.
 
-### 📚 Automatic PDF Extraction
+### Automatic PDF Extraction
 One-click scanning automatically discovers and indexes all PDF files from your Canvas courses, making them searchable and queryable.
 
-### 💬 Conversation History
+### Conversation History
 All your study sessions are saved with full conversation history, allowing you to pick up right where you left off.
 
-### 🎯 Multi-Course Support
+### Multi-Course Support
 Seamlessly switch between multiple courses. Each course maintains its own document store and conversation threads.
 
-### 🔒 Privacy & Security
+### Privacy & Security
 - **Chrome Identity authentication** - No passwords stored
 - **Server-side API key** - Never exposed to client
 - **Rate limiting** - Prevents abuse and controls costs
 - **Enrollment verification** - Only access courses you're enrolled in
 - **Encrypted storage** - All data encrypted at rest and in transit
 
-### ⚡ Smart Features
+### Smart Features
 - **Streaming responses** - See AI answers appear in real-time with typing animation (server-side aggregation ensures complete responses)
 - **Re-scanning capability** - Easily update your course store with new documents or retry failed uploads
 - **Source citations** - Every answer includes references to source documents
@@ -41,7 +41,7 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -102,7 +102,7 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 
 ---
 
-## 📖 Usage Guide
+## Usage Guide
 
 ### Scanning Courses
 
@@ -163,34 +163,34 @@ When you need to add new documents or retry failed uploads:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Canvas LM uses a modern, secure architecture:
 
 ```
-┌─────────────────────────────────────────────┐
-│          Chrome Extension (React)           │
-│  • App.jsx - Main UI                        │
-│  • popup-logic.js - Business logic          │
-│  • Firebase SDK - Cloud Functions client    │
-└──────────────────┬──────────────────────────┘
-                   │
+
+          Chrome Extension (React)           
+  • App.jsx - Main UI                        
+  • popup-logic.js - Business logic          
+  • Firebase SDK - Cloud Functions client    
+
+                   
                    ↓
-┌─────────────────────────────────────────────┐
-│       Firebase Cloud Functions (Node.js)    │
-│  • Rate limiting & security                 │
-│  • Enrollment verification                  │
-│  • Gemini API proxy                         │
-└──────────────────┬──────────────────────────┘
-                   │
-         ┌─────────┴─────────┐
+
+       Firebase Cloud Functions (Node.js)    
+  • Rate limiting & security                 
+  • Enrollment verification                  
+  • Gemini API proxy                         
+
+                   
+         
          ↓                   ↓
-┌──────────────────┐  ┌─────────────────────┐
-│ Firestore DB     │  │ Gemini File Search  │
-│  • User data     │  │  • RAG queries      │
-│  • Courses       │  │  • Document corpus  │
-│  • Chat history  │  │  • Semantic search  │
-└──────────────────┘  └─────────────────────┘
+  
+ Firestore DB        Gemini File Search  
+  • User data         • RAG queries      
+  • Courses           • Document corpus  
+  • Chat history      • Semantic search  
+  
 ```
 
 ### Key Technologies
@@ -206,7 +206,7 @@ For detailed architecture information, see [ARCHITECTURE.md](documentation/ARCHI
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Setup Development Environment
 
@@ -247,23 +247,23 @@ For detailed architecture information, see [ARCHITECTURE.md](documentation/ARCHI
 
 ```
 canvas-lm/
-├── src/                          # Frontend source code
-│   ├── App.jsx                   # Main React component
-│   ├── popup-logic.js            # Business logic
-│   ├── firebase-config.js        # Firebase initialization
-│   ├── firestore-helpers.js      # Database operations
-│   ├── gemini-file-search-cloud.js  # Cloud Functions client
-│   ├── content-script.js         # Canvas page scanner
-│   ├── background.js             # Service worker
-│   └── components/               # React UI components
-│
-├── functions/                    # Backend Cloud Functions
-│   ├── index.js                  # Cloud Functions code
-│   └── .env                      # Environment variables
-│
-├── documentation/                # Project documentation
-├── dist/                         # Build output (generated)
-└── manifest.json                 # Chrome extension manifest
+ src/                          # Frontend source code
+    App.jsx                   # Main React component
+    popup-logic.js            # Business logic
+    firebase-config.js        # Firebase initialization
+    firestore-helpers.js      # Database operations
+    gemini-file-search-cloud.js  # Cloud Functions client
+    content-script.js         # Canvas page scanner
+    background.js             # Service worker
+    components/               # React UI components
+
+ functions/                    # Backend Cloud Functions
+    index.js                  # Cloud Functions code
+    .env                      # Environment variables
+
+ documentation/                # Project documentation
+ dist/                         # Build output (generated)
+ manifest.json                 # Chrome extension manifest
 ```
 
 ### Available Scripts
@@ -283,7 +283,7 @@ firebase deploy        # Deploy Cloud Functions
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 
@@ -297,7 +297,7 @@ For bugs or feature requests, open an issue on [GitHub Issues](https://github.co
 
 ---
 
-## 📊 Roadmap
+## Roadmap
 
 ### Version 1.1 (Q1 2026)
 - [ ] Support for PowerPoint and Word documents
@@ -315,13 +315,13 @@ For bugs or feature requests, open an issue on [GitHub Issues](https://github.co
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Google Gemini** for providing the powerful AI capabilities
 - **Firebase** for the backend infrastructure
@@ -330,13 +330,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support & Contact
+## Support & Contact
 
 ### Get Help
 
 - **Documentation:** [docs](documentation/)
 - **Issues:** [GitHub Issues](https://github.com/Rasalp1/canvas-lm/issues)
-- **Email:** rasmus.alpsten@gmail.com
+- **Email:** ralpsten.gdev@gmail.com
 
 ### Links
 
@@ -346,7 +346,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 **Canvas LM is an independent project and is not affiliated with, endorsed by, or sponsored by:**
 - Instructure, Inc. or Canvas LMS
@@ -367,6 +367,6 @@ Canvas LM is designed as a **study aid**, not a cheating tool. Users are respons
 
 ---
 
-**Made with ❤️ for students, by students**
+**Made with  for students, by students**
 
 *Empowering learning through AI*

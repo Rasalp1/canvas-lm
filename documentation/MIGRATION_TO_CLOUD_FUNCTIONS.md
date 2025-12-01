@@ -106,10 +106,10 @@ const result = await gemini.uploadPDF(file);
 
 ## Files to Update
 
-✅ `src/popup.js` - Replace GeminiRAGManager with GeminiCloudClient  
-✅ `src/background.js` - If you use Gemini there  
-✅ `settings.html` - Remove API key input (optional)  
-✅ `settings.js` - Remove API key handling (optional)
+ `src/popup.js` - Replace GeminiRAGManager with GeminiCloudClient  
+ `src/background.js` - If you use Gemini there  
+ `settings.html` - Remove API key input (optional)  
+ `settings.js` - Remove API key handling (optional)
 
 ## Deploy Cloud Functions
 
@@ -129,4 +129,4 @@ firebase deploy --only functions
 3. Try uploading a PDF
 4. Check Firebase Console logs if issues
 
-That's it! 🎉
+That's it! 

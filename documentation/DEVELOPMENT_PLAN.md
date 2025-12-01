@@ -1,17 +1,17 @@
 # Canvas-Gemini RAG System - Development Plan
 
-## 🎯 Project Overview
+## Project Overview
 A Chrome extension that automatically downloads PDFs from Canvas courses and creates an interactive RAG (Retrieval-Augmented Generation) system using Google Gemini File Search for seamless Q&A with course materials.
 
-## 📋 Current State Analysis
-- **Basic Chrome extension structure** ✅ (manifest v3, popup, basic scripting)
-- **Canvas integration** ✅ (PDF scraping and downloading working)
-- **Authentication system** ❌ (needs Firebase setup)
-- **Backend infrastructure** ❌ (needs Firestore setup)
-- **Gemini integration** ❌ (needs File Search API setup)
-- **RAG chat interface** ❌ (needs complete UI overhaul)
+## Current State Analysis
+- **Basic Chrome extension structure**  (manifest v3, popup, basic scripting)
+- **Canvas integration**  (PDF scraping and downloading working)
+- **Authentication system**  (needs Firebase setup)
+- **Backend infrastructure**  (needs Firestore setup)
+- **Gemini integration**  (needs File Search API setup)
+- **RAG chat interface**  (needs complete UI overhaul)
 
-## 🏗️ Architecture Overview - Google Cloud Native
+## Architecture Overview - Google Cloud Native
 
 ### System Components (Updated)
 1. **Chrome Extension Frontend** (current minimal structure needs expansion)
@@ -28,7 +28,7 @@ Canvas Page → Extension Detects PDFs → Chrome Identity Check →
 → Store Metadata in Firestore → Enable RAG Chat Interface
 ```
 
-## 📦 Phase 1: Foundation Setup (Week 1-2)
+## Phase 1: Foundation Setup (Week 1-2)
 
 ### 1.1 Google Cloud / Firebase Project Setup
 - [ ] Create new Google Cloud project
@@ -126,7 +126,7 @@ chatSessions/{sessionId} = {
   }
   ```
 
-## 📦 Phase 2: Canvas Integration (Week 2-3)
+## Phase 2: Canvas Integration (Week 2-3)
 
 ### 2.1 Canvas Detection & API Integration
 - [ ] Create `content-script.js` for Canvas page detection
@@ -169,7 +169,7 @@ class CanvasScanner {
 }
 ```
 
-## 📦 Phase 3: Direct API Integration (Week 3-4)
+## Phase 3: Direct API Integration (Week 3-4)
 
 ### 3.1 Chrome Identity Authentication Setup
 
@@ -278,7 +278,7 @@ class GeminiService {
 - **Client-side encryption** for sensitive data before storage
 - **No OAuth popup issues** - uses browser's built-in authentication
 
-## 📦 Phase 4: Extension UI Overhaul (Week 4-5)
+## Phase 4: Extension UI Overhaul (Week 4-5)
 
 ### 4.1 New Popup Interface Design
 Replace current minimal popup with comprehensive interface:
@@ -357,7 +357,7 @@ Update `styles.css` with:
 - [ ] Chat bubble styling
 - [ ] Progress indicators
 
-## 📦 Phase 5: RAG Implementation (Week 5-6)
+## Phase 5: RAG Implementation (Week 5-6)
 
 ### 5.1 Gemini File Search Integration
 - [ ] Implement file upload with signed URLs
@@ -378,7 +378,7 @@ Update `styles.css` with:
 - [ ] Multi-document querying
 - [ ] Query refinement suggestions
 
-## 📦 Phase 6: Testing & Polish (Week 6-7)
+## Phase 6: Testing & Polish (Week 6-7)
 
 ### 6.1 Comprehensive Testing
 - [ ] Unit tests for all components
@@ -401,7 +401,7 @@ Update `styles.css` with:
 - [ ] GDPR compliance check
 - [ ] Security audit
 
-## 📦 Phase 7: Deployment & Distribution (Week 7-8)
+## Phase 7: Deployment & Distribution (Week 7-8)
 
 ### 7.1 Chrome Web Store Preparation
 - [ ] Create store listing
@@ -417,7 +417,7 @@ Update `styles.css` with:
 - [ ] API documentation
 - [ ] Developer setup guide
 
-## 🔧 Technical Requirements
+## Technical Requirements
 
 ### Development Environment
 - **Node.js** (v18+)
@@ -450,7 +450,7 @@ const firebaseConfig = {
 };
 ```
 
-## 🚨 Potential Challenges & Solutions
+## Potential Challenges & Solutions
 
 ### Challenge 1: Canvas API Rate Limits
 **Solution**: Implement exponential backoff and request queuing
@@ -467,7 +467,7 @@ const firebaseConfig = {
 ### Challenge 5: PDF Processing Time
 **Solution**: Implement background processing with status updates
 
-## 📊 Success Metrics
+## Success Metrics
 
 ### Technical Metrics
 - [ ] Successfully authenticate 95%+ of users
@@ -481,14 +481,14 @@ const firebaseConfig = {
 - [ ] Intuitive chat interface
 - [ ] 95%+ uptime
 
-## 🎯 MVP Definition
+## MVP Definition
 
 ### Core Features for V1.0
-1. ✅ Canvas course detection
-2. ✅ PDF scanning and extraction
-3. ✅ Google authentication
-4. ✅ Basic RAG chat functionality
-5. ✅ File upload to Gemini File Search
+1.  Canvas course detection
+2.  PDF scanning and extraction
+3.  Google authentication
+4.  Basic RAG chat functionality
+5.  File upload to Gemini File Search
 
 ### Nice-to-Have Features for V1.1+
 - [ ] Multiple file format support (DOCX, PPTX)
@@ -497,12 +497,12 @@ const firebaseConfig = {
 - [ ] Mobile app companion
 - [ ] Offline chat history
 
-## 📅 Timeline Summary
+## Timeline Summary
 
 | Phase | Duration | Key Deliverables | Status |
 |-------|----------|------------------|--------|
-| 1 | Week 1-2 | Firebase setup, Gemini API, Updated manifest | 🔄 In Progress |
-| 2 | Week 2-3 | Canvas integration, PDF detection | ✅ Complete |
+| 1 | Week 1-2 | Firebase setup, Gemini API, Updated manifest |  In Progress |
+| 2 | Week 2-3 | Canvas integration, PDF detection |  Complete |
 | 3 | Week 3-4 | Backend functions, Authentication | ⏳ Next |
 | 4 | Week 4-5 | New UI, Enhanced popup | ⏳ Planned |
 | 5 | Week 5-6 | RAG implementation, Chat system | ⏳ Planned |
@@ -513,7 +513,7 @@ const firebaseConfig = {
 
 ---
 
-## 🚀 Next Steps (Current Priority)
+## Next Steps (Current Priority)
 
 ### Phase 3: Firebase & Gemini API Integration
 1. **Set up Firebase project** - Create Google Cloud/Firebase project
@@ -523,7 +523,7 @@ const firebaseConfig = {
 5. **Implement authentication** - Google OAuth sign-in flow
 6. **Integrate Gemini API** - Direct API calls for file upload and RAG queries
 
-## 🎯 Why Google Cloud Native Architecture
+## Why Google Cloud Native Architecture
 
 ### Simplified Development
 - **Single vendor ecosystem** - All Google services work seamlessly together

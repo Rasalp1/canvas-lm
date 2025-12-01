@@ -35,10 +35,10 @@ Client → Cloud Function → Verify Enrollment → Gemini API
 ```
 
 **All sensitive operations go through Cloud Functions:**
-- ✅ `queryCourseStore` - AI queries (rate limited: 50/min)
-- ✅ `createCourseStore` - Store creation (rate limited: 5/min)
-- ✅ `uploadToStore` - PDF uploads (rate limited: 20/min)
-- ✅ `deleteDocument` - Document deletion (rate limited: 30/min)
+-  `queryCourseStore` - AI queries (rate limited: 50/min)
+-  `createCourseStore` - Store creation (rate limited: 5/min)
+-  `uploadToStore` - PDF uploads (rate limited: 20/min)
+-  `deleteDocument` - Document deletion (rate limited: 30/min)
 
 **What Cloud Functions enforce:**
 1. **Enrollment Verification** - User must be enrolled in course
@@ -61,35 +61,35 @@ allow read, write: if true;
 4. **Rate limiting prevents abuse** (in Cloud Functions)
 
 **What the rules DO protect:**
-- ✅ Rate limit collection (read-only for clients)
-- ✅ Course deletion (must go through Cloud Functions)
-- ✅ User deletion (blocked entirely)
+-  Rate limit collection (read-only for clients)
+-  Course deletion (must go through Cloud Functions)
+-  User deletion (blocked entirely)
 
 ## Security Trade-offs
 
-### ✅ What We Have (Strong)
+### What We Have (Strong)
 1. **User Authentication** - Chrome Identity API (Google verified)
 2. **Authorization** - Enrollment verification in Cloud Functions
 3. **Rate Limiting** - Firestore-based per-user limits
 4. **API Key Protection** - All keys server-side only
 5. **Platform Trust** - Chrome Web Store review process
 
-### ⚠️ What We Don't Have
+### What We Don't Have
 1. **Firestore-level auth** - Rules cannot verify user identity
 2. **App Check** - Not practical for Chrome extensions
 3. **Request signing** - Would require complex crypto
 4. **IP-based blocking** - Firebase doesn't provide this
 
-### 🤔 Potential Risks & Mitigations
+### Potential Risks & Mitigations
 
 | Risk | Severity | Mitigation | Status |
 |------|----------|------------|--------|
-| User impersonation | Medium | Enrollment verification | ✅ |
-| Quota abuse | Medium | Rate limiting | ✅ |
-| Cost attacks | Medium | Rate limits + monitoring | ✅ |
-| Data injection | Low | Gemini's built-in filtering | ✅ |
-| Unauthorized course access | Low | Enrollment checks | ✅ |
-| Firestore spam | Low | Rate limiting | ✅ |
+| User impersonation | Medium | Enrollment verification |  |
+| Quota abuse | Medium | Rate limiting |  |
+| Cost attacks | Medium | Rate limits + monitoring |  |
+| Data injection | Low | Gemini's built-in filtering |  |
+| Unauthorized course access | Low | Enrollment checks |  |
+| Firestore spam | Low | Rate limiting |  |
 
 ## Rate Limiting Details
 
@@ -121,24 +121,24 @@ users/{userId}/rateLimits/{operation}
 | Security Feature | Canvas LM | Typical Extension | Banking App |
 |-----------------|-----------|-------------------|-------------|
 | User Auth | Chrome Identity | None/Basic | Firebase Auth + 2FA |
-| API Key Protection | ✅ Server-side | ❌ Client-side | ✅ Server-side |
-| Rate Limiting | ✅ Per-user | ❌ None | ✅ Aggressive |
-| Enrollment Check | ✅ Yes | N/A | N/A |
-| Data Encryption | ✅ HTTPS | ✅ HTTPS | ✅ HTTPS + Field-level |
-| App Check | ❌ Not practical | ❌ None | ✅ Yes |
+| API Key Protection |  Server-side |  Client-side |  Server-side |
+| Rate Limiting |  Per-user |  None |  Aggressive |
+| Enrollment Check |  Yes | N/A | N/A |
+| Data Encryption |  HTTPS |  HTTPS |  HTTPS + Field-level |
+| App Check |  Not practical |  None |  Yes |
 
 **Verdict:** Canvas LM's security is **above average** for educational Chrome extensions.
 
 ## Is This Secure Enough?
 
-### ✅ Yes, for Educational Use
+### Yes, for Educational Use
 - Not handling financial data
 - Not handling health data  
 - Not handling PII beyond email
 - Users only access their own courses
 - Worst case: User wastes their own API quota
 
-### ❌ Would Need More For:
+### Would Need More For:
 - Banking/financial applications
 - Healthcare applications
 - Government/classified data
@@ -147,25 +147,25 @@ users/{userId}/rateLimits/{operation}
 ## Chrome Web Store Requirements
 
 ### What Chrome Requires:
-✅ User authentication (Chrome Identity API)  
-✅ No excessive permissions  
-✅ Privacy policy  
-✅ Secure backend (HTTPS, API keys protected)  
-✅ No malicious code  
+ User authentication (Chrome Identity API)  
+ No excessive permissions  
+ Privacy policy  
+ Secure backend (HTTPS, API keys protected)  
+ No malicious code  
 
 ### What Chrome DOESN'T Require:
-❌ Firebase Auth  
-❌ App Check  
-❌ Field-level encryption  
-❌ Perfect Firestore rules  
+ Firebase Auth  
+ App Check  
+ Field-level encryption  
+ Perfect Firestore rules  
 
 ## Recommendations
 
 ### Before Launch (Critical):
-1. ✅ **Rate limiting** - Implemented
-2. ✅ **Enrollment verification** - Implemented
-3. ⚠️ **Usage monitoring** - Set up alerts
-4. ⚠️ **Error tracking** - Add Sentry/similar
+1.  **Rate limiting** - Implemented
+2.  **Enrollment verification** - Implemented
+3.  **Usage monitoring** - Set up alerts
+4.  **Error tracking** - Add Sentry/similar
 
 ### Post-Launch (Nice to Have):
 1. Add suspicious activity detection
@@ -174,9 +174,9 @@ users/{userId}/rateLimits/{operation}
 4. Consider moving to Firebase Auth (complex migration)
 
 ### Never Required:
-1. ❌ App Check (doesn't work well with extensions)
-2. ❌ Request signing (overkill for this use case)
-3. ❌ Perfect Firestore rules (impossible without Firebase Auth)
+1.  App Check (doesn't work well with extensions)
+2.  Request signing (overkill for this use case)
+3.  Perfect Firestore rules (impossible without Firebase Auth)
 
 ## Security Incident Response
 
@@ -205,11 +205,11 @@ users/{userId}/rateLimits/{operation}
 **Canvas LM's security model is appropriate for its use case.** 
 
 It follows industry best practices for Chrome extensions with Firebase:
-- ✅ Server-side API key management
-- ✅ User authentication via trusted platform (Chrome)
-- ✅ Authorization checks on sensitive operations
-- ✅ Rate limiting to prevent abuse
-- ✅ Audit trail via Firebase logs
+-  Server-side API key management
+-  User authentication via trusted platform (Chrome)
+-  Authorization checks on sensitive operations
+-  Rate limiting to prevent abuse
+-  Audit trail via Firebase logs
 
 The permissive Firestore rules are **intentional and acceptable** because:
 1. Cannot use Firebase Auth with Chrome Identity API

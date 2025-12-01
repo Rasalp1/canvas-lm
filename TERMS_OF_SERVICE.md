@@ -65,26 +65,26 @@ We reserve the right to suspend or terminate your account if:
 
 ### Permitted Uses
 You may use Canvas LM to:
-- ✅ Study and review your course materials
-- ✅ Ask questions about enrolled courses
-- ✅ Organize and manage course PDFs
-- ✅ Improve your learning experience
-- ✅ Access courses you are legitimately enrolled in
+-  Study and review your course materials
+-  Ask questions about enrolled courses
+-  Organize and manage course PDFs
+-  Improve your learning experience
+-  Access courses you are legitimately enrolled in
 
 ### Prohibited Uses
 You may NOT:
-- ❌ Share access to courses you're not authorized to access
-- ❌ Upload copyrighted materials without permission
-- ❌ Use the service for commercial purposes without authorization
-- ❌ Attempt to reverse engineer or modify the Extension
-- ❌ Circumvent rate limits or security measures
-- ❌ Use the service to generate academic dishonesty
-- ❌ Abuse the service (spam, flooding, excessive requests)
-- ❌ Share API access or credentials
-- ❌ Scrape or download data in bulk
-- ❌ Use the service to harm others or violate their rights
-- ❌ Impersonate other users or institutions
-- ❌ Upload malicious files or viruses
+-  Share access to courses you're not authorized to access
+-  Upload copyrighted materials without permission
+-  Use the service for commercial purposes without authorization
+-  Attempt to reverse engineer or modify the Extension
+-  Circumvent rate limits or security measures
+-  Use the service to generate academic dishonesty
+-  Abuse the service (spam, flooding, excessive requests)
+-  Share API access or credentials
+-  Scrape or download data in bulk
+-  Use the service to harm others or violate their rights
+-  Impersonate other users or institutions
+-  Upload malicious files or viruses
 
 ### Academic Integrity
 Canvas LM is a study aid, NOT a cheating tool:
@@ -277,7 +277,7 @@ Upon termination:
 These Terms are governed by the laws of Sweden, without regard to conflict of law principles.
 
 ### Informal Resolution
-Before filing a claim, please contact us at rasmus.alpsten@gmail.com to resolve the dispute informally.
+Before filing a claim, please contact us at ralpsten.gdev@gmail.com to resolve the dispute informally.
 
 ### Binding Arbitration
 Any disputes not resolved informally shall be settled by binding arbitration in accordance with the laws of Sweden.
@@ -318,7 +318,7 @@ Any feedback or suggestions you provide may be used without compensation or attr
 
 For questions, concerns, or notices regarding these Terms:
 
-**Email**: rasmus.alpsten@gmail.com  
+**Email**: ralpsten.gdev@gmail.com  
 **GitHub**: https://github.com/Rasalp1/canvas-lm  
 **Issues**: https://github.com/Rasalp1/canvas-lm/issues
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, ChevronDown } from 'lucide-react';
+import { Settings, ChevronDown, Info } from 'lucide-react';
 import { Header } from './components/Header';
 import { CoursePDFDrawer } from './components/CoursePDFDrawer';
 import { AuthSection } from './components/AuthSection';
@@ -8,6 +8,7 @@ import { CourseInfo } from './components/CourseInfo';
 import { ChatSection } from './components/ChatSection';
 import { CourseSelector } from './components/CourseSelector';
 import { AllCoursesView } from './components/AllCoursesView';
+import { About } from './components/About';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './components/ui/dialog';
 import { Button } from './components/ui/button';
 import { getCourseColor } from './lib/course-colors';
@@ -70,6 +71,7 @@ export const App = ({
   const [drawerDocuments, setDrawerDocuments] = useState([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [newDocumentsFound, setNewDocumentsFound] = useState(0);
+  const [showAbout, setShowAbout] = useState(false);
 
   // Auto-clear new documents notification after 10 seconds
   useEffect(() => {
@@ -238,6 +240,10 @@ export const App = ({
     return (
       <>
         <style>{CSS_VARS}</style>
+        
+        {/* About Modal - rendered outside main container to avoid overflow issues */}
+        {showAbout && <About onClose={() => setShowAbout(false)} />}
+        
         <div className="w-screen h-screen bg-slate-50 flex overflow-hidden relative">
           {/* Aurora Background - only show on welcome screen */}
           {!showCourseInfo && (
@@ -326,7 +332,7 @@ export const App = ({
                                 e.stopPropagation();
                                 handleRemoveEnrollment(course);
                               }}
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
+                              className="absolute top-1/2 -translate-y-1/2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded"
                             >
                               <span className="text-red-600 text-lg">×</span>
                             </button>
@@ -375,11 +381,17 @@ export const App = ({
             {!sidebarCollapsed && (
               <div className="p-2 border-t border-slate-200 relative">
                 {settingsOpen && (
-                  <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-lg shadow-lg py-2">
-                    {/* Empty dropdown menu - placeholder for future settings */}
-                    <div className="px-4 py-2 text-sm text-slate-500 text-center">
-                      Settings coming soon
-                    </div>
+                  <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-lg shadow-lg py-1 overflow-hidden">
+                    <button
+                      onClick={() => {
+                        setShowAbout(true);
+                        setSettingsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    >
+                      <Info size={16} className="text-slate-600" />
+                      <span>About</span>
+                    </button>
                   </div>
                 )}
                 <button
@@ -431,7 +443,7 @@ export const App = ({
               /* Welcome Screen */
               <div className="flex-1 flex items-center justify-center p-8 relative">
                 <div className="text-center relative z-20">
-                  <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg overflow-hidden">
+                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg overflow-hidden">
                     <img 
                       src={chrome.runtime.getURL('Canvas LM Logo.png')}
                       alt="Canvas LM Logo" 
@@ -458,6 +470,11 @@ export const App = ({
                   {/* <div className="mt-12">
                     <AllCoursesView onLoadCourses={handleLoadAllCourses} isStandalone={true} />
                   </div> */}
+                </div>
+                
+                {/* Made by credit */}
+                <div className="absolute bottom-4 right-4 text-xs text-slate-400 z-20">
+                  Made by Rasmus Alpsten
                 </div>
               </div>
             )}

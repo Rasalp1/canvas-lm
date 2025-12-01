@@ -1,4 +1,4 @@
-## 🔧 Chrome Extension Development Workflow
+## Chrome Extension Development Workflow
 
 ### 1. **Development Process**
 - Write code in VS Code (HTML, CSS, JS files)
@@ -108,7 +108,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 ```
 
-## 🎯 Best Practice Setup
+## Best Practice Setup
 
 1. **Keep Chrome DevTools open** while developing
 2. **Use Live Server** for HTML/CSS iteration

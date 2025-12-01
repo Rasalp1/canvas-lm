@@ -1,31 +1,31 @@
 # Firestore Database Architecture - Canvas LM
 
-## 🎯 Overview
+## Overview
 
 Firestore is a **NoSQL document database** with a hierarchical structure. Unlike SQL databases where you define tables upfront, Firestore creates collections and documents **dynamically** when you write data.
 
-## 🔑 Key Architecture Decision: Shared Courses
+## Key Architecture Decision: Shared Courses
 
 **Courses and PDFs are SHARED** across all users, while **chat histories and interactions are PRIVATE**.
 
 ### Rationale
-- ✅ **Shared**: Courses exist independently - if course CS101 exists, all users see the same PDFs
-- ✅ **Efficiency**: No duplicate PDF uploads to Gemini for the same course
-- ✅ **Storage**: Single Gemini File Search store per course, shared by all users
-- 🔐 **Privacy**: Each user's chat history, questions, and interactions remain completely private
+-  **Shared**: Courses exist independently - if course CS101 exists, all users see the same PDFs
+-  **Efficiency**: No duplicate PDF uploads to Gemini for the same course
+-  **Storage**: Single Gemini File Search store per course, shared by all users
+-  **Privacy**: Each user's chat history, questions, and interactions remain completely private
 
 ### What's Shared vs Private
 
 | Data Type | Scope | Example |
 |-----------|-------|---------|
-| **Course Info** | 🌍 Shared | CS101 name, Canvas URL |
-| **PDF Documents** | 🌍 Shared | lecture1.pdf, slides.pdf |
-| **Gemini Store** | 🌍 Shared | Single RAG corpus per course |
-| **User Enrollments** | 🔐 Private | Which courses user has accessed |
-| **Chat Sessions** | 🔐 Private | User's conversation history |
-| **Chat Messages** | 🔐 Private | Individual Q&A exchanges |
+| **Course Info** |  Shared | CS101 name, Canvas URL |
+| **PDF Documents** |  Shared | lecture1.pdf, slides.pdf |
+| **Gemini Store** |  Shared | Single RAG corpus per course |
+| **User Enrollments** |  Private | Which courses user has accessed |
+| **Chat Sessions** |  Private | User's conversation history |
+| **Chat Messages** |  Private | Individual Q&A exchanges |
 
-## 📊 Core Concepts
+## Core Concepts
 
 ### Document vs Collection
 - **Collection**: Container for documents (like a folder)
@@ -44,140 +44,140 @@ courses/CS101/documents/doc1         ← Document path (4 segments)
 users/A123/fileSearchStores          ← Collection path (odd number of segments)
 ```
 
-## 🏗️ Canvas LM Database Structure
+## Canvas LM Database Structure
 
 ### Visual Hierarchy
 
 ```
 firestore (root)
-│
-├─ users/                                    [Collection]
-│  │
-│  ├─ A123/                                  [Document - Chrome User ID]
-│  │  ├─ email: "alice@example.com"         (Field)
-│  │  ├─ displayName: "alice"               (Field)
-│  │  ├─ isAdmin: false                     (Field - NEW: Admin privileges)
-│  │  ├─ createdAt: Timestamp               (Field)
-│  │  ├─ lastSeenAt: Timestamp              (Field)
-│  │  │
-│  │  └─ enrollments/                       [Subcollection - 🔐 PRIVATE]
-│  │     │
-│  │     ├─ 12345/                          [Document - Course ID user accessed]
-│  │     │  ├─ courseId: "12345"
-│  │     │  ├─ courseName: "Introduction to CS"
-│  │     │  ├─ enrolledAt: Timestamp
-│  │     │  ├─ lastAccessedAt: Timestamp
-│  │     │  └─ favorite: false
-│  │     │
-│  │     └─ 67890/                          [Document]
-│  │        ├─ courseId: "67890"
-│  │        ├─ courseName: "Advanced Math"
-│  │        ├─ enrolledAt: Timestamp
-│  │        ├─ lastAccessedAt: Timestamp
-│  │        └─ favorite: true
-│  │
-│  └─ B456/                                  [Document - Another User]
-│     ├─ email: "bob@example.com"
-│     ├─ displayName: "bob"
-│     ├─ isAdmin: false                     (Field)
-│     ├─ createdAt: Timestamp
-│     ├─ lastSeenAt: Timestamp
-│     │
-│     └─ enrollments/                       [Subcollection - Bob's courses]
-│        └─ 12345/                          [Same course, different enrollment]
-│           ├─ enrolledAt: Timestamp (Bob's enrollment time)
-│           └─ ... (Bob's preferences)
-│
-├─ courses/                                  [Collection - 🌍 SHARED]
-│  │
-│  ├─ 12345/                                 [Document - Canvas Course ID]
-│  │  ├─ courseName: "Introduction to CS"   (Field - NO userId!)
-│  │  ├─ courseCode: "CS101"                (Field)
-│  │  ├─ canvasUrl: "https://..."           (Field)
-│  │  ├─ canvasInstance: "canvas.edu"       (Field - Domain)
-│  │  ├─ firstScannedAt: Timestamp          (Field - When first discovered)
-│  │  ├─ lastScannedAt: Timestamp           (Field - Last update)
-│  │  ├─ pdfCount: 15                       (Field)
-│  │  ├─ fileSearchStoreName: "store_abc123" (Field - Shared Gemini store)
-│  │  ├─ totalEnrollments: 42               (Field - How many users enrolled)
-│  │  ├─ createdBy: "A123"                  (Field - First user who scanned)
-│  │  │
-│  │  └─ documents/                         [Subcollection - 🌍 SHARED]
-│  │     │
-│  │     ├─ aHR0cHM6Ly9jYW52YXMuZWR1L2ZpbGVzLzEvbGVjdHVyZTEucGRm/  [Document]
-│  │     │  ├─ fileName: "lecture1.pdf"
-│  │     │  ├─ fileUrl: "https://canvas.edu/files/1/lecture1.pdf"
-│  │     │  ├─ fileSize: 2048576
-│  │     │  ├─ fileType: "application/pdf"
-│  │     │  ├─ scannedFrom: "files"
-│  │     │  ├─ uploadedAt: Timestamp
-│  │     │  ├─ fileSearchDocumentName: "document_gemini_123"
-│  │     │  ├─ uploadStatus: "completed"
-│  │     │  └─ uploadedBy: "A123"          (Who uploaded to Gemini)
-│  │     │
-│  │     ├─ aHR0cHM6Ly9jYW52YXMuZWR1L2ZpbGVzLzIvbGVjdHVyZTIucGRm/  [Document]
-│  │     │  ├─ fileName: "lecture2.pdf"
-│  │     │  ├─ fileUrl: "https://canvas.edu/files/2/lecture2.pdf"
-│  │     │  ├─ fileSize: 1524288
-│  │     │  ├─ fileType: "application/pdf"
-│  │     │  ├─ scannedFrom: "modules"
-│  │     │  ├─ uploadedAt: Timestamp
-│  │     │  ├─ fileSearchDocumentName: "document_gemini_456"
-│  │     │  ├─ uploadStatus: "completed"
-│  │     │  └─ uploadedBy: "B456"          (Different user uploaded this)
-│  │     │
-│  │     └─ ... (more PDF documents)
-│  │
-│  └─ 67890/                                 [Document - Another Course]
-│     ├─ courseName: "Advanced Mathematics"
-│     ├─ courseCode: "MATH201"
-│     ├─ canvasUrl: "https://..."
-│     ├─ firstScannedAt: Timestamp
-│     ├─ lastScannedAt: Timestamp
-│     ├─ pdfCount: 8
-│     ├─ fileSearchStoreName: "store_xyz789"
-│     ├─ totalEnrollments: 18
-│     ├─ createdBy: "B456"
-│     │
-│     └─ documents/                         [Subcollection]
-│        └─ ... (PDFs for MATH201 - shared)
-│        └─ ...
-│
-└─ chatSessions/                             [Collection - TOP-LEVEL with userId]
-   │
-   ├─ session_abc123/                        [Document - Chat Session ID]
-   │  ├─ userId: "A123"                      (Field - Owner reference)
-   │  ├─ courseId: "12345"                   (Field - Course reference)
-   │  ├─ createdAt: Timestamp                (Field)
-   │  ├─ lastMessageAt: Timestamp            (Field)
-   │  ├─ title: "Questions about Lecture 1"  (Field)
-   │  ├─ messageCount: 5                     (Field)
-   │  │
-   │  └─ messages/                           [Subcollection]
-   │     ├─ msg_1/
-   │     │  ├─ role: "user"
-   │     │  ├─ content: "Explain recursion"
-   │     │  └─ timestamp: Timestamp
-   │     │
-   │     ├─ msg_2/
-   │     │  ├─ role: "assistant"
-   │     │  ├─ content: "Recursion is..."
-   │     │  └─ timestamp: Timestamp
-   │     │
-   │     └─ ... (more messages)
-   │
-   ├─ session_xyz789/                        [Document - Another session]
-   │  ├─ userId: "A123"
-   │  ├─ courseId: "67890"
-   │  └─ ... (session metadata)
-   │
-   └─ session_def456/                        [Document - Bob's session]
-      ├─ userId: "B456"
-      ├─ courseId: "12345"
-      └─ ... (session metadata)
+
+ users/                                    [Collection]
+  
+   A123/                                  [Document - Chrome User ID]
+     email: "alice@example.com"         (Field)
+     displayName: "alice"               (Field)
+     isAdmin: false                     (Field - NEW: Admin privileges)
+     createdAt: Timestamp               (Field)
+     lastSeenAt: Timestamp              (Field)
+    
+     enrollments/                       [Subcollection -  PRIVATE]
+       
+        12345/                          [Document - Course ID user accessed]
+          courseId: "12345"
+          courseName: "Introduction to CS"
+          enrolledAt: Timestamp
+          lastAccessedAt: Timestamp
+          favorite: false
+       
+        67890/                          [Document]
+           courseId: "67890"
+           courseName: "Advanced Math"
+           enrolledAt: Timestamp
+           lastAccessedAt: Timestamp
+           favorite: true
+  
+   B456/                                  [Document - Another User]
+      email: "bob@example.com"
+      displayName: "bob"
+      isAdmin: false                     (Field)
+      createdAt: Timestamp
+      lastSeenAt: Timestamp
+     
+      enrollments/                       [Subcollection - Bob's courses]
+         12345/                          [Same course, different enrollment]
+            enrolledAt: Timestamp (Bob's enrollment time)
+            ... (Bob's preferences)
+
+ courses/                                  [Collection -  SHARED]
+  
+   12345/                                 [Document - Canvas Course ID]
+     courseName: "Introduction to CS"   (Field - NO userId!)
+     courseCode: "CS101"                (Field)
+     canvasUrl: "https://..."           (Field)
+     canvasInstance: "canvas.edu"       (Field - Domain)
+     firstScannedAt: Timestamp          (Field - When first discovered)
+     lastScannedAt: Timestamp           (Field - Last update)
+     pdfCount: 15                       (Field)
+     fileSearchStoreName: "store_abc123" (Field - Shared Gemini store)
+     totalEnrollments: 42               (Field - How many users enrolled)
+     createdBy: "A123"                  (Field - First user who scanned)
+    
+     documents/                         [Subcollection -  SHARED]
+       
+        aHR0cHM6Ly9jYW52YXMuZWR1L2ZpbGVzLzEvbGVjdHVyZTEucGRm/  [Document]
+          fileName: "lecture1.pdf"
+          fileUrl: "https://canvas.edu/files/1/lecture1.pdf"
+          fileSize: 2048576
+          fileType: "application/pdf"
+          scannedFrom: "files"
+          uploadedAt: Timestamp
+          fileSearchDocumentName: "document_gemini_123"
+          uploadStatus: "completed"
+          uploadedBy: "A123"          (Who uploaded to Gemini)
+       
+        aHR0cHM6Ly9jYW52YXMuZWR1L2ZpbGVzLzIvbGVjdHVyZTIucGRm/  [Document]
+          fileName: "lecture2.pdf"
+          fileUrl: "https://canvas.edu/files/2/lecture2.pdf"
+          fileSize: 1524288
+          fileType: "application/pdf"
+          scannedFrom: "modules"
+          uploadedAt: Timestamp
+          fileSearchDocumentName: "document_gemini_456"
+          uploadStatus: "completed"
+          uploadedBy: "B456"          (Different user uploaded this)
+       
+        ... (more PDF documents)
+  
+   67890/                                 [Document - Another Course]
+      courseName: "Advanced Mathematics"
+      courseCode: "MATH201"
+      canvasUrl: "https://..."
+      firstScannedAt: Timestamp
+      lastScannedAt: Timestamp
+      pdfCount: 8
+      fileSearchStoreName: "store_xyz789"
+      totalEnrollments: 18
+      createdBy: "B456"
+     
+      documents/                         [Subcollection]
+         ... (PDFs for MATH201 - shared)
+         ...
+
+ chatSessions/                             [Collection - TOP-LEVEL with userId]
+   
+    session_abc123/                        [Document - Chat Session ID]
+      userId: "A123"                      (Field - Owner reference)
+      courseId: "12345"                   (Field - Course reference)
+      createdAt: Timestamp                (Field)
+      lastMessageAt: Timestamp            (Field)
+      title: "Questions about Lecture 1"  (Field)
+      messageCount: 5                     (Field)
+     
+      messages/                           [Subcollection]
+         msg_1/
+           role: "user"
+           content: "Explain recursion"
+           timestamp: Timestamp
+        
+         msg_2/
+           role: "assistant"
+           content: "Recursion is..."
+           timestamp: Timestamp
+        
+         ... (more messages)
+   
+    session_xyz789/                        [Document - Another session]
+      userId: "A123"
+      courseId: "67890"
+      ... (session metadata)
+   
+    session_def456/                        [Document - Bob's session]
+       userId: "B456"
+       courseId: "12345"
+       ... (session metadata)
 ```
 
-## 🔍 Data Relationships
+## Data Relationships
 
 ### 1. User ↔ Courses (Many-to-Many via Enrollments)
 ```javascript
@@ -315,7 +315,7 @@ const storeName = courseDoc.data().fileSearchStoreName;
 const result = await cloudFunction.queryStore(storeName, question);
 ```
 
-## 📝 Document ID Strategies
+## Document ID Strategies
 
 ### 1. User IDs (from Chrome Identity)
 ```javascript
@@ -352,69 +352,69 @@ courses/12345/documents/aHR0cHM6Ly9jYW52YXMuZWR1L2ZpbGVzLzEvcGRmLnBkZg__/
 users/A123/fileSearchStores/abc123def456/
 ```
 
-## 🔐 Security Model
+## Security Model
 
 ### Shared Courses with Private Access
 
 ```
 User A123 enrollments:
-  ✅ users/A123/enrollments/12345  (CS101)
-  ✅ users/A123/enrollments/67890  (MATH201)
+   users/A123/enrollments/12345  (CS101)
+   users/A123/enrollments/67890  (MATH201)
 
 User A123 can access:
-  ✅ courses/12345/  (shared course data)
-  ✅ courses/67890/  (shared course data)
-  ✅ users/A123/chatSessions/...  (private chats)
+   courses/12345/  (shared course data)
+   courses/67890/  (shared course data)
+   users/A123/chatSessions/...  (private chats)
 
 User A123 CANNOT access:
-  ❌ users/B456/chatSessions/...  (Bob's chats)
-  ❌ users/B456/enrollments/...  (Bob's enrollments)
+   users/B456/chatSessions/...  (Bob's chats)
+   users/B456/enrollments/...  (Bob's enrollments)
 
 User B456 enrollments:
-  ✅ users/B456/enrollments/12345  (same CS101 course!)
+   users/B456/enrollments/12345  (same CS101 course!)
   
 User B456 can access:
-  ✅ courses/12345/  (SAME shared course data as Alice)
-  ✅ users/B456/chatSessions/...  (Bob's own private chats)
+   courses/12345/  (SAME shared course data as Alice)
+   users/B456/chatSessions/...  (Bob's own private chats)
 
 User B456 CANNOT access:
-  ❌ users/A123/chatSessions/...  (Alice's chats)
+   users/A123/chatSessions/...  (Alice's chats)
 ```
 
 ### Enrollment Verification Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ User A123 wants to chat with CS101 course                   │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-                  ▼
-    ┌─────────────────────────────────────────────┐
-    │ Check enrollment:                           │
-    │ users/A123/enrollments/12345 exists?        │
-    └─────────────┬───────────────────────────────┘
-                  │
-                  ├─ YES ✅
-                  │   │
-                  │   ▼
-                  │   ┌───────────────────────────────────┐
-                  │   │ Get shared course data:           │
-                  │   │ courses/12345/                    │
-                  │   │   fileSearchStoreName: "store_abc"│
-                  │   └─────────────┬─────────────────────┘
-                  │                 │
-                  │                 ▼
-                  │   ┌───────────────────────────────────┐
-                  │   │ Query Gemini via Cloud Function   │
-                  │   │ (store is shared by all users)    │
-                  │   └───────────────────────────────────┘
-                  │
-                  └─ NO ❌
-                      │
-                      ▼
-                  ┌───────────────────────────────────────┐
-                  │ Error: "Not enrolled in course"       │
-                  └───────────────────────────────────────┘
+
+ User A123 wants to chat with CS101 course                   
+
+                  
+                  
+    
+     Check enrollment:                           
+     users/A123/enrollments/12345 exists?        
+    
+                  
+                   YES 
+                     
+                     
+                     
+                      Get shared course data:           
+                      courses/12345/                    
+                        fileSearchStoreName: "store_abc"
+                     
+                                   
+                                   
+                     
+                      Query Gemini via Cloud Function   
+                      (store is shared by all users)    
+                     
+                  
+                   NO 
+                      
+                      
+                  
+                   Error: "Not enrolled in course"       
+                  
 ```
 
 ### Cloud Function Verification (Updated)
@@ -478,7 +478,7 @@ exports.queryCourseStore = onCall(async (request) => {
 });
 ```
 
-## 📥 How Data Gets Written
+## How Data Gets Written
 
 ### Step-by-Step: User Scans Course (First Time)
 
@@ -561,7 +561,7 @@ for (const pdf of pdfsArray) {
 
 // Course already exists from User A123!
 const courseDoc = await getDoc(doc(db, 'courses', '12345'));
-// ✅ courseDoc.exists() === true
+//  courseDoc.exists() === true
 
 // Just create enrollment for User B456
 await setDoc(doc(db, 'users', 'B456', 'enrollments', '12345'), {
@@ -674,7 +674,7 @@ exports.chatWithCourse = onCall(async (request) => {
 // User B456's chats are stored separately in users/B456/chatSessions/
 ```
 
-## 🔄 Common Query Patterns
+## Common Query Patterns
 
 ### Get User's Enrolled Courses
 ```javascript
@@ -804,54 +804,54 @@ await updateDoc(enrollmentRef, {
 // Only affects THIS user's view - doesn't change shared course data
 ```
 
-## 📊 Data Flow Diagram
+## Data Flow Diagram
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        CHROME EXTENSION                               │
-│                                                                       │
-│  ┌─────────────┐    ┌──────────────┐    ┌──────────────────┐       │
-│  │ Content     │───▶│ Background   │───▶│ Popup UI         │       │
-│  │ Script      │    │ Script       │    │ (User Interface) │       │
-│  │             │    │              │    │                  │       │
-│  │ Scan Canvas │    │ Manage State │    │ Display Courses  │       │
-│  │ for PDFs    │    │              │    │ Upload to Gemini │       │
-│  └─────────────┘    └──────────────┘    └──────────────────┘       │
-│         │                  │                      │                  │
-└─────────┼──────────────────┼──────────────────────┼──────────────────┘
-          │                  │                      │
-          │                  ▼                      ▼
-          │       ┌─────────────────────────────────────────┐
-          │       │         FIRESTORE DATABASE              │
-          │       │                                         │
-          │       │  users/A123/                            │
-          │       │    ├─ email, displayName                │
-          │       │    └─ fileSearchStores/                 │
-          │       │        └─ store_abc123/                 │
-          │       │                                         │
-          │       │  courses/12345/                         │
-          └──────▶│    ├─ userId: "A123"                    │
-                  │    ├─ courseName, courseCode            │
-                  │    ├─ fileSearchStoreName: "abc123"     │
-                  │    └─ documents/                        │
-                  │        ├─ doc1/ (lecture1.pdf)          │
-                  │        └─ doc2/ (lecture2.pdf)          │
-                  └─────────────────────────────────────────┘
-                              │
-                              │ Cloud Functions Proxy
-                              ▼
-                  ┌─────────────────────────────────────────┐
-                  │      GEMINI API (via Cloud Functions)   │
-                  │                                         │
-                  │  fileSearchStores/abc123/               │
-                  │    ├─ documents/                        │
-                  │    │   ├─ document_gemini_123           │
-                  │    │   └─ document_gemini_456           │
-                  │    └─ Semantic Search & RAG             │
-                  └─────────────────────────────────────────┘
+
+                        CHROME EXTENSION                               
+                                                                       
+                 
+   Content      Background    Popup UI                
+   Script           Script            (User Interface)        
+                                                              
+   Scan Canvas      Manage State      Display Courses         
+   for PDFs                           Upload to Gemini        
+                 
+                                                                   
+
+                                                  
+                                                  
+                 
+                          FIRESTORE DATABASE              
+                                                          
+                   users/A123/                            
+                      email, displayName                
+                      fileSearchStores/                 
+                          store_abc123/                 
+                                                          
+                   courses/12345/                         
+               userId: "A123"                    
+                       courseName, courseCode            
+                       fileSearchStoreName: "abc123"     
+                       documents/                        
+                           doc1/ (lecture1.pdf)          
+                           doc2/ (lecture2.pdf)          
+                  
+                              
+                               Cloud Functions Proxy
+                              
+                  
+                        GEMINI API (via Cloud Functions)   
+                                                           
+                    fileSearchStores/abc123/               
+                       documents/                        
+                          document_gemini_123           
+                          document_gemini_456           
+                       Semantic Search & RAG             
+                  
 ```
 
-## 🎓 Key Takeaways
+## Key Takeaways
 
 1. **No Schema Required**: Collections and documents are created automatically on first write
 2. **Hierarchical Paths**: `collection/document/subcollection/document/...`
@@ -864,7 +864,7 @@ await updateDoc(enrollmentRef, {
 9. **Security**: Cloud Functions verify enrollment before allowing access to shared stores
 10. **Merge Option**: `{ merge: true }` updates without overwriting existing fields
 
-## 📊 Architecture Comparison: Old vs New
+## Architecture Comparison: Old vs New
 
 ### Old Architecture (User-Owned Courses)
 
@@ -884,10 +884,10 @@ users/B456/fileSearchStores/store_xyz/  ← Separate store for same course!
 ```
 
 **Problems:**
-- ❌ Duplicate PDFs in database
-- ❌ Duplicate uploads to Gemini (costs money!)
-- ❌ Each user creates separate RAG store for same course
-- ❌ Wasted storage and API calls
+-  Duplicate PDFs in database
+-  Duplicate uploads to Gemini (costs money!)
+-  Each user creates separate RAG store for same course
+-  Wasted storage and API calls
 
 ### New Architecture (Shared Courses)
 
@@ -908,11 +908,11 @@ users/B456/
 ```
 
 **Benefits:**
-- ✅ Single copy of course data and PDFs
-- ✅ Single Gemini store (costs shared)
-- ✅ First user creates, others benefit
-- ✅ Chat histories remain private
-- ✅ Efficient storage and API usage
+-  Single copy of course data and PDFs
+-  Single Gemini store (costs shared)
+-  First user creates, others benefit
+-  Chat histories remain private
+-  Efficient storage and API usage
 
 ### Migration Impact
 
@@ -935,7 +935,7 @@ users/B456/
 3. Gradually migrate old user-owned courses to shared model
 4. Merge duplicate courses by Canvas course ID
 
-## 🚀 Next Steps
+## Next Steps
 
 When you run your extension:
 1. Open Firestore Console: https://console.firebase.google.com/project/canvas-lm/firestore
@@ -946,10 +946,10 @@ When you run your extension:
 You'll see the exact structure described above as data is written.
 
 ### Implementation Order:
-1. ✅ Update documentation (this file)
-2. ⏭️ Update `firestore-helpers.js` with enrollment functions
-3. ⏭️ Update Cloud Functions for enrollment verification
-4. ⏭️ Update `popup.js` and `content-script.js` for new flow
-5. ⏭️ Add chat session management
-6. ⏭️ Test with multiple users
-7. ⏭️ Migrate existing data (if any)
+1.  Update documentation (this file)
+2. ⏭ Update `firestore-helpers.js` with enrollment functions
+3. ⏭ Update Cloud Functions for enrollment verification
+4. ⏭ Update `popup.js` and `content-script.js` for new flow
+5. ⏭ Add chat session management
+6. ⏭ Test with multiple users
+7. ⏭ Migrate existing data (if any)

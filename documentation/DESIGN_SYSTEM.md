@@ -1,4 +1,4 @@
-# 🎨 Canvas LM - UI Redesign Showcase
+# Canvas LM - UI Redesign Showcase
 
 ## Design System Overview
 
@@ -18,7 +18,7 @@ Neutral Palette:
 
 ### Component Showcase
 
-#### 🎯 Header
+#### Header
 **Features:**
 - Gradient logo icon with pulse effect
 - Live status indicator (green dot)
@@ -33,7 +33,7 @@ shadow-lg shadow-violet-500/30
 rounded-2xl
 ```
 
-#### 🔐 Auth Section
+#### Auth Section
 **Logged Out State:**
 - Gradient sparkle icon (violet → fuchsia)
 - Welcoming headline
@@ -45,7 +45,7 @@ rounded-2xl
 - Stats display
 - Emerald accent color
 
-#### 🧭 Course Detection
+#### Course Detection
 **Features:**
 - Compass icon in blue gradient
 - Status card with slate background
@@ -59,7 +59,7 @@ Border: border-blue-200/60 (semi-transparent)
 Icon Container: bg-blue-500/10 (low opacity)
 ```
 
-#### 📚 Course Info
+#### Course Info
 **Features:**
 - Book icon in indigo gradient
 - Feature showcase section
@@ -73,7 +73,7 @@ Icon Container: bg-blue-500/10 (low opacity)
 [Folder Icon] File sections   [Cloud Icon] Cloud sync
 ```
 
-#### 💬 Chat Section
+#### Chat Section
 **Features:**
 - Two-tone message bubbles (user vs AI)
 - Avatar icons for each message
@@ -88,7 +88,7 @@ AI: bg-white border border-slate-200
 Avatars: Gradient circles with icons
 ```
 
-#### 🎓 Course Selector
+#### Course Selector
 **Features:**
 - Interactive course cards
 - Hover animations (border → violet)
@@ -103,7 +103,7 @@ Icons: BookOpen in gradient container
 Badges: Success variant for doc count
 ```
 
-#### 📊 Database View
+#### Database View
 **Features:**
 - Stats dashboard (3 gradient cards)
 - Expandable/collapsible with ChevronUp/Down
@@ -194,13 +194,13 @@ Slow: 400ms (fade-in animations)
 ## Component Hierarchy
 ```
 App (gradient background + orbs)
-├── Header (always visible)
-├── AuthSection (conditional: logged in/out)
-├── CourseSelector (conditional: multi-course)
-├── CourseDetection (conditional: no course)
-├── CourseInfo (conditional: course detected)
-├── ChatSection (conditional: logged in + course)
-└── AllCoursesView (conditional: logged in + not extension page)
+ Header (always visible)
+ AuthSection (conditional: logged in/out)
+ CourseSelector (conditional: multi-course)
+ CourseDetection (conditional: no course)
+ CourseInfo (conditional: course detected)
+ ChatSection (conditional: logged in + course)
+ AllCoursesView (conditional: logged in + not extension page)
 ```
 
 ## State Management
@@ -240,4 +240,4 @@ App (gradient background + orbs)
 - Clear visual hierarchy
 - Attention to micro-interactions
 
-The result is a Chrome extension that looks and feels like a premium SaaS product! 🚀✨
+The result is a Chrome extension that looks and feels like a premium SaaS product! 

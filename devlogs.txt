@@ -411,7 +411,7 @@ background.js:1 Storage changed in local : {pdfs_35841: {…}}
 popup.js:2 📥 saveFoundPDFsToFirestore() called
 popup.js:2 🚀 Entered upload phase - scan progress updates will be ignored
 popup.js:2 🔍 Checking user sign-in status...
-popup.js:2 Current user: {email: 'rasmus.alpsten@gmail.com', id: '108448961221190225241', displayName: 'rasmus.alpsten', photoURL: null}
+popup.js:2 Current user: {email: 'ralpsten.gdev@gmail.com', id: '108448961221190225241', displayName: 'rasmus.alpsten', photoURL: null}
 popup.js:2 Database: initialized
 popup.js:2 ✅ User authenticated, fetching PDFs from storage...
 popup.js:2 Looking for key: pdfs_35841

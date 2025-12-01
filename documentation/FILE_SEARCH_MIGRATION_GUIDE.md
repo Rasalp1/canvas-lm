@@ -464,10 +464,10 @@ export async function saveCourseFileSearchStore(db, courseId, storeName) {
       fileSearchStoreCreatedAt: Timestamp.now()
     });
     
-    console.log('✅ File Search store saved:', storeName);
+    console.log(' File Search store saved:', storeName);
     return { success: true };
   } catch (error) {
-    console.error('❌ Error saving File Search store:', error);
+    console.error(' Error saving File Search store:', error);
     return { success: false, error: error.message };
   }
 }
@@ -488,10 +488,10 @@ export async function saveDocumentFileSearch(db, courseId, docId, documentName, 
       customMetadata: metadata
     });
     
-    console.log('✅ File Search document saved:', documentName);
+    console.log(' File Search document saved:', documentName);
     return { success: true };
   } catch (error) {
-    console.error('❌ Error saving File Search document:', error);
+    console.error(' Error saving File Search document:', error);
     return { success: false, error: error.message };
   }
 }
@@ -509,10 +509,10 @@ export async function getCourseActiveDocuments(db, courseId) {
       doc.fileSearchState === 'STATE_ACTIVE'
     );
     
-    console.log(`✅ Found ${activeDocs.length} active documents`);
+    console.log(` Found ${activeDocs.length} active documents`);
     return { success: true, data: activeDocs };
   } catch (error) {
-    console.error('❌ Error getting active documents:', error);
+    console.error(' Error getting active documents:', error);
     return { success: false, error: error.message };
   }
 }
@@ -584,16 +584,16 @@ console.log('Citations:', result.citations);
 ## Benefits of Migration
 
 ### 1. **No More Expiration Management**
-- ❌ Old: Re-upload files every 48 hours
-- ✅ New: Upload once, use forever
+-  Old: Re-upload files every 48 hours
+-  New: Upload once, use forever
 
 ### 2. **Better Performance**
-- ❌ Old: Send entire PDFs every query (expensive, slow)
-- ✅ New: Only retrieve relevant chunks (fast, cheap)
+-  Old: Send entire PDFs every query (expensive, slow)
+-  New: Only retrieve relevant chunks (fast, cheap)
 
 ### 3. **Cost Savings**
-- ❌ Old: Pay for all tokens in all files on every query
-- ✅ New: Pay once for embeddings, then only for retrieved chunks
+-  Old: Pay for all tokens in all files on every query
+-  New: Pay once for embeddings, then only for retrieved chunks
 
 Example: 10 PDFs (1000 pages total) with 10 queries
 - **Old Cost**: ~$5-10 per query = $50-100 total
@@ -601,8 +601,8 @@ Example: 10 PDFs (1000 pages total) with 10 queries
 - **Savings**: 98% cost reduction!
 
 ### 4. **Better Accuracy**
-- ❌ Old: Model sees all content (overwhelming)
-- ✅ New: Model sees only relevant chunks (focused)
+-  Old: Model sees all content (overwhelming)
+-  New: Model sees only relevant chunks (focused)
 
 ### 5. **Metadata Filtering**
 ```javascript
@@ -625,9 +625,9 @@ console.log(result.citations); // Which documents were used
 ## Supported Models
 
 File Search currently works with:
-- ✅ `gemini-2.5-pro`
-- ✅ `gemini-2.5-flash`
-- ❌ `gemini-1.5-*` (use old File API for these)
+-  `gemini-2.5-pro`
+-  `gemini-2.5-flash`
+-  `gemini-1.5-*` (use old File API for these)
 
 ## Rate Limits
 
@@ -662,7 +662,7 @@ File Search currently works with:
 - [ ] Test citations display
 - [ ] Remove old File API code
 - [ ] Update documentation
-- [ ] Deploy and celebrate! 🎉
+- [ ] Deploy and celebrate! 
 
 ## Migration Timeline
 

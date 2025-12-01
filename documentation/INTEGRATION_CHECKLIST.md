@@ -2,7 +2,7 @@
 
 Use this checklist to integrate Gemini RAG into your Canvas extension.
 
-## ✅ Phase 1: Setup (Already Complete!)
+## Phase 1: Setup (Already Complete!)
 
 - [x] Created `src/gemini-rag.js`
 - [x] Updated `src/firestore-helpers.js` with Gemini functions
@@ -12,7 +12,7 @@ Use this checklist to integrate Gemini RAG into your Canvas extension.
 - [x] Updated `popup.html`
 - [x] Built successfully with `npm run build`
 
-## 🔧 Phase 2: Configuration
+## Phase 2: Configuration
 
 - [ ] **Get Gemini API Key**
   - Go to https://aistudio.google.com/app/apikey
@@ -26,7 +26,7 @@ Use this checklist to integrate Gemini RAG into your Canvas extension.
   - Click "Save API Key"
   - Verify "Connected" status appears
 
-## 💻 Phase 3: Code Integration
+## Phase 3: Code Integration
 
 ### Step 1: Initialize Gemini in popup.js
 
@@ -41,7 +41,7 @@ async function initializeGeminiRAG() {
   const result = await chrome.storage.sync.get(['geminiApiKey']);
   if (result.geminiApiKey) {
     geminiRAG = new GeminiRAGManager(result.geminiApiKey);
-    console.log('✅ Gemini RAG ready');
+    console.log(' Gemini RAG ready');
     return true;
   }
   return false;
@@ -70,7 +70,7 @@ let clearExpiredGeminiUris = window.firestoreHelpers.clearExpiredGeminiUris;
 ```javascript
 // After saving PDFs to Firestore
 if (geminiRAG && foundPDFs.length > 0) {
-  status.textContent = `📤 Uploading ${foundPDFs.length} PDFs to Gemini...`;
+  status.textContent = ` Uploading ${foundPDFs.length} PDFs to Gemini...`;
   await uploadPDFsToGemini(currentCourseData.courseId, foundPDFs);
 }
 ```
@@ -87,7 +87,7 @@ async function uploadPDFsToGemini(courseId, pdfs) {
 - [ ] Add chat HTML to `popup.html` (after scan section):
 ```html
 <div id="chat-section" class="section hidden">
-  <h3>💬 Chat with Course Materials</h3>
+  <h3> Chat with Course Materials</h3>
   <div id="chat-history" class="chat-history"></div>
   <div class="chat-input-container">
     <input type="text" id="chat-input" placeholder="Ask a question..." />
@@ -133,7 +133,7 @@ async function ensureValidGeminiFiles(courseId) {
   const result = await getDocumentsNeedingGeminiUpload(db, courseId);
   
   if (result.success && result.data.length > 0) {
-    console.log(`⚠️ ${result.data.length} files need re-upload`);
+    console.log(` ${result.data.length} files need re-upload`);
     // Optionally auto-reupload
   }
 }
@@ -146,7 +146,7 @@ if (currentCourseData) {
 }
 ```
 
-## 🧪 Phase 4: Testing
+## Phase 4: Testing
 
 ### Test Settings Page
 - [ ] Open settings (right-click icon → Options)
@@ -159,14 +159,14 @@ if (currentCourseData) {
 - [ ] Navigate to a Canvas course
 - [ ] Click "Scan Course & Build Knowledge Base"
 - [ ] Watch for Gemini upload progress
-- [ ] Check browser console for "✅ Uploaded: {filename}"
+- [ ] Check browser console for " Uploaded: {filename}"
 - [ ] Verify no errors
 
 ### Test Chat
 - [ ] After PDFs uploaded, chat section should appear
 - [ ] Type a question about course material
 - [ ] Click "Send"
-- [ ] Should see "🤔 Thinking..." then AI response
+- [ ] Should see " Thinking..." then AI response
 - [ ] Try multiple questions
 
 ### Test Error Handling
@@ -174,7 +174,7 @@ if (currentCourseData) {
 - [ ] Test with no PDFs uploaded → Should show message
 - [ ] Test with expired files (after 48h) → Should handle gracefully
 
-## 🐛 Debugging Checklist
+## Debugging Checklist
 
 If something doesn't work:
 
@@ -186,7 +186,7 @@ If something doesn't work:
 - [ ] Check Network tab for failed API calls
 - [ ] Verify permissions in manifest.json
 
-## 🚀 Phase 5: Enhancements (Optional)
+## Phase 5: Enhancements (Optional)
 
 - [ ] Add loading spinners for uploads
 - [ ] Add progress bar for batch uploads
@@ -199,18 +199,18 @@ If something doesn't work:
 - [ ] Implement rate limiting
 - [ ] Add error retry logic
 
-## 📊 Success Metrics
+## Success Metrics
 
 Your integration is complete when:
 
-- ✅ Settings page works (save/load API key)
-- ✅ PDFs upload to Gemini after scanning
-- ✅ Gemini URIs saved to Firestore
-- ✅ Chat responds with relevant answers
-- ✅ No console errors
-- ✅ Expired files handled gracefully
+-  Settings page works (save/load API key)
+-  PDFs upload to Gemini after scanning
+-  Gemini URIs saved to Firestore
+-  Chat responds with relevant answers
+-  No console errors
+-  Expired files handled gracefully
 
-## 📚 Reference Files
+## Reference Files
 
 When integrating, refer to:
 
@@ -220,7 +220,7 @@ When integrating, refer to:
 4. **Architecture**: `ARCHITECTURE.md`
 5. **Summary**: `GEMINI_INTEGRATION_SUMMARY.md`
 
-## 🎉 Final Step
+## Final Step
 
 - [ ] Test the complete flow:
   1. Open extension
@@ -231,9 +231,9 @@ When integrating, refer to:
   6. Ask a question in chat
   7. Get AI response
 
-If all steps work → **Integration complete!** 🎊
+If all steps work → **Integration complete!** 
 
-## 💡 Tips
+## Tips
 
 - Start with a small course (few PDFs) for initial testing
 - Use `gemini-1.5-flash` during development (faster/cheaper)
@@ -241,7 +241,7 @@ If all steps work → **Integration complete!** 🎊
 - Keep an eye on the 48-hour expiration
 - Test with different types of questions
 
-## ❓ Need Help?
+## Need Help?
 
 If you get stuck:
 
@@ -253,4 +253,4 @@ If you get stuck:
 
 ---
 
-**You've got this!** 🚀 The hard part (integration setup) is done. Now it's just connecting the pieces together.
+**You've got this!**  The hard part (integration setup) is done. Now it's just connecting the pieces together.

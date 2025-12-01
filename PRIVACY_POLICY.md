@@ -112,17 +112,17 @@ Canvas LM integrates with the following third-party services:
 ## Data Sharing and Disclosure
 
 ### We DO NOT:
-- ❌ Sell your personal information to third parties
-- ❌ Share your data with advertisers
-- ❌ Use your data for marketing purposes
-- ❌ Share your course materials publicly
-- ❌ Allow other users to access your private data
+-  Sell your personal information to third parties
+-  Share your data with advertisers
+-  Use your data for marketing purposes
+-  Share your course materials publicly
+-  Allow other users to access your private data
 
 ### We MAY Share Information:
-- ✅ **With your course**: Course materials are stored in shared course databases that other enrolled students may access
-- ✅ **Legal Requirements**: If required by law or to protect our rights
-- ✅ **Service Providers**: With Google Cloud Platform to operate the service
-- ✅ **With Your Consent**: When you explicitly authorize sharing
+-  **With your course**: Course materials are stored in shared course databases that other enrolled students may access
+-  **Legal Requirements**: If required by law or to protect our rights
+-  **Service Providers**: With Google Cloud Platform to operate the service
+-  **With Your Consent**: When you explicitly authorize sharing
 
 ## Your Rights and Choices
 
@@ -138,8 +138,8 @@ You have the right to:
 ### How to Exercise Your Rights
 - **Delete Chat History**: Use the delete button in the extension
 - **Unenroll from Courses**: Remove enrollment through the extension
-- **Delete Account**: Email us at rasmus.alpsten@gmail.com
-- **Export Data**: Email us at rasmus.alpsten@gmail.com
+- **Delete Account**: Email us at ralpsten.gdev@gmail.com
+- **Export Data**: Email us at ralpsten.gdev@gmail.com
 
 ### Data Deletion Process
 When you request account deletion:
@@ -173,17 +173,17 @@ We ensure appropriate safeguards are in place to protect your information in acc
 We implement industry-standard security measures:
 
 ### Technical Safeguards
-- ✅ HTTPS/TLS encryption for all data transmission
-- ✅ Firestore security rules to prevent unauthorized access
-- ✅ Rate limiting to prevent abuse
-- ✅ API keys stored securely server-side only
-- ✅ Regular security audits and updates
+-  HTTPS/TLS encryption for all data transmission
+-  Firestore security rules to prevent unauthorized access
+-  Rate limiting to prevent abuse
+-  API keys stored securely server-side only
+-  Regular security audits and updates
 
 ### Operational Safeguards
-- ✅ Access controls and authentication
-- ✅ Monitoring and logging for suspicious activity
-- ✅ Incident response procedures
-- ✅ Regular backups
+-  Access controls and authentication
+-  Monitoring and logging for suspicious activity
+-  Incident response procedures
+-  Regular backups
 
 **However**, no method of transmission or storage is 100% secure. While we strive to protect your information, we cannot guarantee absolute security.
 
@@ -227,7 +227,7 @@ If you are a California resident, you have additional rights:
 3. **Right to Opt-Out**: Opt-out of data sales (Note: We don't sell data)
 4. **Right to Non-Discrimination**: Exercise rights without discrimination
 
-To exercise these rights, email us at rasmus.alpsten@gmail.com.
+To exercise these rights, email us at ralpsten.gdev@gmail.com.
 
 ## European Privacy Rights (GDPR)
 
@@ -251,7 +251,7 @@ To exercise these rights or file a complaint, contact us or your local data prot
 
 If you have questions, concerns, or requests regarding this Privacy Policy or your data:
 
-**Email**: rasmus.alpsten@gmail.com  
+**Email**: ralpsten.gdev@gmail.com  
 **GitHub**: https://github.com/Rasalp1/canvas-lm  
 **Issues**: https://github.com/Rasalp1/canvas-lm/issues
 

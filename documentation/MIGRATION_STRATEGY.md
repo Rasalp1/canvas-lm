@@ -1,10 +1,10 @@
 # Migration Strategy: User-Owned to Shared Courses
 
-## 🎯 Overview
+## Overview
 
 This document outlines the strategy for migrating from the old user-owned course model to the new shared course model.
 
-## 📊 What Changed
+## What Changed
 
 ### Old Model (User-Owned)
 - Each user had their own copy of courses (`userId` field)
@@ -19,17 +19,17 @@ This document outlines the strategy for migrating from the old user-owned course
 - Single shared Gemini store per course
 - Private chat history per user
 
-## 🔄 Migration Phases
+## Migration Phases
 
 ### Phase 1: Deploy New Code (Non-Breaking)
-**Status:** ✅ Complete
+**Status:**  Complete
 
 **Changes:**
-- ✅ Updated `firestore-helpers.js` with new functions
-- ✅ Updated Cloud Functions with enrollment verification
-- ✅ Added enrollment management functions
-- ✅ Added chat session management
-- ✅ Kept old functions with deprecation warnings
+-  Updated `firestore-helpers.js` with new functions
+-  Updated Cloud Functions with enrollment verification
+-  Added enrollment management functions
+-  Added chat session management
+-  Kept old functions with deprecation warnings
 
 **Impact:** Zero downtime - old and new code coexist
 
@@ -182,7 +182,7 @@ function extractDomain(url) {
 3. Remove `users/{userId}/fileSearchStores/` subcollection references
 4. Update Firestore security rules to prevent `userId` field in courses
 
-## 🧪 Testing Checklist
+## Testing Checklist
 
 ### New User Flow (Should Work Immediately)
 - [ ] New user scans Canvas course
@@ -210,7 +210,7 @@ function extractDomain(url) {
 - [ ] User B's chats private
 - [ ] Both users see same PDFs
 
-## 🚨 Risks & Mitigation
+## Risks & Mitigation
 
 ### Risk 1: Data Loss During Migration
 **Mitigation:**
@@ -236,11 +236,11 @@ function extractDomain(url) {
 - Frontend changes use feature flags
 - Gradual rollout: new users first, then existing users
 
-## 📅 Recommended Timeline
+## Recommended Timeline
 
 ### Week 1: Preparation
-- ✅ Update documentation (FIRESTORE_ARCHITECTURE.md)
-- ✅ Update backend code (firestore-helpers.js, Cloud Functions)
+-  Update documentation (FIRESTORE_ARCHITECTURE.md)
+-  Update backend code (firestore-helpers.js, Cloud Functions)
 - [ ] Write migration script
 - [ ] Test migration script on staging data
 
@@ -263,7 +263,7 @@ function extractDomain(url) {
 - [ ] Remove deprecated code
 - [ ] Update Firestore security rules
 
-## 🔧 Rollback Plan
+## Rollback Plan
 
 If migration fails:
 
@@ -283,7 +283,7 @@ If migration fails:
    - Test again on staging
    - Retry migration when ready
 
-## 📝 Notes for Developers
+## Notes for Developers
 
 ### When Adding New Features
 - Use enrollment-based access: `verifyEnrollment(userId, courseId)`
@@ -321,22 +321,22 @@ db.collection('courses').where('userId', '!=', null).get().then(snapshot => {
 });
 ```
 
-## ✅ Success Criteria
+## Success Criteria
 
 Migration is successful when:
 
-1. ✅ All existing users have enrollments for their courses
-2. ✅ No duplicate courses for same Canvas course ID
-3. ✅ All users can access shared course PDFs
-4. ✅ Each course has ONE Gemini store
-5. ✅ Users can query courses they're enrolled in
-6. ✅ Chat histories are private per user
-7. ✅ No `userId` fields in courses collection
-8. ✅ Zero errors in Cloud Function logs
-9. ✅ All users report courses working as expected
-10. ✅ Cost savings from reduced duplicate stores
+1.  All existing users have enrollments for their courses
+2.  No duplicate courses for same Canvas course ID
+3.  All users can access shared course PDFs
+4.  Each course has ONE Gemini store
+5.  Users can query courses they're enrolled in
+6.  Chat histories are private per user
+7.  No `userId` fields in courses collection
+8.  Zero errors in Cloud Function logs
+9.  All users report courses working as expected
+10.  Cost savings from reduced duplicate stores
 
-## 📚 Related Documentation
+## Related Documentation
 
 - [FIRESTORE_ARCHITECTURE.md](./FIRESTORE_ARCHITECTURE.md) - Complete database structure
 - [AUTHENTICATION.md](./AUTHENTICATION.md) - Chrome Identity authentication

@@ -1,9 +1,9 @@
-# 🚀 Firebase Cloud Functions Setup Guide
+# Firebase Cloud Functions Setup Guide
 
 ## Overview
 Your Chrome extension now uses Firebase Cloud Functions to securely proxy Gemini API requests. Your API key stays safe on the server and is never exposed to users.
 
-## 📋 Prerequisites
+## Prerequisites
 - Firebase CLI installed: `npm install -g firebase-tools`
 - Firebase project: `canvas-lm` (already configured)
 - Gemini API key from https://aistudio.google.com/app/apikey
@@ -96,8 +96,8 @@ firebase deploy --only functions
 
 This will output URLs like:
 ```
-✔  functions[uploadPDF(us-central1)] https://us-central1-canvas-lm.cloudfunctions.net/uploadPDF
-✔  functions[chatWithContext(us-central1)] https://us-central1-canvas-lm.cloudfunctions.net/chatWithContext
+  functions[uploadPDF(us-central1)] https://us-central1-canvas-lm.cloudfunctions.net/uploadPDF
+  functions[chatWithContext(us-central1)] https://us-central1-canvas-lm.cloudfunctions.net/chatWithContext
 ```
 
 **Important:** These URLs are automatically handled by the Firebase SDK in your extension - you don't need to configure them!
@@ -153,16 +153,16 @@ Then load the extension in Chrome and test!
 
 ---
 
-## 🔒 Security Benefits
+## Security Benefits
 
-✅ **API Key Never Exposed** - Users can't extract it from extension code  
-✅ **Rate Limiting** - Add limits in Cloud Functions if needed  
-✅ **Usage Tracking** - Monitor requests via Firebase Console  
-✅ **Easy Updates** - Change API key without updating extension  
+ **API Key Never Exposed** - Users can't extract it from extension code  
+ **Rate Limiting** - Add limits in Cloud Functions if needed  
+ **Usage Tracking** - Monitor requests via Firebase Console  
+ **Easy Updates** - Change API key without updating extension  
 
 ---
 
-## 📊 Monitoring
+## Monitoring
 
 View logs and usage:
 ```bash
@@ -174,7 +174,7 @@ Or in Firebase Console:
 
 ---
 
-## 💰 Pricing
+## Pricing
 
 Firebase Cloud Functions:
 - **Free Tier:** 2 million invocations/month
@@ -185,7 +185,7 @@ Gemini API:
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Functions not deploying?
 ```bash
@@ -215,7 +215,7 @@ firebase deploy --only functions
 
 ---
 
-## 📝 Available Cloud Functions
+## Available Cloud Functions
 
 | Function | Purpose |
 |----------|---------|
@@ -227,6 +227,6 @@ firebase deploy --only functions
 
 ---
 
-## 🎉 You're Done!
+## You're Done!
 
 Your extension now uses secure server-side API calls. Users can use it without providing their own API key!
