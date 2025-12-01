@@ -172,11 +172,13 @@ class GeminiCloudClient {
     try {
       const checkLimit = httpsCallable(this.functions, 'checkUsageLimit');
       const result = await checkLimit({});
+      console.log('[UsageLimit] Cloud function response:', result.data);
       return result.data;
     } catch (error) {
-      console.error('Error checking usage limit:', error);
+      console.error('[UsageLimit] Error checking usage limit:', error);
+      console.error('[UsageLimit] Error details:', error.message, error.code);
       // On error, allow the request (fail open)
-      return { allowed: true, remaining: 40, resetTime: null };
+      return { allowed: true, remaining: 40, resetTime: null, loading: false };
     }
   }
 
@@ -188,11 +190,14 @@ class GeminiCloudClient {
    */
   async recordMessageUsage(courseChatId, messageId) {
     try {
+      console.log('[UsageLimit] Recording message usage:', { courseChatId, messageId });
       const recordUsage = httpsCallable(this.functions, 'recordMessageUsage');
       const result = await recordUsage({ courseChatId, messageId });
+      console.log('[UsageLimit] Message usage recorded successfully:', result.data);
       return result.data;
     } catch (error) {
-      console.error('Error recording message usage:', error);
+      console.error('[UsageLimit] Error recording message usage:', error);
+      console.error('[UsageLimit] Error details:', error.message, error.code);
       throw error;
     }
   }

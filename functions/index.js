@@ -1231,10 +1231,10 @@ exports.onCourseDeleted = onDocumentDeleted('courses/{courseId}', async (event) 
  * Returns allowed status, remaining count, and reset time
  */
 exports.checkUsageLimit = onCall(async (request) => {
-  const userId = request.auth?.uid;
+  const { userId } = request.data;
   
   if (!userId) {
-    throw new https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new https.HttpsError('invalid-argument', 'userId is required');
   }
 
   const now = admin.firestore.Timestamp.now();
@@ -1336,11 +1336,10 @@ exports.checkUsageLimit = onCall(async (request) => {
  * Called after successfully sending a message
  */
 exports.recordMessageUsage = onCall(async (request) => {
-  const userId = request.auth?.uid;
-  const { courseChatId, messageId } = request.data;
+  const { userId, courseChatId, messageId } = request.data;
   
   if (!userId) {
-    throw new https.HttpsError('unauthenticated', 'User must be authenticated');
+    throw new https.HttpsError('invalid-argument', 'userId is required');
   }
 
   const now = admin.firestore.Timestamp.now();
@@ -1475,5 +1474,53 @@ exports.getUsageDetails = onCall(async (request) => {
   } catch (error) {
     logger.error('Error getting usage details:', error);
     throw new https.HttpsError('internal', 'Failed to get usage details');
+  }
+});
+
+/**
+ * Initialize usage limit configuration (run once)
+ * Creates the default config document if it doesn't exist
+ */
+exports.initializeUsageLimitConfig = onCall(async (request) => {
+  const { userId } = request.data;
+  
+  if (!userId) {
+    throw new https.HttpsError('invalid-argument', 'userId is required');
+  }
+  
+  try {
+    const configDoc = await db.collection('usageLimitConfig').doc('default').get();
+    
+    if (configDoc.exists) {
+      logger.info('Usage limit config already exists');
+      return {
+        success: true,
+        message: 'Config already exists',
+        config: configDoc.data()
+      };
+    }
+    
+    await db.collection('usageLimitConfig').doc('default').set({
+      maxMessagesPerWindow: 40,
+      windowDurationHours: 3,
+      enabled: true,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedBy: userId
+    });
+    
+    logger.info('Usage limit configuration initialized successfully');
+    return {
+      success: true,
+      message: 'Usage limit configuration initialized successfully',
+      config: {
+        maxMessagesPerWindow: 40,
+        windowDurationHours: 3,
+        enabled: true
+      }
+    };
+  } catch (error) {
+    logger.error('Error initializing config:', error);
+    throw new https.HttpsError('internal', 'Failed to initialize config: ' + error.message);
   }
 });

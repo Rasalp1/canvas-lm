@@ -385,6 +385,94 @@ class GeminiFileSearchCloudClient {
       throw error;
     }
   }
+
+  // ==================== USAGE LIMIT METHODS ====================
+
+  /**
+   * Check if user has remaining message quota
+   * @returns {Promise<Object>} Usage status with allowed, remaining, resetTime
+   */
+  async checkUsageLimit() {
+    try {
+      if (!this.userId) {
+        console.warn('[UsageLimit] userId not set, returning default limits');
+        return { allowed: true, remaining: 40, resetTime: null, loading: false };
+      }
+      
+      console.log('[UsageLimit] Calling checkUsageLimit cloud function with userId:', this.userId);
+      const checkLimit = httpsCallable(this.functions, 'checkUsageLimit');
+      const result = await checkLimit({ userId: this.userId });
+      console.log('[UsageLimit] Cloud function response:', result.data);
+      return result.data;
+    } catch (error) {
+      console.error('[UsageLimit] Error checking usage limit:', error);
+      console.error('[UsageLimit] Error details:', error.message, error.code);
+      // On error, allow the request (fail open)
+      return { allowed: true, remaining: 40, resetTime: null, loading: false };
+    }
+  }
+
+  /**
+   * Record a message usage after sending
+   * @param {string} courseChatId - ID of the current chat session
+   * @param {string} messageId - ID of the message
+   * @returns {Promise<Object>} Result of recording
+   */
+  async recordMessageUsage(courseChatId, messageId) {
+    try {
+      if (!this.userId) {
+        console.warn('[UsageLimit] userId not set, skipping usage recording');
+        return { success: true, recorded: false, reason: 'no_userId' };
+      }
+      
+      console.log('[UsageLimit] Recording message usage:', { userId: this.userId, courseChatId, messageId });
+      const recordUsage = httpsCallable(this.functions, 'recordMessageUsage');
+      const result = await recordUsage({ userId: this.userId, courseChatId, messageId });
+      console.log('[UsageLimit] Message usage recorded successfully:', result.data);
+      return result.data;
+    } catch (error) {
+      console.error('[UsageLimit] Error recording message usage:', error);
+      console.error('[UsageLimit] Error details:', error.message, error.code);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed usage information
+   * @returns {Promise<Object>} Usage details with message history
+   */
+  async getUsageDetails() {
+    try {
+      const getDetails = httpsCallable(this.functions, 'getUsageDetails');
+      const result = await getDetails({});
+      return result.data;
+    } catch (error) {
+      console.error('Error getting usage details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize usage limit configuration (admin only, run once)
+   * Creates the default config document if it doesn't exist
+   * @returns {Promise<Object>} Initialization result
+   */
+  async initializeUsageLimitConfig() {
+    try {
+      if (!this.userId) {
+        throw new Error('userId not set. Call setUserId() first.');
+      }
+      
+      console.log('🔧 Initializing usage limit configuration...');
+      const initConfig = httpsCallable(this.functions, 'initializeUsageLimitConfig');
+      const result = await initConfig({ userId: this.userId });
+      console.log('✅ Config initialization result:', result.data);
+      return result.data;
+    } catch (error) {
+      console.error('❌ Error initializing config:', error);
+      throw error;
+    }
+  }
 }
 
 // Make available globally for other scripts

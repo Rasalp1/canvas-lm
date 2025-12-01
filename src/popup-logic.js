@@ -111,7 +111,13 @@ export class PopupLogic {
           photoURL: null
         };
         
-        this.updateUIForUser(this.currentUser);
+        // Set userId in File Search Manager FIRST, before UI updates
+        if (this.fileSearchManager) {
+          this.fileSearchManager.setUserId(userInfo.id);
+          console.log('[UsageLimit] UserId set in fileSearchManager:', userInfo.id);
+        } else {
+          console.error('[UsageLimit] fileSearchManager not available when trying to set userId');
+        }
         
         // Save user to Firestore
         const result = await this.firestoreHelpers.saveUser(this.db, userInfo.id, this.currentUser);
@@ -119,10 +125,8 @@ export class PopupLogic {
           console.log('User data saved to Firestore');
         }
         
-        // Set userId in File Search Manager
-        if (this.fileSearchManager) {
-          this.fileSearchManager.setUserId(userInfo.id);
-        }
+        // Update UI AFTER userId is set (this triggers usage check)
+        this.updateUIForUser(this.currentUser);
       } else {
         this.updateUIForUser(null);
       }
@@ -1416,9 +1420,12 @@ export class PopupLogic {
 
     // Check usage limit before sending
     try {
+      console.log('[UsageLimit] Checking limit before sending message...');
       const limitCheck = await this.fileSearchManager.checkUsageLimit();
+      console.log('[UsageLimit] Limit check result:', limitCheck);
       
       if (!limitCheck.allowed) {
+        console.log('[UsageLimit] Message blocked - limit reached');
         this.conversationHistory.push({ 
           role: 'assistant', 
           content: `⏳ You've reached your message limit (40 messages per 3 hours). Please wait ${limitCheck.waitMinutes} minutes before sending another message.` 
@@ -1426,8 +1433,9 @@ export class PopupLogic {
         this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
         return;
       }
+      console.log('[UsageLimit] Limit check passed, proceeding with message');
     } catch (error) {
-      console.error('Error checking usage limit:', error);
+      console.error('[UsageLimit] Error checking usage limit:', error);
       // Continue anyway if check fails (fail open)
     }
     
@@ -1524,12 +1532,19 @@ export class PopupLogic {
 
       // Record usage after successful message
       try {
+        console.log('[UsageLimit] About to record message usage...');
         await this.fileSearchManager.recordMessageUsage(
           this.currentSessionId,
           `msg_${Date.now()}`
         );
+        console.log('[UsageLimit] Message usage recorded, refreshing usage status...');
+        
+        // Refresh usage status immediately after recording
+        const newStatus = await this.fileSearchManager.checkUsageLimit();
+        console.log('[UsageLimit] New usage status after recording:', newStatus);
+        this.uiCallbacks.setUsageStatus?.({ ...newStatus, loading: false });
       } catch (error) {
-        console.error('Error recording usage:', error);
+        console.error('[UsageLimit] Error recording usage:', error);
         // Don't block the chat flow if recording fails
       }
       

@@ -145,16 +145,25 @@ export const App = ({
 
   // Check usage limit periodically when logged in
   useEffect(() => {
-    if (!isLoggedIn || !popupLogic) return;
+    if (!isLoggedIn || !popupLogic) {
+      console.log('[UsageLimit] Not checking - isLoggedIn:', isLoggedIn, 'popupLogic:', !!popupLogic);
+      return;
+    }
 
     const checkUsage = async () => {
       try {
+        console.log('[UsageLimit] Checking usage limit...');
         if (popupLogic.fileSearchManager) {
           const status = await popupLogic.fileSearchManager.checkUsageLimit();
+          console.log('[UsageLimit] Received status:', status);
           setUsageStatus({ ...status, loading: false });
+        } else {
+          console.warn('[UsageLimit] fileSearchManager not available');
+          setUsageStatus({ allowed: true, remaining: 40, resetTime: null, loading: false });
         }
       } catch (error) {
-        console.error('Error checking usage:', error);
+        console.error('[UsageLimit] Error checking usage:', error);
+        setUsageStatus({ allowed: true, remaining: 40, resetTime: null, loading: false });
       }
     };
 
@@ -415,6 +424,13 @@ export const App = ({
               </div>
             </div>
 
+            {/* Usage Limit Display in Sidebar */}
+            {!sidebarCollapsed && isLoggedIn && (
+              <div className="px-3 py-2">
+                <UsageLimitDisplay usageStatus={usageStatus} />
+              </div>
+            )}
+
             {/* Settings Button */}
             {!sidebarCollapsed && (
               <div className="p-2 border-t border-slate-200 relative">
@@ -614,7 +630,7 @@ export const App = ({
             )}
             
             {/* Usage Limit Display */}
-            {isLoggedIn && showCourseInfo && enrollmentStatus.isEnrolled && currentCourseDocCount > 0 && (
+            {isLoggedIn && (
               <div className="animate-fade-in mb-4">
                 <UsageLimitDisplay usageStatus={usageStatus} />
               </div>
