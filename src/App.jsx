@@ -148,19 +148,15 @@ export const App = ({
   // Check usage limit periodically when logged in
   useEffect(() => {
     if (!isLoggedIn || !popupLogic) {
-      console.log('[UsageLimit] Not checking - isLoggedIn:', isLoggedIn, 'popupLogic:', !!popupLogic);
       return;
     }
 
     const checkUsage = async () => {
       try {
-        console.log('[UsageLimit] Checking usage limit...');
         if (popupLogic.fileSearchManager) {
           const status = await popupLogic.fileSearchManager.checkUsageLimit();
-          console.log('[UsageLimit] Received status:', status);
           setUsageStatus({ ...status, loading: false });
         } else {
-          console.warn('[UsageLimit] fileSearchManager not available');
           setUsageStatus({ allowed: true, remaining: 20, resetTime: null, loading: false });
         }
       } catch (error) {

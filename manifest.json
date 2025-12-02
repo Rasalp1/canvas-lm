@@ -51,9 +51,6 @@
         "*://*.canvaslms.com/*"
       ],
       "js": [
-        "state-management.js",
-        "smart-navigator.js",
-        "stateful-page-scanner.js",
         "content-script.js"
       ]
     }

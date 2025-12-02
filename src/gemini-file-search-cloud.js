@@ -395,18 +395,14 @@ class GeminiFileSearchCloudClient {
   async checkUsageLimit() {
     try {
       if (!this.userId) {
-        console.warn('[UsageLimit] userId not set, returning default limits');
         return { allowed: true, remaining: 40, resetTime: null, loading: false };
       }
       
-      console.log('[UsageLimit] Calling checkUsageLimit cloud function with userId:', this.userId);
       const checkLimit = httpsCallable(this.functions, 'checkUsageLimit');
       const result = await checkLimit({ userId: this.userId });
-      console.log('[UsageLimit] Cloud function response:', result.data);
       return result.data;
     } catch (error) {
       console.error('[UsageLimit] Error checking usage limit:', error);
-      console.error('[UsageLimit] Error details:', error.message, error.code);
       // On error, allow the request (fail open)
       return { allowed: true, remaining: 40, resetTime: null, loading: false };
     }
@@ -421,18 +417,14 @@ class GeminiFileSearchCloudClient {
   async recordMessageUsage(courseChatId, messageId) {
     try {
       if (!this.userId) {
-        console.warn('[UsageLimit] userId not set, skipping usage recording');
         return { success: true, recorded: false, reason: 'no_userId' };
       }
       
-      console.log('[UsageLimit] Recording message usage:', { userId: this.userId, courseChatId, messageId });
       const recordUsage = httpsCallable(this.functions, 'recordMessageUsage');
       const result = await recordUsage({ userId: this.userId, courseChatId, messageId });
-      console.log('[UsageLimit] Message usage recorded successfully:', result.data);
       return result.data;
     } catch (error) {
       console.error('[UsageLimit] Error recording message usage:', error);
-      console.error('[UsageLimit] Error details:', error.message, error.code);
       throw error;
     }
   }
