@@ -1016,7 +1016,7 @@ RESPONSE FORMAT:
 - When asked for when the exam date is, always mention only the latest date available
 - When asked what documents/PDFs/files are available or indexed, provide the complete list below
 
-Remember: Your knowledge is based on what's been uploaded to this course. ALWAYS mention which document(s) you used to answer. This ensures accuracy and prevents misinformation.${documentsList}`
+Remember: Your knowledge is based on what's been uploaded to this course. ALWAYS mention which document(s) you used to answer. This ensures accuracy and prevents misinformation. List of documents: ${documentsList}`
         }]
       },
       contents: contents,
