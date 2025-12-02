@@ -848,7 +848,7 @@ async function parseStreamingResponse(response) {
     // node-fetch v2 returns a Node.js readable stream
     return new Promise((resolve, reject) => {
       response.body.on('data', (chunk) => {
-        fullBuffer += chunk.toString();
+        fullBuffer += chunk.toString('utf8');
       });
       
       response.body.on('end', () => {
@@ -885,12 +885,23 @@ async function parseStreamingResponse(response) {
           logger.error('Buffer content (first 500 chars):', fullBuffer.substring(0, 500));
           
           // If we can't parse, try to extract text with regex as fallback
-          const textMatches = fullBuffer.match(/"text":\s*"([^"]*)"/g);
+          // This regex properly handles escaped characters including unicode sequences
+          const textMatches = fullBuffer.match(/"text":\s*"((?:[^"\\]|\\.)*)"/g);
           if (textMatches && textMatches.length > 0) {
             logger.warn('Using regex fallback to extract text');
             for (const match of textMatches) {
-              const text = match.match(/"text":\s*"([^"]*)"/)?.[1];
-              if (text) fullText += text;
+              const extracted = match.match(/"text":\s*"((?:[^"\\]|\\.)*)"/)?.[1];
+              if (extracted) {
+                // Manually unescape the JSON string to handle unicode sequences
+                try {
+                  const unescaped = JSON.parse('"' + extracted + '"');
+                  fullText += unescaped;
+                } catch (unescapeError) {
+                  // If unescape fails, use raw text
+                  logger.warn('Failed to unescape text, using raw:', unescapeError.message);
+                  fullText += extracted;
+                }
+              }
             }
             resolve({ fullText, groundingMetadata: null });
           } else {

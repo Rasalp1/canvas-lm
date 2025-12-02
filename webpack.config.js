@@ -8,7 +8,12 @@ module.exports = {
   entry: {
     popup: './src/popup-entry.jsx',
     background: './src/background.js',
-    'content-script': './src/content-script.js',
+    'content-script': [
+      './state-management.js',
+      './smart-navigator.js',
+      './stateful-page-scanner.js',
+      './src/content-script.js'
+    ],
     settings: './src/settings.js'
   },
   output: {
@@ -49,9 +54,6 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
-        { from: 'smart-navigator.js', to: 'smart-navigator.js' },
-        { from: 'state-management.js', to: 'state-management.js' },
-        { from: 'stateful-page-scanner.js', to: 'stateful-page-scanner.js' },
         { from: 'favicon-16x16.png', to: 'favicon-16x16.png' },
         { from: 'favicon-32x32.png', to: 'favicon-32x32.png' },
         { from: 'android-chrome-192x192.png', to: 'android-chrome-192x192.png' },

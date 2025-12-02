@@ -114,9 +114,6 @@ export class PopupLogic {
         // Set userId in File Search Manager FIRST, before UI updates
         if (this.fileSearchManager) {
           this.fileSearchManager.setUserId(userInfo.id);
-          console.log('[UsageLimit] UserId set in fileSearchManager:', userInfo.id);
-        } else {
-          console.error('[UsageLimit] fileSearchManager not available when trying to set userId');
         }
         
         // Save user to Firestore
@@ -1204,9 +1201,20 @@ export class PopupLogic {
           this.uiCallbacks.setStatus?.(`❌ [${i + 1}/${pdfsToUpload.length}] Failed: ${pdfTitle}`);
           await new Promise(resolve => setTimeout(resolve, 600)); // Let user see the error
           
-          // Save the document with failed status so we can retry later
-          await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdf);
-          await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'failed');
+          // Check if this is a non-PDF file (invalid format error)
+          // Don't save non-PDF files to Firestore since they can't be uploaded
+          const isInvalidPDFError = errorMsg.includes('Invalid PDF file') || 
+                                    errorMsg.includes('PDF magic bytes') ||
+                                    errorMsg.includes('does not have PDF');
+          
+          if (isInvalidPDFError) {
+            console.log(`⏭️ Skipping Firestore save for non-PDF file: ${pdfTitle}`);
+          } else {
+            // Save the document with failed status so we can retry later
+            // This is only for legitimate PDFs that failed due to network or other temporary issues
+            await this.firestoreHelpers.saveDocument(this.db, this.currentCourseData.id, pdf);
+            await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'failed');
+          }
         }
       }
       
@@ -1423,12 +1431,9 @@ export class PopupLogic {
 
     // Check usage limit before sending
     try {
-      console.log('[UsageLimit] Checking limit before sending message...');
       const limitCheck = await this.fileSearchManager.checkUsageLimit();
-      console.log('[UsageLimit] Limit check result:', limitCheck);
       
       if (!limitCheck.allowed) {
-        console.log('[UsageLimit] Message blocked - limit reached');
         this.conversationHistory.push({ 
           role: 'assistant', 
           content: `⏳ You've reached your message limit (40 messages per 3 hours). Please wait ${limitCheck.waitMinutes} minutes before sending another message.` 
@@ -1436,7 +1441,6 @@ export class PopupLogic {
         this.uiCallbacks.setChatMessages?.([...this.conversationHistory]);
         return;
       }
-      console.log('[UsageLimit] Limit check passed, proceeding with message');
     } catch (error) {
       console.error('[UsageLimit] Error checking usage limit:', error);
       // Continue anyway if check fails (fail open)
@@ -1535,16 +1539,13 @@ export class PopupLogic {
 
       // Record usage after successful message
       try {
-        console.log('[UsageLimit] About to record message usage...');
         await this.fileSearchManager.recordMessageUsage(
           this.currentSessionId,
           `msg_${Date.now()}`
         );
-        console.log('[UsageLimit] Message usage recorded, refreshing usage status...');
         
         // Refresh usage status immediately after recording
         const newStatus = await this.fileSearchManager.checkUsageLimit();
-        console.log('[UsageLimit] New usage status after recording:', newStatus);
         this.uiCallbacks.setUsageStatus?.({ ...newStatus, loading: false });
       } catch (error) {
         console.error('[UsageLimit] Error recording usage:', error);

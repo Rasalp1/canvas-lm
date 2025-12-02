@@ -654,7 +654,7 @@ class CanvasContentScript {
       // Find all module items in this module
       const moduleItems = module.querySelectorAll('.context_module_item');
       
-      if (moduleItems.length < 2) return; // Skip modules with single items
+      if (moduleItems.length < 1) return; // Skip empty modules
       
       // Group items by structural similarity
       const groups = this.groupModuleItemsByStructure(moduleItems);
@@ -720,6 +720,7 @@ class CanvasContentScript {
       hasLink: hasValidLink,
       hasHiddenType: !!typeSpan,
       isWikiPage: classList.includes('wiki_page'),
+      isAttachment: classList.includes('attachment'),
       classes: classList,
       linkHref: hasValidLink ? linkHref : null
     };
@@ -729,13 +730,18 @@ class CanvasContentScript {
     const structure = group.pattern;
     const items = group.items;
     
-    // High confidence: wiki page module items with sequential IDs
-    if (structure.isWikiPage && structure.hasLink && items.length >= 3) {
-      // Check for sequential or lecture-like naming
+    // Accept attachment-type module items (PDFs, files)
+    // These are commonly used for lecture slides and materials
+    if (structure.isAttachment && items.length >= 1) {
+      return true;
+    }
+    
+    // Accept wiki page module items with sequential structure
+    if (structure.isWikiPage && structure.hasLink && items.length >= 2) {
+      // For wiki pages, check if they have sequential module IDs
+      // This indicates organized course content
       const hasSequentialIds = this.hasSequentialModuleIds(items);
-      const hasLectureNames = this.hasLectureNames(items);
-      
-      return hasSequentialIds || hasLectureNames;
+      return hasSequentialIds;
     }
     
     return false;
@@ -762,29 +768,16 @@ class CanvasContentScript {
     return sequential / (ids.length - 1) > 0.7; // 70% sequential
   }
   
-  hasLectureNames(items) {
-    const names = items.map(item => {
-      const link = item.querySelector('a[href*="/modules/items/"]');
-      const href = link?.getAttribute('href');
-      // Skip template placeholder URLs
-      if (!href || href.includes('%7B%7B') || href.includes('{{')) return '';
-      return link?.textContent?.trim() || '';
-    });
-    
-    const lectureNames = names.filter(name => 
-      name.toLowerCase().includes('optfö') ||
-      name.toLowerCase().includes('simfö') ||
-      name.toLowerCase().includes('föreläsning') ||
-      name.toLowerCase().includes('lecture')
-    );
-    
-    return lectureNames.length >= 2;
-  }
+  // Removed hasLectureNames() - no longer using hardcoded name patterns
+  // We now rely on Canvas's attachment classification and module structure
   
   calculatePatternConfidence(group) {
     let confidence = 0;
     const structure = group.pattern;
     const items = group.items;
+    
+    // High confidence for attachments (files/PDFs)
+    if (structure.isAttachment) confidence += 60;
     
     // Base confidence for structure
     if (structure.isWikiPage) confidence += 30;
@@ -794,8 +787,7 @@ class CanvasContentScript {
     // Bonus for quantity
     confidence += Math.min(items.length * 5, 25);
     
-    // Bonus for lecture patterns
-    if (this.hasLectureNames(items)) confidence += 25;
+    // Bonus for sequential organization
     if (this.hasSequentialModuleIds(items)) confidence += 20;
     
     return confidence;
