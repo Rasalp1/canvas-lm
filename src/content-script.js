@@ -278,7 +278,8 @@ class CanvasContentScript {
   
   processParsedLink(element, sourceUrl, foundPDFs, source) {
     const href = element.getAttribute('href');
-    const text = element.textContent?.trim() || '';
+    // Get clean text without action buttons (e.g., "Ladda ner")
+    const text = this.extractCleanLinkText(element) || element.textContent?.trim() || '';
     
     // Skip template placeholder URLs early
     if (href && (href.includes('%7B%7B') || href.includes('{{'))) {
@@ -337,9 +338,13 @@ class CanvasContentScript {
         contextDescription = 'attachment';
       }
       
+      // Extract title using improved method that prioritizes URL parameters over DOM
+      const extractedTitle = this.extractBetterTitle(element, absoluteUrl);
+      const finalTitle = extractedTitle || text || this.extractFilename(absoluteUrl) || 'Canvas PDF';
+      
       foundPDFs.push({
         url: this.convertToDownloadURL(absoluteUrl),
-        title: this.extractBetterTitle(element, absoluteUrl) || text || 'Canvas PDF',
+        title: finalTitle,
         filename: this.extractFilename(absoluteUrl),
         context: `Found in: ${sourceUrl}`,
         type: pdfType,
@@ -352,7 +357,7 @@ class CanvasContentScript {
         needsRedirectResolution: absoluteUrl.includes('/modules/items/')
       });
       
-      console.log(`📎 Deep crawl found ${contextDescription}: "${text}" -> ${absoluteUrl} (source: ${source}, type: ${itemType || 'unknown'})`);
+      console.log(`📎 Deep crawl found ${contextDescription}: "${finalTitle}" -> ${absoluteUrl} (source: ${source}, type: ${itemType || 'unknown'})`);
     }
   }
 
@@ -3557,8 +3562,7 @@ class CanvasContentScript {
       '.filename', 
       '.file-name',
       '.title',
-      '.item_name',
-      'span:first-child' // Often the first span contains the actual name
+      '.item_name'
     ];
     
     for (const selector of nameSelectors) {
@@ -3572,15 +3576,41 @@ class CanvasContentScript {
       }
     }
     
+    // Try to find text in first span (but exclude it if it's an action button)
+    const firstSpan = linkElement.querySelector('span:first-child');
+    if (firstSpan) {
+      const spanText = firstSpan.textContent?.trim();
+      if (spanText && !this.isGenericActionText(spanText)) {
+        return spanText;
+      }
+    }
+    
+    // Look through all child text nodes directly under the link to find actual filename
+    // This helps when the structure is: <a>Filename.pdf<span>Ladda ner</span></a>
+    for (const node of linkElement.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const nodeText = node.textContent?.trim();
+        if (nodeText && !this.isGenericActionText(nodeText)) {
+          return nodeText;
+        }
+      }
+    }
+    
     // Fallback to full text content, but clean it up
     const fullText = linkElement.textContent?.trim() || '';
     
     // Remove common action suffixes (Swedish and English)
-    const cleanedText = fullText
-      .replace(/\s*(Ladda\s*ner|Ladda\s*ned|Download|Förhandsvisning|Preview)\s*$/gi, '')
+    // Also remove them from middle or anywhere in the text, not just at the end
+    let cleanedText = fullText
+      .replace(/\s*(Ladda\s*ner|Ladda\s*ned|Download|Förhandsvisning|Preview)\s*/gi, '')
       .trim();
     
-    return cleanedText || null;
+    // If after cleaning we only have generic text left, return null
+    if (!cleanedText || this.isGenericActionText(cleanedText)) {
+      return null;
+    }
+    
+    return cleanedText;
   }
   
   isGenericActionText(text) {
@@ -3595,14 +3625,31 @@ class CanvasContentScript {
 
   extractBetterTitle(linkElement, url) {
     try {
-      // First, try to get clean text from the link element itself
-      const cleanLinkText = this.extractCleanLinkText(linkElement);
-      if (cleanLinkText && !this.isGenericActionText(cleanLinkText)) {
-        return cleanLinkText;
+      // Strategy: Check URL first for download_frd parameter (most reliable), then check DOM
+      // This prevents Swedish UI button text from being used as filenames
+      
+      const urlObj = new URL(url);
+      const decodedUrl = decodeURIComponent(url);
+      
+      // FIRST PRIORITY: Try to get filename from URL query parameters (most reliable for Canvas)
+      const downloadParam = urlObj.searchParams.get('download_frd');
+      if (downloadParam && downloadParam !== '1') {
+        const decodedName = decodeURIComponent(downloadParam);
+        if (decodedName && decodedName.length > 1) {
+          console.log(`✅ Found filename in download_frd: ${decodedName}`);
+          return decodedName.replace(/\.pdf$/i, ''); // Remove .pdf extension as it will be added later
+        }
       }
       
-      // Second, check if the URL itself contains the filename (for redirected Canvas URLs or direct URLs)
-      const decodedUrl = decodeURIComponent(url);
+      // SECOND PRIORITY: Check for PDF filename in the URL path
+      const pdfMatch = decodedUrl.match(/([^/\?]+\.pdf)/i);
+      if (pdfMatch) {
+        const filename = pdfMatch[1];
+        if (filename && filename !== '1.pdf' && filename.length > 3) {
+          console.log(`✅ Found filename in URL path: ${filename}`);
+          return filename.replace(/\.pdf$/i, '');
+        }
+      }
       
       // Handle canvas-user-content URLs with course files
       if (url.includes('canvas-user-content.com') || decodedUrl.includes('course files/')) {
@@ -3610,37 +3657,26 @@ class CanvasContentScript {
         if (filenameMatch) {
           const filename = filenameMatch[1].trim();
           if (filename && filename.length > 1 && filename !== '1') {
+            console.log(`✅ Found filename in canvas-user-content: ${filename}`);
             return filename.replace(/\.pdf$/i, '');
           }
         }
       }
       
-      // Check for any PDF filename in the URL path or query
-      const pdfMatch = decodedUrl.match(/([^/\?]+\.pdf)/i);
-      if (pdfMatch) {
-        const filename = pdfMatch[1];
-        if (filename && filename !== '1.pdf') {
-          return filename.replace(/\.pdf$/i, '');
-        }
+      // THIRD PRIORITY: Try to get clean text from the link element itself (DOM)
+      const cleanLinkText = this.extractCleanLinkText(linkElement);
+      if (cleanLinkText && !this.isGenericActionText(cleanLinkText) && cleanLinkText.length > 2) {
+        console.log(`✅ Found filename in link text: ${cleanLinkText}`);
+        return cleanLinkText;
       }
       
-      // Try to get filename from URL query parameters
-      const urlObj = new URL(url);
-      const downloadParam = urlObj.searchParams.get('download_frd');
-      if (downloadParam) {
-        const decodedName = decodeURIComponent(downloadParam);
-        if (decodedName && decodedName !== '1') {
-          return decodedName.replace(/\.pdf$/i, ''); // Remove .pdf extension as it will be added later
-        }
-      }
-      
-      // Try to find filename in the URL path
-      const pathParts = urlObj.pathname.split('/');
-      const lastPart = pathParts[pathParts.length - 1];
-      if (lastPart && !/^\d+$/.test(lastPart) && lastPart !== 'download') {
-        const decoded = decodeURIComponent(lastPart);
-        if (decoded.length > 1) {
-          return decoded.replace(/\.pdf$/i, '');
+      // Look for data attributes that might contain the filename
+      const dataAttrs = ['data-filename', 'data-name', 'title', 'aria-label'];
+      for (const attr of dataAttrs) {
+        const value = linkElement.getAttribute(attr);
+        if (value && !this.isGenericActionText(value) && value.length > 2) {
+          console.log(`✅ Found filename in ${attr}: ${value}`);
+          return value.replace(/\.pdf$/i, '');
         }
       }
       
@@ -3651,34 +3687,43 @@ class CanvasContentScript {
         const siblings = parent.querySelectorAll('.file-name, .filename, .title, .name');
         for (const sibling of siblings) {
           const siblingText = sibling.textContent?.trim();
-          if (siblingText && siblingText !== 'Ladda ner' && siblingText !== 'Download') {
+          if (siblingText && !this.isGenericActionText(siblingText) && siblingText.length > 2) {
+            console.log(`✅ Found filename in sibling element: ${siblingText}`);
             return siblingText.replace(/\.pdf$/i, '');
           }
         }
         
         // Check parent's text content for clues
         const parentText = parent.textContent?.trim();
-        if (parentText && !parentText.toLowerCase().includes('ladda ner') && !parentText.toLowerCase().includes('download')) {
-          // Extract meaningful part before "Ladda ner" if present
-          const beforeDownload = parentText.split(/ladda ner|download/i)[0]?.trim();
-          if (beforeDownload && beforeDownload.length > 2) {
+        if (parentText) {
+          // Extract meaningful part before "Ladda ner" / "Download" if present
+          const beforeDownload = parentText.split(/\s+(Ladda\s*ner|Ladda\s*ned|Download|Förhandsvisning|Preview)\s*/i)[0]?.trim();
+          if (beforeDownload && beforeDownload.length > 2 && !this.isGenericActionText(beforeDownload)) {
+            console.log(`✅ Found filename in parent text: ${beforeDownload}`);
             return beforeDownload.replace(/\.pdf$/i, '');
           }
         }
       }
       
-      // Look for data attributes that might contain the filename
-      const dataAttrs = ['data-filename', 'data-name', 'title'];
-      for (const attr of dataAttrs) {
-        const value = linkElement.getAttribute(attr);
-        if (value && value !== 'Ladda ner' && value !== 'Download') {
-          return value.replace(/\.pdf$/i, '');
+      // LAST RESORT: Try to extract filename from URL path segments
+      const pathParts = urlObj.pathname.split('/').filter(part => part.length > 0);
+      // Look through path parts in reverse to find something that looks like a filename
+      for (let i = pathParts.length - 1; i >= 0; i--) {
+        const part = pathParts[i];
+        // Skip numeric IDs and 'download' keyword
+        if (!/^\d+$/.test(part) && part !== 'download' && part !== 'preview' && part.length > 2) {
+          const decoded = decodeURIComponent(part);
+          if (!this.isGenericActionText(decoded)) {
+            console.log(`✅ Found filename in URL path part: ${decoded}`);
+            return decoded.replace(/\.pdf$/i, '');
+          }
         }
       }
       
+      console.warn(`⚠️ Could not extract filename from URL or DOM for: ${url}`);
       return null;
     } catch (e) {
-      console.log('Error extracting better title:', e);
+      console.error('Error extracting better title:', e);
       return null;
     }
   }

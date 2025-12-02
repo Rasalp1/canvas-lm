@@ -213,15 +213,7 @@ export class PopupLogic {
       }
       
       const courseId = courseIdMatch[1];
-      const courseName = tab.title.split(':')[0]?.trim() || `Course ${courseId}`;
-      
-      this.currentCourseData = {
-        id: courseId,
-        name: courseName,
-        url: tab.url
-      };
-      
-      this.uiCallbacks.setStatus?.(`✅ Detected: ${courseName}`);
+      let courseName = tab.title.split(':')[0]?.trim() || `Course ${courseId}`;
       
       // Check if course has documents and enrollment status
       let docCount = 0;
@@ -234,6 +226,11 @@ export class PopupLogic {
           const courseResult = await this.firestoreHelpers.getCourse(this.db, courseId);
           courseExists = courseResult.success && courseResult.data;
           
+          // Use course name from database if available
+          if (courseExists && courseResult.data.courseName) {
+            courseName = courseResult.data.courseName;
+          }
+          
           // Check if user is enrolled
           const enrollmentResult = await this.firestoreHelpers.isUserEnrolled(this.db, this.currentUser.id, courseId);
           isEnrolled = enrollmentResult.success && enrollmentResult.isEnrolled;
@@ -245,6 +242,14 @@ export class PopupLogic {
           console.error('Error checking course status:', error);
         }
       }
+      
+      this.currentCourseData = {
+        id: courseId,
+        name: courseName,
+        url: tab.url
+      };
+      
+      this.uiCallbacks.setStatus?.(`✅ Detected: ${courseName}`);
       
       // Update enrollment status
       this.uiCallbacks.setEnrollmentStatus?.({
@@ -1414,12 +1419,15 @@ export class PopupLogic {
     try {
       console.log('🔄 Starting new chat session...');
       
+      // Store reference to old session
+      const oldSessionId = this.currentSessionId;
+      
       // Clear current conversation
       this.conversationHistory = [];
       this.currentSessionId = null;
       this.uiCallbacks.setChatMessages?.([]);
       
-      // Create a new session
+      // Create a new session first
       const createResult = await this.firestoreHelpers.createChatSession(
         this.db,
         this.currentUser.id,
@@ -1432,6 +1440,22 @@ export class PopupLogic {
       if (createResult.success) {
         this.currentSessionId = createResult.sessionId;
         console.log('✅ New chat session created:', this.currentSessionId);
+        
+        // Now delete the old session if it exists
+        if (oldSessionId) {
+          console.log('🗑️ Deleting old chat session:', oldSessionId);
+          const deleteResult = await this.firestoreHelpers.deleteChatSession(
+            this.db,
+            this.currentUser.id,
+            oldSessionId
+          );
+          
+          if (deleteResult.success) {
+            console.log('✅ Old chat session deleted');
+          } else {
+            console.warn('⚠️ Failed to delete old session:', deleteResult.error);
+          }
+        }
         
         // Optionally show a message to the user
         this.uiCallbacks.setStatus?.('✨ New chat started! Ask me anything about the course materials.');
