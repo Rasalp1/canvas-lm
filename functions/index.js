@@ -959,6 +959,31 @@ exports.queryCourseStore = onCall({
     // Get shared store for course
     const storeName = await getSharedStore(courseId);
 
+    // Fetch list of successfully uploaded documents from Firestore
+    let documentsList = '';
+    try {
+      const docsSnapshot = await db
+        .collection('courses').doc(courseId)
+        .collection('documents')
+        .where('uploadStatus', '==', 'completed')
+        .get();
+      
+      if (!docsSnapshot.empty) {
+        const docNames = docsSnapshot.docs
+          .map(doc => doc.data().title || doc.data().fileName || 'Untitled')
+          .filter(name => name && name !== 'Untitled')
+          .sort();
+        
+        if (docNames.length > 0) {
+          documentsList = `\n\nAVAILABLE DOCUMENTS IN THIS COURSE:\n${docNames.map((name, i) => `${i + 1}. ${name}`).join('\n')}`;
+          logger.info('Document list prepared', { courseId, documentCount: docNames.length });
+        }
+      }
+    } catch (error) {
+      logger.warn('Failed to fetch document list', { courseId, error: error.message });
+      // Continue without document list rather than failing the query
+    }
+
     // Build request with File Search tool
     // Start with conversation history (limit to last 10 messages)
     const contents = history.slice(-10);
@@ -972,7 +997,26 @@ exports.queryCourseStore = onCall({
     const requestBody = {
       system_instruction: {
         parts: [{ 
-          text: 'You are Canvas LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.\n\nIMPORTANT: Answer questions directly using the documents. Do not explain what you are going to search for or describe your process. Simply provide the answer immediately.\n\nSTRICT RULES:\n1. Persona: Be professional, encouraging, and helpful. You are knowledgeable and serious about the course, but also support the student in a mentor-type way.\n2. ONLY use information found in the provided course documents\n3. Reference the course material as often as possible, and use language such as "Based on the course material,"\n4. Provide specific citations showing which document(s) you used\n5. Use quotes and paraphrasing extensively\n\nRESPONSE FORMAT:\n- Answer the question clearly and concisely based on the documents\n- Include relevant details, examples, or explanations from the course materials\n- When asked for when the exam date is, always mention only the latest date available.\n\nRemember: Your knowledge is based on what\'s been uploaded to this course. This ensures accuracy and prevents misinformation.'
+          text: `You are Canvas LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.
+
+IMPORTANT: Answer questions directly using the documents. Do not explain what you are going to search for or describe your process. Simply provide the answer immediately.
+
+STRICT RULES:
+1. Persona: Be professional, encouraging, and helpful. You are knowledgeable and serious about the course, but also support the student in a mentor-type way.
+2. ONLY use information found in the provided course documents
+3. Reference the course material as often as possible, and use language such as "According to [document name]," or "Based on the course material in [document name],"
+4. ALWAYS cite the specific document name(s) you retrieved information from - this is crucial for students to verify and explore further
+5. Use quotes and paraphrasing extensively from the actual documents
+6. If you find information in multiple documents, mention all relevant document names
+
+RESPONSE FORMAT:
+- Answer the question clearly and concisely based on the documents
+- Include the document name(s) in your response (e.g., "In the document 'Lecture 3.pdf', it states...")
+- Include relevant details, examples, or explanations from the course materials
+- When asked for when the exam date is, always mention only the latest date available
+- When asked what documents/PDFs/files are available or indexed, provide the complete list below
+
+Remember: Your knowledge is based on what's been uploaded to this course. ALWAYS mention which document(s) you used to answer. This ensures accuracy and prevents misinformation.${documentsList}`
         }]
       },
       contents: contents,
@@ -1028,6 +1072,32 @@ exports.queryCourseStore = onCall({
     }
 
     const executionTime = Date.now() - startTime;
+    
+    // Log grounding metadata to understand what file information is being returned
+    if (groundingMetadata) {
+      logger.info('Grounding metadata received', {
+        hasSearchEntryPoint: !!groundingMetadata.searchEntryPoint,
+        hasGroundingChunks: !!groundingMetadata.groundingChunks,
+        chunksCount: groundingMetadata.groundingChunks?.length || 0,
+        webSearchQueries: groundingMetadata.webSearchQueries?.length || 0
+      });
+      
+      // Log details about the first few grounding chunks to see file references
+      if (groundingMetadata.groundingChunks && groundingMetadata.groundingChunks.length > 0) {
+        const sampleChunks = groundingMetadata.groundingChunks.slice(0, 3);
+        logger.info('Sample grounding chunks', {
+          chunks: sampleChunks.map(chunk => ({
+            hasWeb: !!chunk.web,
+            hasRetrievedContext: !!chunk.retrievedContext,
+            title: chunk.retrievedContext?.title || chunk.web?.title,
+            uri: chunk.retrievedContext?.uri || chunk.web?.uri
+          }))
+        });
+      }
+    } else {
+      logger.warn('No grounding metadata in response');
+    }
+    
     logger.info('Streaming query completed', { 
       model,
       courseId,
@@ -1079,9 +1149,13 @@ exports.queryCourseStore = onCall({
       });
     }
 
+    // Ensure proper UTF-8 encoding by normalizing the text
+    // This handles any potential encoding issues with special characters
+    const normalizedText = Buffer.from(fullText, 'utf8').toString('utf8');
+    
     return {
       success: true,
-      answer: fullText,
+      answer: normalizedText,
       groundingMetadata: groundingMetadata,
       sessionId: sessionId,
       model: model

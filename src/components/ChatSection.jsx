@@ -3,7 +3,8 @@ import { Card, CardHeader, CardContent, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import { MessageCircle, Send } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { MessageCircle, Send, RotateCcw, AlertTriangle } from 'lucide-react';
 import { trefoil } from 'ldrs';
 import { InlineMath, BlockMath } from 'react-katex';
 import 'katex/dist/katex.min.css';
@@ -125,11 +126,13 @@ export const ChatSection = ({
   isFullScreen = false,
   user,
   currentPagePDF = null,
-  onContextToggle = null
+  onContextToggle = null,
+  onNewChat = null
 }) => {
   const scrollContainerRef = useRef(null);
   const scrollAreaRef = useRef(null);
   const [contextEnabled, setContextEnabled] = useState(true);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   // Notify parent when context toggle changes
   useEffect(() => {
@@ -137,6 +140,21 @@ export const ChatSection = ({
       onContextToggle(contextEnabled);
     }
   }, [contextEnabled, currentPagePDF, onContextToggle]);
+
+  const handleResetClick = () => {
+    setShowResetDialog(true);
+  };
+
+  const handleResetConfirm = () => {
+    setShowResetDialog(false);
+    if (onNewChat) {
+      onNewChat();
+    }
+  };
+
+  const handleResetCancel = () => {
+    setShowResetDialog(false);
+  };
 
   // Debug logging
   useEffect(() => {
@@ -279,6 +297,18 @@ export const ChatSection = ({
         <div className="bg-white">
           <div className="w-full px-8 py-4">
             <div className="flex gap-3">
+              {onNewChat && messages.length > 0 && (
+                <Button
+                  onClick={handleResetClick}
+                  disabled={isLoading}
+                  size="icon"
+                  variant="outline"
+                  className="flex-shrink-0 w-12 h-12 border-slate-300 hover:bg-slate-100 hover:border-slate-400"
+                  title="Reset chat"
+                >
+                  <RotateCcw className="w-5 h-5 text-slate-600" />
+                </Button>
+              )}
               <Input
                 type="text"
                 value={inputValue}
@@ -304,12 +334,20 @@ export const ChatSection = ({
             </div>
           </div>
         </div>
+        
+        {/* Reset Confirmation Dialog */}
+        <ResetChatDialog 
+          isOpen={showResetDialog}
+          onClose={handleResetCancel}
+          onConfirm={handleResetConfirm}
+        />
       </div>
     );
   }
 
   // Card layout for popup
   return (
+    <>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
@@ -430,6 +468,18 @@ export const ChatSection = ({
         </ScrollArea>
         
         <div className="flex gap-2 pt-2">
+          {onNewChat && messages.length > 0 && (
+            <Button
+              onClick={handleResetClick}
+              disabled={isLoading}
+              size="icon"
+              variant="outline"
+              className="flex-shrink-0 border-slate-300 hover:bg-slate-100 hover:border-slate-400"
+              title="Reset chat"
+            >
+              <RotateCcw className="w-4 h-4 text-slate-600" />
+            </Button>
+          )}
           <Input
             type="text"
             value={inputValue}
@@ -455,5 +505,48 @@ export const ChatSection = ({
         </div>
       </CardContent>
     </Card>
+    
+    {/* Reset Confirmation Dialog */}
+    <ResetChatDialog 
+      isOpen={showResetDialog}
+      onClose={handleResetCancel}
+      onConfirm={handleResetConfirm}
+    />
+    </>
   );
 };
+
+// Confirmation Dialog Component
+const ResetChatDialog = ({ isOpen, onClose, onConfirm }) => (
+  <Dialog open={isOpen} onOpenChange={onClose}>
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+          </div>
+          <DialogTitle>Reset Chat?</DialogTitle>
+        </div>
+        <DialogDescription className="pt-4">
+          This will start a new conversation and <strong>permanently delete all messages</strong> in this chat session. This action cannot be undone.
+          <br /><br />
+          Use this after rescanning to ensure the AI uses the latest course documents.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter className="gap-2 sm:gap-0">
+        <Button
+          variant="outline"
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={onConfirm}
+        >
+          Reset Chat
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
