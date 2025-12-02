@@ -205,6 +205,12 @@ export const App = ({
     }
   };
 
+  const handleNewChat = () => {
+    if (popupLogic) {
+      popupLogic.startNewChat();
+    }
+  };
+
   const handleExpandWindow = () => {
     if (popupLogic) {
       popupLogic.handleExpandWindow();
@@ -490,6 +496,7 @@ export const App = ({
                   isFullScreen={true}
                   user={user}
                   currentPagePDF={null}
+                  onNewChat={handleNewChat}
                 />
               </div>
             ) : showCourseInfo ? (
@@ -739,6 +746,7 @@ export const App = ({
                   user={user}
                   currentPagePDF={currentPagePDF}
                   onContextToggle={handleContextToggle}
+                  onNewChat={handleNewChat}
                 />
               </div>
             )}

@@ -1401,6 +1401,50 @@ export class PopupLogic {
     }
   }
 
+  /**
+   * Start a new chat session (clear conversation and create fresh session)
+   * This is useful after rescanning to ensure the AI uses the latest documents
+   */
+  async startNewChat() {
+    if (!this.currentUser || !this.currentCourseData || !this.db) {
+      console.log('⚠️ Cannot start new chat: missing user or course data');
+      return;
+    }
+
+    try {
+      console.log('🔄 Starting new chat session...');
+      
+      // Clear current conversation
+      this.conversationHistory = [];
+      this.currentSessionId = null;
+      this.uiCallbacks.setChatMessages?.([]);
+      
+      // Create a new session
+      const createResult = await this.firestoreHelpers.createChatSession(
+        this.db,
+        this.currentUser.id,
+        {
+          courseId: this.currentCourseData.id,
+          title: `Chat - ${this.currentCourseData.name}`
+        }
+      );
+
+      if (createResult.success) {
+        this.currentSessionId = createResult.sessionId;
+        console.log('✅ New chat session created:', this.currentSessionId);
+        
+        // Optionally show a message to the user
+        this.uiCallbacks.setStatus?.('✨ New chat started! Ask me anything about the course materials.');
+      } else {
+        console.error('❌ Failed to create new chat session');
+        this.uiCallbacks.setStatus?.('❌ Failed to start new chat');
+      }
+    } catch (error) {
+      console.error('❌ Error starting new chat:', error);
+      this.uiCallbacks.setStatus?.('❌ Error starting new chat');
+    }
+  }
+
   async handleChatSend(message) {
     if (!this.currentUser || !this.db) {
       this.conversationHistory.push({ 
