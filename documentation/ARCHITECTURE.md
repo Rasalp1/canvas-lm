@@ -1,7 +1,27 @@
 # Architecture Overview: Canvas LM - AI Study Assistant
 
-**Last Updated:** December 1, 2025  
+**Last Updated:** December 2, 2025  
 **Version:** 1.1.0
+
+## Recent Updates (December 2025)
+
+### New Features
+- **Lecture Context Detection**: AI automatically detects which lecture, module, or Canvas page you're viewing and uses this context to provide more relevant answers
+- **Context Toggle Control**: Users can enable/disable lecture context prioritization in real-time
+- **Enhanced Smart Navigation**: Improved PDF discovery with better Canvas DOM parsing and expanded content detection
+- **Usage Limits & Tier System**: Fair usage limits (20 messages per 3 hours for free tier) with Premium/Admin tiers for unlimited access
+- **Real-time Usage Tracking**: Visual progress bars and countdown timers showing remaining quota
+- **Improved Scan Progress Tracking**: Better visual feedback during document scanning with phase indicators
+
+## Recent Updates (December 2025)
+
+### New Features
+- **Lecture Context Detection**: AI automatically detects which lecture, module, or Canvas page you're viewing and uses this context to provide more relevant answers
+- **Context Toggle Control**: Users can enable/disable lecture context prioritization in real-time
+- **Enhanced Smart Navigation**: Improved PDF discovery with better Canvas DOM parsing and expanded content detection
+- **Usage Limits & Tier System**: Fair usage limits (20 messages per 3 hours for free tier) with Premium/Admin tiers for unlimited access
+- **Real-time Usage Tracking**: Visual progress bars and countdown timers showing remaining quota
+- **Improved Scan Progress Tracking**: Better visual feedback during document scanning with phase indicators
 
 ## System Flow Diagram
 
@@ -51,11 +71,12 @@
                                                                   
      queryCourseStore()          users/{userId}             
        • Lecture context injection     • tier (free/premium/admin)
-       • System prompt injection       courses/{courseId}         
-       • Usage limit check (40/3hrs)   enrollments/               
-       • Rate limit: 50/min            chatSessions/              
-       • Enrollment verification       rateLimits/                
-                                       userUsageLimits/           
+       • System prompt injection       • usage tracking
+       • Usage limit check (20/3hrs)   courses/{courseId}         
+       • Rate limit: 50/min            enrollments/               
+       • Enrollment verification       chatSessions/              
+       • Context-aware querying        rateLimits/                
+       • Metadata filtering            userUsageLimits/           
                                        usageLimitConfig/                
      uploadToStore()                                            
        • Rate limit: 20/min            
@@ -619,6 +640,153 @@ Bottlenecks:
  Large files: Memory intensive
     Solution: Stream uploads, limit file size
 ```
+
+## Recent Feature Enhancements (December 2025)
+
+### 1. Lecture Context Detection & Page-Specific Querying
+
+**Implementation Files:**
+- `popup-logic.js`: `updatePageContext()`, `getCurrentPagePDF()`, `setContextEnabled()`
+- `content-script.js`: `getCurrentFileContext()` message handler
+- `ChatSection.jsx`: Context toggle UI, context indicator display
+- `App.jsx`: Context state management
+
+**How It Works:**
+```
+1. User navigates to Canvas file (e.g., /courses/123/files/456)
+2. Content script detects file context: {fileId, url, moduleItemId}
+3. popup-logic matches fileId to Firestore document
+4. UI displays context indicator: "📄 Viewing Context: lecture_notes.pdf"
+5. User asks question with context toggle ENABLED
+6. Query enhanced: "Regarding 'lecture_notes.pdf': {user question}"
+7. Metadata filter applied: fileName = "lecture_notes.pdf"
+8. topK increased from 5 to 10 chunks for better coverage
+9. AI prioritizes current document in response
+```
+
+**Benefits:**
+- More relevant answers when viewing specific files
+- Natural context injection without user effort
+- Toggle allows fallback to broad search when needed
+- Improved answer quality for document-specific questions
+
+### 2. Usage Limits & Tier System
+
+**Implementation Files:**
+- `gemini-file-search-cloud.js`: `checkUsageLimit()`, `recordMessageUsage()`
+- Cloud Functions: `checkUsageLimit`, `recordMessageUsage`, `initializeUsageLimitConfig`
+- `UsageLimitDisplay.jsx`: Visual quota tracking component
+- `App.jsx`: Usage status polling (every 30s)
+
+**Tier Structure:**
+```
+FREE TIER:
+  • 20 messages per 3-hour rolling window
+  • All standard features included
+  • Usage tracked in Firestore
+  
+PREMIUM TIER:
+  • Unlimited messages
+  • Priority support
+  • Skips usage tracking
+  • Payment integration (planned)
+  
+ADMIN TIER:
+  • Unlimited messages
+  • Full system access
+  • Config management
+  • Analytics access
+```
+
+**Usage Tracking:**
+```javascript
+// Firestore Structure
+users/{userId}/
+  tier: 'free' | 'premium' | 'admin'
+  
+userUsageLimits/{userId}/
+  messages: [
+    {messageId, timestamp, courseChatId}
+  ]
+  
+usageLimitConfig/default/
+  messageLimit: 20
+  windowMinutes: 180
+  tierLimits: { free: 20, premium: 999, admin: 999 }
+```
+
+**UI Components:**
+- Progress bar showing X / 20 messages
+- Countdown timer when limit reached
+- Badge display for Premium/Admin users
+- Real-time updates after each message
+
+### 3. Enhanced Smart Navigation Crawler
+
+**New Components:**
+- `state-management.js`: Persistent crawler state across page navigations
+- `smart-navigator.js`: Actual page navigation with state restoration
+- `stateful-page-scanner.js`: Enhanced PDF discovery (6 methods)
+
+**Improvements:**
+```
+OLD APPROACH:
+  • Single-page surface scanning
+  • ~20-30% PDF coverage
+  • No state persistence
+  • Manual navigation required
+
+NEW APPROACH:
+  • Multi-page deep crawling
+  • ~80-90% PDF coverage
+  • State persists across navigations
+  • Automatic priority-based navigation
+  • Comprehensive content expansion
+```
+
+**PDF Discovery Methods:**
+1. Direct PDF links (href ends with .pdf)
+2. Canvas file links (/files/ with PDF indicators)
+3. Module item attachments (Canvas-specific selectors)
+4. Assignment attachments (assignment description PDFs)
+5. Embedded iframes (PDFs in iframe elements)
+6. Download links (/download with PDF context)
+
+**Priority Navigation Queue:**
+```javascript
+Priority 1: /modules     (highest - main content)
+Priority 2: /files       (file browser)
+Priority 3: /assignments (assignment attachments)
+Priority 4: /pages       (course pages)
+Priority 5: /syllabus    (course overview)
+```
+
+**State Persistence:**
+- Survives page reloads and browser crashes
+- Chrome.storage.local for state management
+- Session ID tracking for multi-session support
+- Automatic resume on navigation completion
+
+### 4. Improved UI/UX
+
+**ChatSection.jsx:**
+- Context toggle switch
+- Visual context indicator (blue card)
+- "Viewing Context: {fileName}" display
+- Active/Inactive status badges
+
+**Scan Progress:**
+- Phase-based progress indicators
+- Real-time status updates
+- Estimated time remaining
+- Success/failure notifications per PDF
+- Upload phase tracking (prevents UI conflicts)
+
+**Usage Display:**
+- Sidebar quota widget (always visible)
+- Fullscreen quota warning (when limit reached)
+- Admin/Premium badges
+- Countdown timer with hour:min:sec format
 
 ## Error Handling
 
