@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollArea } from './ui/scroll-area';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, Info } from 'lucide-react';
 
 export const CoursePDFDrawer = ({ 
   open, 
@@ -33,6 +33,16 @@ export const CoursePDFDrawer = ({
                 </div>
               </div>
             ))}
+            <div className="p-3 bg-blue-50/50 hover:bg-blue-50 rounded-md border border-blue-200 transition-colors">
+              <div className="flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-blue-900 font-medium leading-relaxed">
+                    Missing a lecture? Try rescanning the course
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
