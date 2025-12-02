@@ -1,5 +1,19 @@
 # Smart Navigation Implementation Complete
 
+**Last Updated:** December 2, 2025
+
+## **Recent Enhancements**
+
+### December 2025 Updates
+- ✅ **Expanded Content Detection**: Enhanced scanner now expands all collapsible Canvas modules, folders, and accordions
+- ✅ **6 PDF Discovery Methods**: Comprehensive detection including embedded iframes and assignment attachments
+- ✅ **Template URL Filtering**: Smart detection and skipping of template placeholder URLs ({{ }} patterns)
+- ✅ **Health Check System**: Periodic verification that scans haven't died silently (30-second intervals)
+- ✅ **Scan Timeout Protection**: 10-minute safety timeout with automatic UI reset if scan gets stuck
+- ✅ **Upload Phase Tracking**: Separate phase tracking prevents UI conflicts during PDF uploads
+- ✅ **Content Script Readiness**: Retry logic with diagnostics when content script isn't responsive
+- ✅ **Canvas-Specific Selectors**: Improved targeting of Canvas DOM elements for better PDF discovery
+
 ## **Implementation Status**
 
 The smart navigation crawler (Option 2) has been successfully implemented with full state persistence across page navigation. Here's what's been delivered:
@@ -46,13 +60,53 @@ The smart navigation crawler (Option 2) has been successfully implemented with f
 8. **Repeat**: Until queue is empty or max attempts reached
 
 ### **Phase 3: PDF Discovery**
-The scanner uses 6 different methods to find PDFs:
-1. **Direct PDF Links**: `href$=".pdf"`
+The scanner uses 6 different methods to find PDFs, with enhanced content expansion:
+
+**Content Expansion (Before Scanning):**
+```javascript
+// Expansion selectors (stateful-page-scanner.js)
+- .expand_module_link        // Module expand buttons
+- .collapse_module_link       // Module collapse verification
+- button[aria-expanded="false"] // Generic ARIA buttons
+- .expandable-toggle          // Generic expandable toggles
+- .show-more, .load-more      // Show/load more buttons
+```
+
+**PDF Discovery Methods:**
+1. **Direct PDF Links**: `href$=".pdf"`, `href*=".pdf?"`, `href*=".pdf#"`
+   - Straightforward .pdf extension detection
+   
 2. **Canvas File Links**: `/files/` with PDF indicators
+   - `.instructure_file_link_holder a`
+   - `.instructure_file_holder a`
+   - `a[href*="/files/"]`
+   - `a.inline_disabled[href*="/files/"]`
+   - `a[data-id][href*="/files/"]`
+   
 3. **Module Item Attachments**: Canvas-specific module PDF attachments
+   - Searches within `.context_module_item` elements
+   - Extracts module title and item type for context
+   
 4. **Assignment Attachments**: Assignment description PDFs
+   - Selectors: `.attachment a`, `.submission-attachment a`
+   - Only runs when on assignment pages
+   
 5. **Embedded iframes**: PDFs in iframe elements
+   - `iframe[src*=".pdf"]`
+   - `iframe[src*="/files/"]`
+   - Extracts titles from surrounding context
+   
 6. **Download Links**: `/download` links with PDF context
+   - `a[href*="/download"]`
+   - `a[download]` attribute
+   - Text content analysis for "pdf" mentions
+
+**Template URL Protection:**
+```javascript
+// Skips placeholder URLs like:
+// "/courses/{{course_id}}/files/{{file_id}}"
+// Checks both encoded (%7B%7B) and unencoded ({{) patterns
+```
 
 ## **Expected Results**
 
@@ -95,6 +149,107 @@ Smart Controls  State Manager    PDF Storage
 Progress Track  Navigator        Message Router
                 Scanner          Download Handler
 ```
+
+## **Error Handling & Recovery**
+
+### **Health Check System**
+```javascript
+// Runs every 30 seconds during scan (popup-logic.js)
+startScanHealthCheck() {
+  • Checks if scan status exists in chrome.storage
+  • Detects stuck scans (no updates for 5+ minutes)
+  • Auto-recovers with user notification
+  • Stops when scan completes or errors
+}
+```
+
+### **Scan Timeout Protection**
+```javascript
+// 10-minute safety timeout (popup-logic.js)
+handleScan() {
+  • Sets timeout when scan starts
+  • Resets UI if timeout reached
+  • Clears on successful completion
+  • Prevents indefinite "scanning" state
+}
+```
+
+### **Content Script Readiness**
+```javascript
+// Retry logic with diagnostics (popup-logic.js)
+• Pings content script 5 times (300ms intervals)
+• Checks tab status and URL patterns
+• Provides detailed error diagnostics
+• Suggests solutions (refresh page, reload extension)
+```
+
+### **Upload Phase Tracking**
+```javascript
+// Prevents UI conflicts (popup-logic.js)
+uploadPhase = true
+  • Set when PDFs start uploading
+  • Ignores scan progress updates
+  • Shows upload-specific progress
+  • Resets after completion
+```
+
+## **State Management Details**
+
+### **Chrome Storage Structure**
+```javascript
+canvas_crawler_state: {
+  sessionId: 'crawl_1234567890_abc123',
+  isActive: true,
+  currentPhase: 'modules' | 'files' | 'assignments' | 'pages',
+  courseId: '12345',
+  courseName: 'Course Name',
+  
+  // Navigation
+  navigationQueue: [
+    { url, priority, phase, visited, addedAt, metadata }
+  ],
+  currentUrl: 'https://...',
+  visitedUrls: ['url1', 'url2', ...],
+  
+  // Results
+  foundPDFs: ['pdf_url1', 'pdf_url2', ...],
+  pagesVisited: 15,
+  pdfsFound: 23,
+  
+  // Timing
+  startTime: 1234567890,
+  lastNavigationTime: 1234567890,
+  lastActivityTime: 1234567890,
+  
+  // Configuration
+  maxNavigationAttempts: 50,
+  navigationAttempts: 12,
+  pageLoadTimeoutMs: 15000,
+  
+  // Error tracking
+  maxRetries: 3,
+  currentRetries: 0,
+  failedUrls: [],
+  lastError: { url, error, timestamp },
+  completionStatus: 'in_progress' | 'completed' | 'failed' | 'stopped'
+}
+```
+
+### **Scan Status Structure**
+```javascript
+scan_status_{courseId}: {
+  status: 'scanning' | 'complete',
+  timestamp: 1234567890,
+  pdfCount: 23,
+  courseId: '12345',
+  courseName: 'Course Name'
+}
+```
+
+**Auto-cleanup:**
+- Scans older than 10 minutes are automatically cleared
+- Prevents stuck scanning states across sessions
+- Health check verifies status hasn't disappeared
 
 ## **Testing Instructions**
 
