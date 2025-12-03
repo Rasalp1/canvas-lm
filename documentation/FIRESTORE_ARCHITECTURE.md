@@ -1,4 +1,4 @@
-# Firestore Database Architecture - Canvas LM
+# Firestore Database Architecture - Canvs LM
 
 ## Overview
 
@@ -44,7 +44,7 @@ courses/CS101/documents/doc1         ← Document path (4 segments)
 users/A123/fileSearchStores          ← Collection path (odd number of segments)
 ```
 
-## Canvas LM Database Structure
+## Canvs LM Database Structure
 
 ### Visual Hierarchy
 

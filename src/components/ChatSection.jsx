@@ -222,7 +222,7 @@ export const ChatSection = ({
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6">
-                    <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvas LM" className="w-20 h-20 rounded-3xl" />
+                    <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvs LM" className="w-20 h-20 rounded-3xl" />
                   </div>
                   <p className="text-lg text-slate-700 font-medium mb-2">Ready to help!</p>
                   <p className="text-sm text-slate-500">Ask me anything about your course materials</p>
@@ -246,7 +246,7 @@ export const ChatSection = ({
                         {msg.role === 'user' ? (
                           user?.displayName?.charAt(0).toUpperCase() || 'U'
                         ) : (
-                          <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvas LM" className="w-8 h-8 rounded-xl" />
+                          <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvs LM" className="w-8 h-8 rounded-xl" />
                         )}
                       </div>
                       <div 
@@ -271,7 +271,7 @@ export const ChatSection = ({
                 <div className="flex gap-3 animate-fade-in justify-start">
                   <div className="flex gap-3 max-w-[80%] items-start">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvas LM" className="w-8 h-8 rounded-xl" />
+                      <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvs LM" className="w-8 h-8 rounded-xl" />
                     </div>
                     <div className="p-4 rounded-2xl shadow-sm bg-white border border-slate-200">
                       <div className="flex items-center gap-3">
@@ -399,7 +399,7 @@ export const ChatSection = ({
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4">
-                  <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvas LM" className="w-16 h-16 rounded-2xl" />
+                  <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvs LM" className="w-16 h-16 rounded-2xl" />
                 </div>
                 <p className="text-sm text-slate-600 font-medium mb-1">Ready to help!</p>
                 <p className="text-xs text-slate-500">Ask me anything about your course materials</p>
@@ -421,7 +421,7 @@ export const ChatSection = ({
                       {msg.role === 'user' ? (
                         user?.displayName?.charAt(0).toUpperCase() || 'U'
                       ) : (
-                        <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvas LM" className="w-7 h-7 rounded-lg" />
+                        <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvs LM" className="w-7 h-7 rounded-lg" />
                       )}
                     </div>
                     <div 
@@ -446,7 +446,7 @@ export const ChatSection = ({
               <div className="flex flex-col animate-fade-in items-start">
                 <div className="flex flex-col gap-1.5 max-w-[95%]">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 self-start">
-                    <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvas LM" className="w-7 h-7 rounded-lg" />
+                    <img src={chrome.runtime.getURL('Canvas LM Logo.png')} alt="Canvs LM" className="w-7 h-7 rounded-lg" />
                   </div>
                   <div className="p-3 rounded-2xl shadow-sm bg-white border border-slate-200">
                     <div className="flex items-center gap-3">

@@ -1,4 +1,4 @@
-# Canvas LM - Production Readiness Checklist
+# Canvs LM - Production Readiness Checklist
 
 **Version:** 1.1.0  
 **Target:** Chrome Web Store Submission  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Canvas LM is an AI-powered Chrome extension that helps students interact with their Canvas course materials using advanced RAG (Retrieval-Augmented Generation) technology. This document outlines the steps required to prepare the extension for Chrome Web Store submission and production release.
+Canvs LM is an AI-powered Chrome extension that helps students interact with their Canvas course materials using advanced RAG (Retrieval-Augmented Generation) technology. This document outlines the steps required to prepare the extension for Chrome Web Store submission and production release.
 
 **Current Status:** Pre-Production (98% Complete)
 
@@ -155,7 +155,7 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 - [ ] 1400x560px YouTube thumbnail
 
 **Store Listing Copy**
-- [ ] **Title** (max 45 chars): `Canvas LM - AI Study Assistant`
+- [ ] **Title** (max 45 chars): `Canvs LM - AI Study Assistant`
 - [ ] **Short Description** (max 132 chars):  
   `AI-powered study assistant for Canvas. Chat with course materials, extract PDFs, and get instant answers using advanced AI.`
 - [ ] **Detailed Description** (see template below)
@@ -176,7 +176,7 @@ Canvas LM is an AI-powered Chrome extension that helps students interact with th
 - [x] COPPA compliance ( Section 7 in Privacy Policy)
 
 #### Compliance Checks
-- [x] Canvas LMS Terms of Service reviewed
+- [x] Canvs LMS Terms of Service reviewed
   -  Disclaimer added: "Not affiliated with Instructure or Canvas"
   -  Fair use of Canvas data (user's own course materials)
 - [x] Instructure API usage policies reviewed
@@ -373,13 +373,13 @@ zip -r ../canvas-lm-v1.0.0.zip .
 ## Detailed Description Template
 
 ```markdown
-# Canvas LM - Your AI-Powered Study Assistant
+# Canvs LM - Your AI-Powered Study Assistant
 
-Transform the way you learn with Canvas LM, an intelligent study assistant that helps you interact with your course materials using cutting-edge AI technology.
+Transform the way you learn with Canvs LM, an intelligent study assistant that helps you interact with your course materials using cutting-edge AI technology.
 
-## What is Canvas LM?
+## What is Canvs LM?
 
-Canvas LM is a Chrome extension designed specifically for students using Canvas LMS. It automatically extracts and indexes your course PDFs, lecture notes, and materials, then uses advanced AI to answer your questions based on the actual course content.
+Canvs LM is a Chrome extension designed specifically for students using Canvs LMS. It automatically extracts and indexes your course PDFs, lecture notes, and materials, then uses advanced AI to answer your questions based on the actual course content.
 
 ## Key Features
 
@@ -417,9 +417,9 @@ We take your privacy seriously:
 
 Need help? Visit our support page or email support@example.com
 
-## Why Students Love Canvas LM
+## Why Students Love Canvs LM
 
-"Canvas LM has transformed my study routine. Instead of searching through dozens of PDFs, I just ask a question and get instant answers with sources!" - Sarah M.
+"Canvs LM has transformed my study routine. Instead of searching through dozens of PDFs, I just ask a question and get instant answers with sources!" - Sarah M.
 
 ---
 
@@ -431,7 +431,7 @@ Developed with  for students by students.
 ## Known Issues & Limitations
 
 ### Current Limitations
-1. **Canvas Instances**: Only supports Canvas LMS instances (Instructure platform)
+1. **Canvas Instances**: Only supports Canvs LMS instances (Instructure platform)
 2. **File Types**: Currently only processes PDF files
 3. **Language**: English-only AI responses (Gemini limitation)
 4. **Browser**: Chrome/Chromium-based browsers only

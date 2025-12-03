@@ -997,7 +997,7 @@ exports.queryCourseStore = onCall({
     const requestBody = {
       system_instruction: {
         parts: [{ 
-          text: `You are Canvas LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.
+          text: `You are Canvs LM, an intelligent course assistant for courses on Canvas. Your purpose is to help students understand their course materials by answering questions based EXCLUSIVELY on the uploaded documents in the knowledge base.
 
 IMPORTANT: Answer questions directly using the documents. Do not explain what you are going to search for or describe your process. Simply provide the answer immediately.
 

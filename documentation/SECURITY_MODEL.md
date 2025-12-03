@@ -1,8 +1,8 @@
-# Canvas LM Security Model
+# Canvs LM Security Model
 
 ## Overview
 
-Canvas LM uses a **multi-layer security model** designed specifically for Chrome extensions without Firebase Authentication.
+Canvs LM uses a **multi-layer security model** designed specifically for Chrome extensions without Firebase Authentication.
 
 ## Why No Firebase Auth?
 
@@ -118,7 +118,7 @@ users/{userId}/rateLimits/{operation}
 
 ## Comparison to Other Extensions
 
-| Security Feature | Canvas LM | Typical Extension | Banking App |
+| Security Feature | Canvs LM | Typical Extension | Banking App |
 |-----------------|-----------|-------------------|-------------|
 | User Auth | Chrome Identity | None/Basic | Firebase Auth + 2FA |
 | API Key Protection |  Server-side |  Client-side |  Server-side |
@@ -127,7 +127,7 @@ users/{userId}/rateLimits/{operation}
 | Data Encryption |  HTTPS |  HTTPS |  HTTPS + Field-level |
 | App Check |  Not practical |  None |  Yes |
 
-**Verdict:** Canvas LM's security is **above average** for educational Chrome extensions.
+**Verdict:** Canvs LM's security is **above average** for educational Chrome extensions.
 
 ## Is This Secure Enough?
 
@@ -202,7 +202,7 @@ users/{userId}/rateLimits/{operation}
 
 ## Conclusion
 
-**Canvas LM's security model is appropriate for its use case.** 
+**Canvs LM's security model is appropriate for its use case.** 
 
 It follows industry best practices for Chrome extensions with Firebase:
 -  Server-side API key management

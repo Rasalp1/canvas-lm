@@ -39,14 +39,14 @@ export const Header = ({ user, onExpandWindow, isExtensionPage, usageStatus }) =
         <div className="relative">
           <img 
             src={chrome.runtime.getURL('Canvas LM Logo.png')}
-            alt="Canvas LM Logo" 
+            alt="Canvs LM Logo" 
             className="w-11 h-11 rounded-2xl"
           />
           <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
         </div>
         <div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
-            Canvas LM
+            Canvs LM
           </h1>
           <p className="text-xs text-slate-500 font-medium">AI-Powered Learning Assistant</p>
         </div>

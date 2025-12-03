@@ -1,18 +1,18 @@
-# Terms of Service for Canvas LM
+# Terms of Service for Canvs LM
 
 **Last Updated:** November 24, 2025  
 **Effective Date:** November 24, 2025
 
 ## 1. Acceptance of Terms
 
-By installing, accessing, or using Canvas LM (the "Extension"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Extension.
+By installing, accessing, or using Canvs LM (the "Extension"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Extension.
 
 These Terms constitute a legally binding agreement between you ("User", "you", or "your") and Rasmus Alpsten ("we", "us", or "our").
 
-## 2. Description of Service
+## Description of Service
 
-Canvas LM is a Chrome browser extension that provides:
-- AI-powered assistance for Canvas LMS courses
+Canvs LM is a Chrome browser extension that provides:
+- AI-powered assistance for Canvs LMS courses
 - Automatic extraction and indexing of course PDF materials
 - Question-answering based on course content
 - Chat history and conversation management
@@ -31,7 +31,7 @@ You must be:
 ### Account Requirements
 You must have:
 - A valid Google account for authentication
-- Access to Canvas LMS through your institution
+- Access to Canvs LMS through your institution
 - A Chrome browser (version 88 or later)
 
 ### Prohibited Users
@@ -64,7 +64,7 @@ We reserve the right to suspend or terminate your account if:
 ## 5. Acceptable Use Policy
 
 ### Permitted Uses
-You may use Canvas LM to:
+You may use Canvs LM to:
 -  Study and review your course materials
 -  Ask questions about enrolled courses
 -  Organize and manage course PDFs
@@ -87,7 +87,7 @@ You may NOT:
 -  Upload malicious files or viruses
 
 ### Academic Integrity
-Canvas LM is a study aid, NOT a cheating tool:
+Canvs LM is a study aid, NOT a cheating tool:
 - You are responsible for your academic integrity
 - Follow your institution's academic honesty policies
 - Use AI assistance ethically and transparently
@@ -113,7 +113,7 @@ By using the Extension, you grant us:
 - Course materials may be subject to copyright protection
 - You are responsible for having the right to upload materials
 - Do not upload materials that violate copyright laws
-- Canvas LM assumes no liability for copyright violations
+- Canvs LM assumes no liability for copyright violations
 
 ### Our Intellectual Property
 The Extension and its content are protected by:
@@ -161,7 +161,7 @@ Exceeding these limits will result in temporary blocks. Repeated violations may 
 
 ## 9. Third-Party Services
 
-Canvas LM integrates with:
+Canvs LM integrates with:
 
 ### Google Cloud Platform / Firebase
 - Used for data storage and Cloud Functions
@@ -174,7 +174,7 @@ Canvas LM integrates with:
 - https://ai.google.dev/gemini-api/terms
 - Google may use interactions to improve AI models
 
-### Canvas LMS
+### Canvs LMS
 - We are NOT affiliated with Instructure or Canvas
 - Your use must comply with Canvas's Terms of Service
 - Your institution's policies apply
@@ -217,7 +217,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR:
 - Damages exceeding $50 USD
 
 ### No Professional Advice
-Canvas LM does NOT provide:
+Canvs LM does NOT provide:
 - Professional advice (legal, medical, financial, etc.)
 - Official course instruction
 - Certified tutoring services
@@ -225,7 +225,7 @@ Canvas LM does NOT provide:
 
 ## 12. Indemnification
 
-You agree to indemnify and hold harmless Canvas LM, Rasmus Alpsten, and our affiliates from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from:
+You agree to indemnify and hold harmless Canvs LM, Rasmus Alpsten, and our affiliates from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from:
 - Your use of the Extension
 - Your violation of these Terms
 - Your violation of any rights of others
@@ -294,7 +294,7 @@ Either party may seek injunctive relief in court for:
 ## 16. Miscellaneous
 
 ### Entire Agreement
-These Terms, along with the Privacy Policy, constitute the entire agreement between you and Canvas LM.
+These Terms, along with the Privacy Policy, constitute the entire agreement between you and Canvs LM.
 
 ### Severability
 If any provision is found unenforceable, the remaining provisions remain in effect.
@@ -327,7 +327,7 @@ We will respond to inquiries within 7 business days.
 ## 18. Special Provisions for Educational Institutions
 
 ### Institutional Use
-If you are using Canvas LM through an educational institution:
+If you are using Canvs LM through an educational institution:
 - Your institution's policies and terms apply
 - Comply with your institution's IT policies
 - Respect your institution's academic integrity rules
@@ -342,7 +342,7 @@ Educational institutions may contact us for:
 
 ## 19. Acknowledgments
 
-By using Canvas LM, you acknowledge that:
+By using Canvs LM, you acknowledge that:
 1. You have read and understood these Terms
 2. You agree to comply with all applicable laws and policies
 3. You understand the limitations and risks of the service
@@ -351,8 +351,8 @@ By using Canvas LM, you acknowledge that:
 
 ---
 
-**Canvas LM is an independent project and is not affiliated with, endorsed by, or sponsored by:**
-- Instructure, Inc. or Canvas LMS
+**Canvs LM is an independent project and is not affiliated with, endorsed by, or sponsored by:**
+- Instructure, Inc. or Canvs LMS
 - Google LLC or Alphabet Inc. (except for use of their services)
 - Any educational institution
 
