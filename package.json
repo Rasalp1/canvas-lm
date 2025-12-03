@@ -1,7 +1,7 @@
 {
   "name": "canvas-lm",
   "version": "1.1.0",
-  "description": "Canvas RAG Assistant Chrome Extension.",
+  "description": "Canvs RAG Assistant Chrome Extension.",
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch"

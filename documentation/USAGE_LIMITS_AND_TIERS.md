@@ -13,7 +13,7 @@
 
 ## Overview
 
-Canvas LM implements a ChatGPT-style usage limiting system with three user tiers: Free, Premium, and Admin. This system prevents excessive API costs while providing a fair free tier experience.
+Canvs LM implements a ChatGPT-style usage limiting system with three user tiers: Free, Premium, and Admin. This system prevents excessive API costs while providing a fair free tier experience.
 
 **Quick Summary:**
 - **Free Tier**: 40 messages per 3-hour rolling window
@@ -28,7 +28,7 @@ Canvas LM implements a ChatGPT-style usage limiting system with three user tiers
 
 #### 1. Free (Default)
 - **Usage Limit**: 40 messages per 3-hour rolling window
-- **Features**: All standard Canvas LM features
+- **Features**: All standard Canvs LM features
 - **Assignment**: Automatically assigned to new users
 - **Cost**: $0
 
@@ -320,7 +320,7 @@ npm run build
 
 **Step 1: Find Your User ID**
 
-1. Open Canvas LM extension
+1. Open Canvs LM extension
 2. Sign in with your account
 3. Open browser console (F12)
 4. Run: `firebase.auth().currentUser.uid`
@@ -457,7 +457,7 @@ Implement paid Premium subscriptions using Stripe to monetize the extension whil
 **Competitive Positioning:**
 - ChatGPT Plus: $20/mo
 - Claude Pro: $20/mo
-- **Canvas LM Premium**: $9.99/mo (50% cheaper, student-focused)
+- **Canvs LM Premium**: $9.99/mo (50% cheaper, student-focused)
 
 ### Technical Setup
 
@@ -478,10 +478,10 @@ firebase functions:config:set stripe.webhook_secret="whsec_..."
 #### 3. Create Stripe Products
 
 In Stripe Dashboard:
-1. Create product: "Canvas LM Premium Monthly"
+1. Create product: "Canvs LM Premium Monthly"
    - Price: $9.99/month recurring
    - Copy price ID
-2. Create product: "Canvas LM Premium Annual"
+2. Create product: "Canvs LM Premium Annual"
    - Price: $99.99/year recurring
    - Copy price ID
 

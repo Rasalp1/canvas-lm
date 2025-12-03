@@ -1,13 +1,13 @@
-# Privacy Policy for Canvas LM
+# Privacy Policy for Canvs LM
 
 **Last Updated:** November 24, 2025  
 **Effective Date:** November 24, 2025
 
 ## Introduction
 
-Canvas LM ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Chrome extension and related services.
+Canvs LM ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Chrome extension and related services.
 
-By using Canvas LM, you agree to the collection and use of information in accordance with this policy.
+By using Canvs LM, you agree to the collection and use of information in accordance with this policy.
 
 ## Information We Collect
 
@@ -45,7 +45,7 @@ We automatically collect:
 - Cloud Function execution logs
 
 ### 5. Canvas Integration Data
-When you use Canvas LM on Canvas pages:
+When you use Canvs LM on Canvas pages:
 - Canvas session cookies (used only to download PDFs with your permission)
 - Canvas page URLs (to detect which course you're viewing)
 - PDF download requests
@@ -85,7 +85,7 @@ We use the collected information for the following purposes:
 
 ## Third-Party Services
 
-Canvas LM integrates with the following third-party services:
+Canvs LM integrates with the following third-party services:
 
 ### 1. Google Cloud Platform / Firebase
 - **Purpose**: Data storage (Firestore), Cloud Functions, authentication
@@ -102,7 +102,7 @@ Canvas LM integrates with the following third-party services:
 - **Purpose**: Access your course information and download PDFs
 - **Data Shared**: Course IDs, session cookies (for PDF downloads)
 - **Privacy Policy**: https://www.instructure.com/policies/privacy
-- **Note**: Canvas LM does not share your data with Instructure
+- **Note**: Canvs LM does not share your data with Instructure
 
 ### 4. Chrome Web Store
 - **Purpose**: Extension distribution and updates
@@ -153,7 +153,7 @@ When you request account deletion:
 
 ## Children's Privacy
 
-Canvas LM is intended for use by students and educational institutions. We do not knowingly collect information from children under 13 without parental consent or school authorization.
+Canvs LM is intended for use by students and educational institutions. We do not knowingly collect information from children under 13 without parental consent or school authorization.
 
 If you are under 13, please:
 - Obtain permission from your parent or guardian
@@ -164,7 +164,7 @@ If we discover we have collected information from a child under 13 without prope
 
 ## International Data Transfers
 
-Your information may be transferred to and stored in servers located in the European Union (Finland). By using Canvas LM, you consent to this transfer.
+Your information may be transferred to and stored in servers located in the European Union (Finland). By using Canvs LM, you consent to this transfer.
 
 We ensure appropriate safeguards are in place to protect your information in accordance with this privacy policy.
 
@@ -190,7 +190,7 @@ We implement industry-standard security measures:
 ## Cookies and Tracking
 
 ### Canvas Session Cookies
-Canvas LM accesses Canvas session cookies **only** when you explicitly scan a course for PDFs. These cookies are:
+Canvs LM accesses Canvas session cookies **only** when you explicitly scan a course for PDFs. These cookies are:
 - Used temporarily to authenticate PDF download requests
 - Never stored permanently
 - Never shared with third parties
@@ -259,12 +259,12 @@ We will respond to privacy inquiries within 30 days.
 
 ## Consent
 
-By using Canvas LM, you acknowledge that:
-1. You have read and understood this Privacy Policy
-2. You consent to the collection, use, and sharing of your information as described
+By using Canvs LM, you acknowledge that:
+- You have read and understood this Privacy Policy
+- You consent to the collection, use, and sharing of your information as described
 3. You are at least 13 years old or have parental/guardian permission
 4. You understand that course materials may be shared with other enrolled students
 
 ---
 
-**Canvas LM is an independent project and is not affiliated with, endorsed by, or sponsored by Instructure, Inc. or Canvas LMS.**
+**Canvs LM is an independent project and is not affiliated with, endorsed by, or sponsored by Instructure, Inc. or Canvas LMS.**

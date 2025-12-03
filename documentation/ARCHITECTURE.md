@@ -1,4 +1,4 @@
-# Architecture Overview: Canvas LM - AI Study Assistant
+# Architecture Overview: Canvs LM - AI Study Assistant
 
 **Last Updated:** December 2, 2025  
 **Version:** 1.1.0
@@ -449,7 +449,7 @@ chatSessions/                        ← Root-level chat sessions
 -  Statistics and analytics queries
 
 #### `content-script.js` (Canvas Page Scanner)
--  Inject into Canvas LMS pages
+-  Inject into Canvs LMS pages
 -  Extract course information from DOM
 -  Scan for PDF links in course files
 -  Navigate course structure

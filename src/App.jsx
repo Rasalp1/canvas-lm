@@ -324,12 +324,12 @@ export const App = ({
                   <div className="w-10 h-10 flex items-center justify-center">
                     <img 
                       src={chrome.runtime.getURL('Canvas LM Logo.png')}
-                      alt="Canvas LM" 
+                      alt="Canvs LM" 
                       className="w-full h-full object-contain"
                     />
                   </div>
                   <div>
-                    <h1 className="text-lg font-bold text-slate-900">Canvas LM</h1>
+                    <h1 className="text-lg font-bold text-slate-900">Canvs LM</h1>
                     <p className="text-xs text-slate-500">{user?.email}</p>
                   </div>
                 </div>
@@ -527,7 +527,7 @@ export const App = ({
                   <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6">
                     <img 
                       src={chrome.runtime.getURL('Canvas LM Logo.png')}
-                      alt="Canvas LM Logo" 
+                      alt="Canvs LM Logo" 
                       className="w-full h-full object-contain"
                     />
                   </div>
@@ -535,7 +535,7 @@ export const App = ({
                     <span>Welcome to</span>
                     <RotatingText 
                       texts={[
-                        'Canvas LM',
+                        'Canvs LM',
                         'your course expert',
                         'your digital study buddy'
                       ]}

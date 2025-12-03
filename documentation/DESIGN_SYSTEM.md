@@ -1,4 +1,4 @@
-# Canvas LM - UI Redesign Showcase
+# Canvs LM - UI Redesign Showcase
 
 ## Design System Overview
 

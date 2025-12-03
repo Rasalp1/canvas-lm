@@ -1,19 +1,19 @@
-# Canvas LM 
+# Canvs LM 
 
-**AI-Powered Study Assistant for Canvas LMS**
+**AI-Powered Study Assistant for Canvs LMS**
 
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/Rasalp1/canvas-lm)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome](https://img.shields.io/badge/chrome-v88%2B-brightgreen.svg)](https://www.google.com/chrome/)
 
-Canvas LM transforms your Canvas course materials into an intelligent, conversational study companion. Automatically extract and index PDFs, lecture notes, and course documents, then ask questions and get instant, accurate answers powered by Google's advanced Gemini AI with RAG (Retrieval-Augmented Generation). With context-aware responses, usage-based tiering, and seamless integration with Canvas, Canvas LM is your AI-powered study partner.
+Canvs LM transforms your Canvas course materials into an intelligent, conversational study companion. Automatically extract and index PDFs, lecture notes, and course documents, then ask questions and get instant, accurate answers powered by Google's advanced Gemini AI with RAG (Retrieval-Augmented Generation). With context-aware responses, usage-based tiering, and seamless integration with Canvas, Canvs LM is your AI-powered study partner.
 
 ---
 
 ## Features
 
 ### Intelligent Q&A with Lecture Context
-Ask questions about your course materials in natural language and receive contextual answers with citations from your actual course documents. Canvas LM automatically detects which lecture or module you're viewing and provides context-aware responses.
+Ask questions about your course materials in natural language and receive contextual answers with citations from your actual course documents. Canvs LM automatically detects which lecture or module you're viewing and provides context-aware responses.
 
 ### Automatic PDF Extraction
 One-click scanning automatically discovers and indexes all PDF files from your Canvas courses, making them searchable and queryable.
@@ -56,13 +56,13 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 ### Prerequisites
 
 - **Google Chrome** (version 88 or later)
-- **Canvas LMS account** with active courses
+- **Canvs LMS account** with active courses
 - **Google Account** for authentication
 
 ### Installation
 
 #### Option 1: Chrome Web Store (Coming Soon)
-1. Visit the [Canvas LM page](https://chrome.google.com/webstore) on Chrome Web Store
+1. Visit the [Canvs LM page](https://chrome.google.com/webstore) on Chrome Web Store
 2. Click "Add to Chrome"
 3. Confirm the installation
 
@@ -92,13 +92,13 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 ### First-Time Setup
 
 1. **Sign In**
-   - Click the Canvas LM icon in your Chrome toolbar
+   - Click the Canvs LM icon in your Chrome toolbar
    - Click "Sign In with Google"
    - Select your Google account
 
 2. **Navigate to a Canvas Course**
    - Go to any Canvas course page on your institution's Canvas site
-   - Canvas LM will automatically detect the course
+   - Canvs LM will automatically detect the course
 
 3. **Scan Course Materials**
    - Click "Scan Course for PDFs"
@@ -117,11 +117,11 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 ### Scanning Courses
 
 **Automatic Detection:**
-Canvas LM automatically detects when you're viewing a Canvas course page and displays course information.
+Canvs LM automatically detects when you're viewing a Canvas course page and displays course information.
 
 **Initial Scanning:**
 1. Navigate to any page within your Canvas course
-2. Click the Canvas LM extension icon
+2. Click the Canvs LM extension icon
 3. Click "Scan Course for PDFs"
 4. Wait for completion - you'll see progress updates
 
@@ -129,7 +129,7 @@ Canvas LM automatically detects when you're viewing a Canvas course page and dis
 When you need to add new documents or retry failed uploads:
 1. Navigate to your Canvas course
 2. Click "Scan Course for PDFs" again
-3. Canvas LM will automatically detect:
+3. Canvs LM will automatically detect:
    - New documents added since last scan
    - Previously failed uploads that need retry
 4. Only new/failed documents will be uploaded (no duplicates)
@@ -143,7 +143,7 @@ When you need to add new documents or retry failed uploads:
 ### Understanding Usage Limits
 
 **Free Tier (40 messages per 3 hours):**
-- Canvas LM shows your remaining messages at the top of the chat
+- Canvs LM shows your remaining messages at the top of the chat
 - The limit resets on a rolling 3-hour window
 - When you reach the limit, a countdown timer shows when you can send more messages
 - Perfect for regular studying and homework help
@@ -154,7 +154,7 @@ When you need to add new documents or retry failed uploads:
 - Upgrade anytime from Settings
 
 **Lecture Context Detection:**
-When viewing a Canvas lecture or module, Canvas LM automatically:
+When viewing a Canvas lecture or module, Canvs LM automatically:
 - Detects the current lecture name, module, and week
 - Provides this context to the AI for more relevant answers
 - Shows the detected context in the chat interface
@@ -164,7 +164,7 @@ When viewing a Canvas lecture or module, Canvas LM automatically:
 **Tips for Great Questions:**
 - Be specific: "What topics are covered in Chapter 3?" is better than "What's in the readings?"
 - Reference documents: "According to the lecture notes, what is..."
-- Ask follow-ups: Canvas LM remembers conversation context
+- Ask follow-ups: Canvs LM remembers conversation context
 - Use lecture context: Ask questions while viewing specific lectures for more targeted answers
 
 **Example Questions:**
@@ -196,7 +196,7 @@ When viewing a Canvas lecture or module, Canvas LM automatically:
 
 ## Architecture
 
-Canvas LM uses a modern, secure architecture:
+Canvs LM uses a modern, secure architecture:
 
 ```
 
@@ -392,13 +392,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Disclaimer
 
-**Canvas LM is an independent project and is not affiliated with, endorsed by, or sponsored by:**
-- Instructure, Inc. or Canvas LMS
+**Canvs LM is an independent project and is not affiliated with, endorsed by, or sponsored by:**
+- Instructure, Inc. or Canvs LMS
 - Google LLC or Alphabet Inc. (except for use of their services)
 - Any educational institution
 
 **Academic Integrity:**
-Canvas LM is designed as a **study aid**, not a cheating tool. Users are responsible for:
+Canvs LM is designed as a **study aid**, not a cheating tool. Users are responsible for:
 - Following their institution's academic honesty policies
 - Using AI assistance ethically and transparently
 - Not submitting AI-generated content as their own work
@@ -406,7 +406,7 @@ Canvas LM is designed as a **study aid**, not a cheating tool. Users are respons
 
 **Use Responsibly:**
 - Verify AI-generated information against original sources
-- Use Canvas LM to enhance understanding, not replace learning
+- Use Canvs LM to enhance understanding, not replace learning
 - Be aware of your institution's policies on AI-assisted learning
 
 ---

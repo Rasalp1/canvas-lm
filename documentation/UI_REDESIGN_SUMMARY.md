@@ -1,7 +1,7 @@
 # UI Redesign Complete - Arcade-Inspired Design 
 
 ## Overview
-The Canvas LM extension has been completely redesigned with a modern, sleek UI inspired by [Arcade.software](https://www.arcade.software/), featuring shadcn/ui components and a beautiful gradient-based aesthetic.
+The Canvs LM extension has been completely redesigned with a modern, sleek UI inspired by [Arcade.software](https://www.arcade.software/), featuring shadcn/ui components and a beautiful gradient-based aesthetic.
 
 ## Key Design Changes
 

@@ -21,7 +21,7 @@ export const About = ({ onClose }) => {
         <div className="relative z-10">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-slate-200">
-            <h2 className="text-2xl font-bold text-slate-800">About Canvas LM</h2>
+            <h2 className="text-2xl font-bold text-slate-800">About Canvs LM</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
@@ -35,9 +35,9 @@ export const About = ({ onClose }) => {
           <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
             {/* Description */}
             <div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">What is Canvas LM?</h3>
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">What is Canvs LM?</h3>
               <p className="text-slate-600 leading-relaxed">
-                Canvas LM is an AI-powered Chrome extension that enhances your Canvas learning experience. 
+                Canvs LM is an AI-powered Chrome extension that enhances your Canvas learning experience. 
                 It uses advanced RAG (Retrieval-Augmented Generation) technology to help you understand 
                 course materials, answer questions, and navigate your courses more efficiently.
               </p>
