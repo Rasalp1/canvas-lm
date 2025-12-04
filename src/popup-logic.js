@@ -549,8 +549,9 @@ export class PopupLogic {
       const ageMinutes = (Date.now() - scanStatus.timestamp) / 1000 / 60;
       
       if (scanStatus.status === 'scanning') {
-        // If scan status is older than 5 minutes, consider it stale/failed
-        if (ageMinutes > 5) {
+        // If scan status is older than 2 minutes, consider it stale/failed
+        // (Heartbeat updates every 15 seconds, so 2 min means it really died)
+        if (ageMinutes > 2) {
           console.log('🧹 Clearing stale scan status (age: ' + Math.round(ageMinutes) + ' min)');
           chrome.storage.local.remove(scanStatusKey);
           return;
@@ -559,6 +560,7 @@ export class PopupLogic {
         // Scan is in progress - restore the scanning UI state
         console.log('⏳ Active scan detected (age: ' + Math.round(ageMinutes) + ' min)');
         console.log('   Restoring scanning UI state...');
+        console.log('   Current scan state:', scanStatus);
         
         // Restore scanning UI state
         this.uiCallbacks.setIsScanning?.(true);
@@ -573,7 +575,13 @@ export class PopupLogic {
         this.uiCallbacks.setScanProgress?.(progress);
         this.uiCallbacks.setScanTimeLeft?.(timeLeft);
         
-        this.uiCallbacks.setStatus?.(`🔄 Scan in progress... (${Math.round(progress)}%)`);
+        const statusMsg = scanStatus.currentStep ? 
+          `🔄 ${scanStatus.currentStep} (${scanStatus.pdfsFound || 0} PDFs found)` : 
+          `🔄 Scan in progress... (${Math.round(progress)}%)`;
+        this.uiCallbacks.setStatus?.(statusMsg);
+        
+        // Restart health check to continue monitoring the scan
+        this.startScanHealthCheck();
       } else if (scanStatus.status === 'complete' && ageMinutes < 30) {
         // Scan completed while popup was closed
         console.log('🎉 Found completed scan results:', scanStatus);
@@ -795,9 +803,10 @@ export class PopupLogic {
       
       const ageMinutes = (Date.now() - scanStatus.timestamp) / 1000 / 60;
       
-      // If scan hasn't updated in 5 minutes, it's probably stuck
-      if (ageMinutes > 5 && scanStatus.status === 'scanning') {
-        console.warn('⚠️ Health check: Scan appears stuck (no updates for 5+ min), recovering...');
+      // If scan hasn't updated in 2 minutes, it's probably stuck
+      // (Heartbeat updates every 15 seconds, so this is reasonable)
+      if (ageMinutes > 2 && scanStatus.status === 'scanning') {
+        console.warn('⚠️ Health check: Scan appears stuck (no heartbeat updates for 2+ min), recovering...');
         this.resetScanningState();
         this.uiCallbacks.setStatus?.('❌ Scan appears to be stuck. Please refresh the Canvas page and try again.');
       }
@@ -1018,6 +1027,13 @@ export class PopupLogic {
       
       console.log(`💾 Preparing to save ${pdfs.length} PDFs to Firestore and File Search...`);
       
+      // Set initial timer estimate: 15 seconds per PDF (will be updated for re-scans)
+      const initialEstimatedSeconds = pdfs.length * 15;
+      this.uiCallbacks.setScanStartTime?.(Date.now());
+      this.uiCallbacks.setScanTimeLeft?.(initialEstimatedSeconds);
+      this.uiCallbacks.setEstimatedScanTime?.(initialEstimatedSeconds);
+      console.log(`⏱️ Initial estimated upload time: ${initialEstimatedSeconds} seconds (${pdfs.length} PDFs × 15s)`);
+      
       // Step 1: Get or create File Search store for this course
       console.log('🗄️ Getting or creating shared File Search store...');
       
@@ -1106,18 +1122,24 @@ export class PopupLogic {
           console.log(`📤 Will upload ${pdfsToUpload.length} PDFs total`);
           this.uiCallbacks.setStatus?.(`📋 Found ${newPdfs.length} new, ${retryPdfs.length} to retry. Starting upload...`);
           
-          // Set timer based on PDF count: 20 seconds per PDF
-          const estimatedSeconds = pdfsToUpload.length * 20;
+          // Update timer based on actual PDF count to upload: 15 seconds per PDF
+          const estimatedSeconds = pdfsToUpload.length * 15;
           this.uiCallbacks.setScanStartTime?.(Date.now());
           this.uiCallbacks.setScanTimeLeft?.(estimatedSeconds);
           this.uiCallbacks.setEstimatedScanTime?.(estimatedSeconds);
-          console.log(`⏱️ Estimated upload time: ${estimatedSeconds} seconds (${pdfsToUpload.length} PDFs × 20s)`);
+          console.log(`⏱️ Updated estimated upload time: ${estimatedSeconds} seconds (${pdfsToUpload.length} PDFs × 15s)`);
         }
+      } else {
+        // Not a re-scan, upload all PDFs
+        console.log(`📤 Initial scan: will upload all ${pdfs.length} PDFs`);
       }
       
       // Step 5: Upload PDFs to File Search store and save metadata ONLY on success
       let uploadedCount = 0;
       let uploadFailedCount = 0;
+      
+      // Track start time for dynamic time estimation
+      const uploadStartTime = Date.now();
       
       for (let i = 0; i < pdfsToUpload.length; i++) {
         const pdf = pdfsToUpload[i];
@@ -1126,15 +1148,18 @@ export class PopupLogic {
         // Ensure we have a proper title
         const pdfTitle = pdf.title || pdf.fileName || pdf.filename || `Document ${i + 1}`;
         
-        // Calculate progress percentage (90-100% range for upload phase)
-        const uploadProgress = 90 + Math.floor((i / pdfsToUpload.length) * 10);
+        // Track start time for this file
+        const fileStartTime = Date.now();
         
         try {
           console.log(`📤 Uploading ${i + 1}/${pdfsToUpload.length}: ${pdfTitle}...`);
           console.log(`   URL: ${pdf.url}`);
           
+          // Calculate progress based on completed files (0-100% range)
+          const currentProgress = (i / pdfsToUpload.length) * 100;
+          
           // Update status: Downloading
-          this.uiCallbacks.setScanProgress?.(uploadProgress);
+          this.uiCallbacks.setScanProgress?.(currentProgress);
           this.uiCallbacks.setStatus?.(`📥 [${i + 1}/${pdfsToUpload.length}] Downloading: ${pdfTitle}`);
           await new Promise(resolve => setTimeout(resolve, 300)); // Let UI render
           
@@ -1191,6 +1216,28 @@ export class PopupLogic {
           await this.firestoreHelpers.updateDocumentStatus(this.db, this.currentCourseData.id, docId, 'completed');
           
           uploadedCount++;
+          
+          // Calculate actual time taken for this file
+          const fileEndTime = Date.now();
+          const actualTimeForFile = (fileEndTime - fileStartTime) / 1000; // in seconds
+          
+          // Update progress based on completed files (0-100% range)
+          const completedProgress = (uploadedCount / pdfsToUpload.length) * 100;
+          this.uiCallbacks.setScanProgress?.(completedProgress);
+          
+          // Recalculate estimated time remaining based on actual performance
+          if (uploadedCount > 0) {
+            const elapsedTime = (Date.now() - uploadStartTime) / 1000; // Total elapsed in seconds
+            const avgTimePerFile = elapsedTime / uploadedCount;
+            const filesRemaining = pdfsToUpload.length - uploadedCount;
+            const estimatedTimeRemaining = Math.ceil(avgTimePerFile * filesRemaining);
+            
+            // Update the timer with new estimate
+            this.uiCallbacks.setScanTimeLeft?.(estimatedTimeRemaining);
+            
+            console.log(`⏱️ File took ${actualTimeForFile.toFixed(1)}s | Avg: ${avgTimePerFile.toFixed(1)}s | Remaining: ${estimatedTimeRemaining}s`);
+          }
+          
           console.log(`✅ [${uploadedCount}/${pdfsToUpload.length}] Uploaded: ${pdfTitle}`);
           
           // Update status: Success

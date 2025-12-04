@@ -2045,6 +2045,29 @@ class CanvasContentScript {
     }).catch(() => {
       console.log('Could not notify background of scan start');
     });
+    
+    // Start periodic heartbeat to update scan status timestamp
+    // This keeps the popup's health check from thinking the scan is stuck
+    this._scanHeartbeatInterval = setInterval(async () => {
+      if (this.crawlerState.isRunning && this.courseId) {
+        try {
+          await chrome.storage.local.set({
+            [`scan_status_${this.courseId}`]: {
+              status: 'scanning',
+              timestamp: Date.now(),
+              courseId: this.courseId,
+              courseName: this.courseName,
+              currentStep: this.crawlerState.currentStep,
+              pdfsFound: this.crawlerState.foundPDFs.size,
+              pagesVisited: this.crawlerState.visitedUrls.size
+            }
+          });
+          console.log('💓 Scan heartbeat updated');
+        } catch (error) {
+          console.error('Error updating scan heartbeat:', error);
+        }
+      }
+    }, 15000); // Update every 15 seconds
 
     try {
       // Step 1: Expand current page content
@@ -2135,6 +2158,14 @@ class CanvasContentScript {
       }
     } finally {
       this.crawlerState.isRunning = false;
+      
+      // Stop the heartbeat interval
+      if (this._scanHeartbeatInterval) {
+        clearInterval(this._scanHeartbeatInterval);
+        this._scanHeartbeatInterval = null;
+        console.log('💓 Scan heartbeat stopped');
+      }
+      
       console.log('Crawler finished, final state:', this.crawlerState);
     }
   }

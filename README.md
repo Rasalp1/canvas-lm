@@ -25,7 +25,7 @@ All your study sessions are saved with full conversation history, allowing you t
 Seamlessly switch between multiple courses. Each course maintains its own document store and conversation threads.
 
 ### User Tiers & Usage Limits
-- **Free Tier**: 40 messages per 3-hour rolling window - perfect for casual studying
+- **Free Tier**: 20 messages per 3-hour rolling window - perfect for casual studying
 - **Premium Tier**: Unlimited messages with priority support ($9.99/month)
 - **Admin Tier**: Full system access for instructors and administrators
 - **Fair Usage**: Prevents abuse while providing generous free access
