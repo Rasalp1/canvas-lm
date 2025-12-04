@@ -92,18 +92,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned for 1.2.0
 - Stripe payment integration for Premium tier subscriptions
 - Customer portal for subscription management
-- Support for PowerPoint and Word documents
 - Flashcard generation from course materials
 - Export chat history to PDF
 - Dark mode
 - Multi-language support
-
-### Planned for 1.3.0
-- Browser extensions for Firefox and Edge
-- Integration with other LMS platforms (Blackboard, Moodle)
-- Study notes feature
-- Collaborative study sessions
-- Mobile companion app
 
 ---
 
