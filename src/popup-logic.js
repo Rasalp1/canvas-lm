@@ -916,22 +916,34 @@ export class PopupLogic {
       if (message.type === 'CRAWL_COMPLETE') {
         console.log('🎉 CRAWL_COMPLETE received!', message);
         
+        const pdfCount = message.pdfCount || message.pdfsFound || 0;
+        
+        // If PDFs were found, wait for PDF_SCAN_COMPLETE to handle the upload
+        if (pdfCount > 0) {
+          console.log(`⏳ Waiting for PDF_SCAN_COMPLETE to process ${pdfCount} PDFs...`);
+          return; // Don't stop scanning yet, wait for PDF_SCAN_COMPLETE
+        }
+        
+        // No PDFs found - complete the scan immediately
+        console.log('⚠️ No PDFs found during scan');
+        
         // Stop health check
         this.stopScanHealthCheck();
         
-        // Set progress to 100% before stopping
+        // Set progress to 100%
         this.uiCallbacks.setScanProgress?.(100);
         this.uiCallbacks.setScanTimeLeft?.(0);
-        this.uiCallbacks.setStatus?.('Finalizing scan...');
-        
-        const pdfCount = message.pdfCount || message.pdfsFound || 0;
+        this.uiCallbacks.setStatus?.('✅ Scan complete - No PDFs found');
         
         // Clear scan status from storage
         if (message.courseId) {
           chrome.storage.local.remove(`scan_status_${message.courseId}`);
         }
         
-        console.log(`✅ Scan complete! Found ${pdfCount} PDFs`);
+        // Reset scanning state
+        this.resetScanningState();
+        
+        console.log('✅ Scan complete! Found 0 PDFs');
       }
       
       // Also support SMART_CRAWL_COMPLETE for backward compatibility

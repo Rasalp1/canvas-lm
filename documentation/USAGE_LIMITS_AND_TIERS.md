@@ -318,17 +318,28 @@ npm run build
 
 ### Setting Up Your Admin Account
 
+**SECURITY NOTE**: User tier/admin status can ONLY be set through:
+1. Firebase Console (manual)
+2. Cloud Functions with admin verification (programmatic)
+
+Client-side code CANNOT modify these fields due to Firestore security rules.
+
 **Step 1: Find Your User ID**
 
 1. Open Canvs LM extension
 2. Sign in with your account
 3. Open browser console (F12)
-4. Run: `firebase.auth().currentUser.uid`
+4. Run: 
+```javascript
+chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, (info) => {
+  console.log('Your User ID:', info.id);
+});
+```
 5. Copy the user ID
 
 **Step 2: Set Admin Tier**
 
-**Option A: Firebase Console (Recommended)**
+**Option A: Firebase Console (Recommended for first admin)**
 1. Go to [Firebase Console](https://console.firebase.google.com/project/canvas-lm/firestore)
 2. Navigate to Firestore → `users` collection
 3. Find your user document
@@ -337,9 +348,20 @@ npm run build
    - Value: `admin`
    - Type: string
 
-**Option B: Firebase CLI**
-```bash
-firebase firestore:set users/YOUR_USER_ID '{"tier":"admin"}' --project canvas-lm --merge
+**Option B: Via Cloud Function (Requires existing admin)**
+```javascript
+// In browser console (as an existing admin)
+const functions = window.firebaseApp.functions();
+const setUserTier = functions.httpsCallable('setUserTier');
+
+chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, async (info) => {
+  const result = await setUserTier({
+    targetUserId: 'USER_ID_TO_PROMOTE',
+    tier: 'admin',
+    userId: info.id // Your admin user ID
+  });
+  console.log('Result:', result.data);
+});
 ```
 
 **Step 3: Verify**
@@ -353,27 +375,35 @@ firebase firestore:set users/YOUR_USER_ID '{"tier":"admin"}' --project canvas-lm
 
 ### Managing Other Users
 
-**Grant Premium Access:**
+**SECURITY**: These operations can only be performed by existing admin users.
+
+**Grant Premium Access (via Cloud Function):**
 ```javascript
-db.collection('users').doc(userId).update({ tier: 'premium' });
+const functions = window.firebaseApp.functions();
+const setUserTier = functions.httpsCallable('setUserTier');
+
+chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, async (info) => {
+  await setUserTier({
+    targetUserId: 'USER_ID_HERE',
+    tier: 'premium',
+    userId: info.id
+  });
+});
 ```
 
 **Revoke Premium/Admin:**
 ```javascript
-db.collection('users').doc(userId).update({ tier: 'free' });
-```
-
-**Bulk Management:**
-```javascript
-const admin = require('firebase-admin');
-const db = admin.firestore();
-
-const batch = db.batch();
-['userId1', 'userId2', 'userId3'].forEach(userId => {
-  batch.update(db.collection('users').doc(userId), { tier: 'admin' });
+await setUserTier({
+  targetUserId: 'USER_ID_HERE',
+  tier: 'free',
+  userId: info.id
 });
-await batch.commit();
 ```
+
+**Via Firebase Console (Alternative):**
+1. Navigate to Firestore → `users` collection
+2. Find user document
+3. Edit `tier` field: `free`, `premium`, or `admin`
 
 ---
 

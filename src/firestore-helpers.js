@@ -1272,8 +1272,8 @@ if (typeof window !== 'undefined') {
     deleteChatSession,
     removeUserEnrollment,
     
-    // Admin operations
-    setUserAdminStatus,
+    // Admin operations (READ-ONLY from client)
+    // Note: setUserAdminStatus removed - can only be called via Cloud Functions
     isUserAdmin,
     getAllUsers,
     getAllCourses,

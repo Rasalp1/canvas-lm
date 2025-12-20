@@ -23,15 +23,14 @@ service cloud.firestore {
     
     // ==================== USERS COLLECTION ====================
     match /users/{userId} {
-      // Allow read and most updates
-      // Security: Users can only harm themselves, sensitive ops in Cloud Functions
+      // Allow read and create
       allow read, create: if true;
       allow delete: if false; // Prevent accidental deletion
       
-      // Allow updates but protect the tier field from user modification
+      // Allow updates EXCEPT for tier and isAdmin fields (admin-only fields)
+      // These can ONLY be modified through Cloud Functions with admin verification
       allow update: if true && 
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['tier']) ||
-         request.resource.data.tier == resource.data.tier);
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tier', 'isAdmin']);
       
       // Enrollments subcollection
       match /enrollments/{enrollmentId} {

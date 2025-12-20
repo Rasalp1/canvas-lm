@@ -71,8 +71,18 @@ async function getUserTier(userId) {
  * @returns {Promise<boolean>} True if user is admin
  */
 async function isAdminUser(userId) {
-  const tier = await getUserTier(userId);
-  return tier === 'admin';
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return false;
+    }
+    
+    const userData = userDoc.data();
+    return userData.isAdmin === true; // Check isAdmin field, not tier
+  } catch (error) {
+    logger.error('Error checking admin status:', error);
+    return false;
+  }
 }
 
 // ==================== RATE LIMITING ====================
@@ -436,18 +446,19 @@ exports.deleteStore = onCall(async (request) => {
       throw new Error('storeName and userId are required');
     }
 
-    // Get courseId and verify enrollment
-    const courseId = await getCourseIdFromStore(storeName);
-    await verifyEnrollment(userId, courseId);
-    
-    // Verify user is course creator
-    const courseDoc = await db.collection('courses').doc(courseId).get();
-    if (courseDoc.data().createdBy !== userId) {
-      throw new Error('Only course creator can delete the store');
+    // Only admins can delete stores
+    const isAdmin = await isAdminUser(userId);
+    if (!isAdmin) {
+      throw new Error('Only admin users can delete stores');
     }
+    
+    // Get courseId from store name
+    const courseId = await getCourseIdFromStore(storeName);
 
+    // Delete the store with force=true to delete all documents inside automatically
+    logger.info('Deleting File Search store with force=true', { storeName });
     const response = await fetch(
-      `${GEMINI_API_ENDPOINT}/${storeName}?key=${GEMINI_API_KEY}`,
+      `${GEMINI_API_ENDPOINT}/${storeName}?force=true&key=${GEMINI_API_KEY}`,
       { method: 'DELETE' }
     );
 
@@ -463,7 +474,7 @@ exports.deleteStore = onCall(async (request) => {
       storeCreatedBy: admin.firestore.FieldValue.delete()
     });
 
-    logger.info('Store deleted', { storeName, userId });
+    logger.info('Store deleted successfully', { storeName, userId });
 
     return { success: true };
 
@@ -1325,16 +1336,18 @@ exports.checkUsageLimit = onCall(async (request) => {
   const now = admin.firestore.Timestamp.now();
   
   try {
-    // Check user tier - admins and premium users have unlimited usage
+    // Check admin status and tier separately - both admins and premium users have unlimited usage
+    const isAdmin = await isAdminUser(userId);
     const userTier = await getUserTier(userId);
     
-    if (userTier === 'admin' || userTier === 'premium') {
-      logger.info(`User ${userId} with tier '${userTier}' bypassing usage limits`);
+    if (isAdmin || userTier === 'premium') {
+      const reason = isAdmin ? 'admin' : userTier;
+      logger.info(`User ${userId} (${reason}) bypassing usage limits`);
       return {
         allowed: true,
         remaining: 999,
         resetTime: null,
-        isAdmin: userTier === 'admin',
+        isAdmin: isAdmin,
         tier: userTier
       };
     }
@@ -1430,12 +1443,14 @@ exports.recordMessageUsage = onCall(async (request) => {
   const now = admin.firestore.Timestamp.now();
   
   try {
-    // Check user tier - skip recording for admin and premium users
+    // Check admin status and tier separately - skip recording for admins and premium users
+    const isAdmin = await isAdminUser(userId);
     const userTier = await getUserTier(userId);
     
-    if (userTier === 'admin' || userTier === 'premium') {
-      logger.info(`User ${userId} with tier '${userTier}' - skipping usage recording`);
-      return { success: true, recorded: false, reason: `${userTier}_user` };
+    if (isAdmin || userTier === 'premium') {
+      const reason = isAdmin ? 'admin' : userTier;
+      logger.info(`User ${userId} (${reason}) - skipping usage recording`);
+      return { success: true, recorded: false, reason: `${reason}_user` };
     }
     
     // Get config
@@ -1607,5 +1622,196 @@ exports.initializeUsageLimitConfig = onCall(async (request) => {
   } catch (error) {
     logger.error('Error initializing config:', error);
     throw new https.HttpsError('internal', 'Failed to initialize config: ' + error.message);
+  }
+});
+
+// ==================== ADMIN USER MANAGEMENT ====================
+
+/**
+ * Set user tier (admin, premium, or free)
+ * SECURITY: Only existing admins can call this function
+ */
+exports.setUserTier = onCall(async (request) => {
+  try {
+    const { targetUserId, tier } = request.data;
+    const callerUserId = request.data.userId;
+
+    if (!targetUserId || !tier || !callerUserId) {
+      throw new https.HttpsError('invalid-argument', 'targetUserId, tier, and userId are required');
+    }
+
+    // Validate tier value
+    const validTiers = ['free', 'premium', 'admin'];
+    if (!validTiers.includes(tier)) {
+      throw new https.HttpsError('invalid-argument', `tier must be one of: ${validTiers.join(', ')}`);
+    }
+
+    // Check if caller is admin
+    const isAdmin = await isAdminUser(callerUserId);
+    if (!isAdmin) {
+      throw new https.HttpsError('permission-denied', 'Only admin users can modify user tiers');
+    }
+
+    // Update target user's tier
+    await db.collection('users').doc(targetUserId).update({
+      tier: tier,
+      tierUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tierUpdatedBy: callerUserId
+    });
+
+    logger.info(`Admin ${callerUserId} set user ${targetUserId} tier to: ${tier}`);
+
+    return { 
+      success: true, 
+      message: `User tier updated to: ${tier}`,
+      targetUserId,
+      tier
+    };
+
+  } catch (error) {
+    logger.error('Set user tier error:', error);
+    throw new https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Set user admin status (legacy support - maps to tier)
+ * SECURITY: Only existing admins can call this function
+ */
+exports.setUserAdminStatus = onCall(async (request) => {
+  try {
+    const { targetUserId, isAdmin: shouldBeAdmin } = request.data;
+    const callerUserId = request.data.userId;
+
+    if (!targetUserId || shouldBeAdmin === undefined || !callerUserId) {
+      throw new https.HttpsError('invalid-argument', 'targetUserId, isAdmin, and userId are required');
+    }
+
+    // Check if caller is admin
+    const isAdmin = await isAdminUser(callerUserId);
+    if (!isAdmin) {
+      throw new https.HttpsError('permission-denied', 'Only admin users can modify admin status');
+    }
+
+    // Map to tier system
+    const tier = shouldBeAdmin ? 'admin' : 'free';
+
+    // Update target user
+    await db.collection('users').doc(targetUserId).update({
+      tier: tier,
+      isAdmin: shouldBeAdmin, // Keep for backward compatibility
+      tierUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      tierUpdatedBy: callerUserId
+    });
+
+    logger.info(`Admin ${callerUserId} set user ${targetUserId} admin status to: ${shouldBeAdmin}`);
+
+    return { 
+      success: true, 
+      message: `User admin status updated to: ${shouldBeAdmin}`,
+      targetUserId,
+      isAdmin: shouldBeAdmin,
+      tier
+    };
+
+  } catch (error) {
+    logger.error('Set admin status error:', error);
+    throw new https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Delete a course with cascade (all sessions, messages, documents)
+ * SECURITY: Only admins can delete courses
+ */
+exports.deleteCourseWithCascade = onCall(async (request) => {
+  try {
+    const { courseId, userId } = request.data;
+
+    if (!courseId || !userId) {
+      throw new https.HttpsError('invalid-argument', 'courseId and userId are required');
+    }
+
+    // Check if caller is admin
+    const isAdmin = await isAdminUser(userId);
+    if (!isAdmin) {
+      throw new https.HttpsError('permission-denied', 'Only admin users can delete courses');
+    }
+
+    let deletedSessions = 0;
+    let deletedMessages = 0;
+    let deletedDocuments = 0;
+    let deletedEnrollments = 0;
+
+    // 1. Delete all chat sessions for this course
+    const sessionsSnapshot = await db.collection('chatSessions')
+      .where('courseId', '==', courseId)
+      .get();
+
+    for (const sessionDoc of sessionsSnapshot.docs) {
+      // Delete all messages in this session
+      const messagesSnapshot = await db.collection('chatSessions')
+        .doc(sessionDoc.id)
+        .collection('messages')
+        .get();
+
+      for (const messageDoc of messagesSnapshot.docs) {
+        await messageDoc.ref.delete();
+        deletedMessages++;
+      }
+
+      // Delete the session
+      await sessionDoc.ref.delete();
+      deletedSessions++;
+    }
+
+    // 2. Delete all documents for this course
+    const documentsSnapshot = await db.collection('courses')
+      .doc(courseId)
+      .collection('documents')
+      .get();
+
+    for (const docDoc of documentsSnapshot.docs) {
+      await docDoc.ref.delete();
+      deletedDocuments++;
+    }
+
+    // 3. Delete all user enrollments for this course
+    const usersSnapshot = await db.collection('users').get();
+    for (const userDoc of usersSnapshot.docs) {
+      const enrollmentDoc = await db.collection('users')
+        .doc(userDoc.id)
+        .collection('enrollments')
+        .doc(courseId)
+        .get();
+      
+      if (enrollmentDoc.exists) {
+        await enrollmentDoc.ref.delete();
+        deletedEnrollments++;
+      }
+    }
+
+    // 4. Delete the course itself
+    await db.collection('courses').doc(courseId).delete();
+
+    logger.info(`Course ${courseId} deleted by admin ${userId}`, {
+      deletedSessions,
+      deletedMessages,
+      deletedDocuments,
+      deletedEnrollments
+    });
+
+    return {
+      success: true,
+      courseId,
+      deletedSessions,
+      deletedMessages,
+      deletedDocuments,
+      deletedEnrollments
+    };
+
+  } catch (error) {
+    logger.error('Delete course cascade error:', error);
+    throw new https.HttpsError('internal', error.message);
   }
 });
