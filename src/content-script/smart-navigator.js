@@ -6,7 +6,7 @@
 /**
  * Manages smart navigation with state persistence across page loads
  */
-class SmartNavigator {
+export class SmartNavigator {
   constructor(stateManager, queueManager, errorHandler) {
     this.stateManager = stateManager;
     this.queueManager = queueManager;
@@ -330,9 +330,4 @@ class SmartNavigator {
     console.log(`✅ Built initial navigation queue: ${added}/${priorityPages.length} pages added`);
     return added;
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SmartNavigator };
 }

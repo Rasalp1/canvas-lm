@@ -6,7 +6,7 @@
 /**
  * Manages persistent crawler state across page navigations using chrome.storage
  */
-class CrawlerStateManager {
+export class CrawlerStateManager {
   constructor() {
     this.storageKey = 'canvas_crawler_state';
     this.sessionId = this.generateSessionId();
@@ -128,7 +128,7 @@ class CrawlerStateManager {
 /**
  * Manages the navigation queue and URL prioritization
  */
-class NavigationQueueManager {
+export class NavigationQueueManager {
   constructor(stateManager) {
     this.stateManager = stateManager;
   }
@@ -279,7 +279,7 @@ class NavigationQueueManager {
 /**
  * Detects navigation events and triggers appropriate responses
  */
-class NavigationDetector {
+export class NavigationDetector {
   constructor(callback) {
     this.lastUrl = window.location.href;
     this.callback = callback;
@@ -319,7 +319,7 @@ class NavigationDetector {
 /**
  * Handles navigation errors and recovery strategies
  */
-class NavigationErrorHandler {
+export class NavigationErrorHandler {
   constructor(stateManager) {
     this.stateManager = stateManager;
   }
@@ -359,14 +359,4 @@ class NavigationErrorHandler {
     const error = new Error(`Navigation timeout after ${15000}ms`);
     await this.handleNavigationFailure(url, error);
   }
-}
-
-// Export for use in main content script
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    CrawlerStateManager,
-    NavigationQueueManager,
-    NavigationDetector,
-    NavigationErrorHandler
-  };
 }

@@ -6,7 +6,7 @@
 /**
  * Enhanced page scanner that integrates with state management for deep crawling
  */
-class StatefulPageScanner {
+export class StatefulPageScanner {
   constructor(stateManager, queueManager) {
     this.stateManager = stateManager;
     this.queueManager = queueManager;
@@ -699,9 +699,4 @@ class StatefulPageScanner {
   wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { StatefulPageScanner };
 }
