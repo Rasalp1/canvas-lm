@@ -15,7 +15,8 @@ import {
   orderBy,
   Timestamp 
 } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -28,14 +29,16 @@ const firebaseConfig = {
   measurementId: "G-3C6JSYRG67"
 };
 
-// Initialize Firebase (Firestore only - authentication uses Chrome Identity API)
+// Initialize Firebase Authentication, Firestore, and callable functions.
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const functions = getFunctions(app, 'europe-north1');
 
 // Make available globally
 window.firebaseApp = app;
 window.firebaseDb = db;
+window.firebaseAuth = auth;
 window.firebaseFunctions = functions;
 window.firebaseModules = {
   // Basic operations
@@ -54,7 +57,8 @@ window.firebaseModules = {
   orderBy,
   
   // Utilities
-  Timestamp
+  Timestamp,
+  httpsCallable
 };
 
-console.log('✅ Firebase initialized (Firestore only)');
+console.log('✅ Firebase Authentication and Firestore initialized');

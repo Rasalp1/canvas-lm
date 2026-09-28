@@ -2,6 +2,7 @@
 import './firebase-config';
 import './firestore-helpers';
 import './gemini-file-search-cloud';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
 export class PopupLogic {
   constructor() {
@@ -104,20 +105,31 @@ export class PopupLogic {
       console.log('Chrome profile info:', userInfo);
       
       if (userInfo && userInfo.email) {
+        // Chrome profile information is useful for display, but it is not a
+        // server-verifiable credential. Firebase Auth supplies the identity
+        // used for Firestore rules and callable function authorization.
+        const auth = window.firebaseAuth;
+        const restoredUser = auth.currentUser || await new Promise((resolve) => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            resolve(user);
+          });
+        });
+        const firebaseUser = restoredUser || (await signInAnonymously(auth)).user;
         this.currentUser = {
           email: userInfo.email,
-          id: userInfo.id,
+          id: firebaseUser.uid,
           displayName: userInfo.email.split('@')[0],
           photoURL: null
         };
         
         // Set userId in File Search Manager FIRST, before UI updates
         if (this.fileSearchManager) {
-          this.fileSearchManager.setUserId(userInfo.id);
+          this.fileSearchManager.setUserId(firebaseUser.uid);
         }
         
         // Save user to Firestore
-        const result = await this.firestoreHelpers.saveUser(this.db, userInfo.id, this.currentUser);
+        const result = await this.firestoreHelpers.saveUser(this.db, firebaseUser.uid, this.currentUser);
         if (result.success) {
           console.log('User data saved to Firestore');
         }

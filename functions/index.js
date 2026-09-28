@@ -14,12 +14,11 @@
 // Load environment variables from .env file
 require('dotenv').config();
 
-const {onCall} = require('firebase-functions/v2/https');
+const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {setGlobalOptions} = require('firebase-functions/v2');
 const logger = require('firebase-functions/logger');
 const fetch = require('node-fetch');
 const admin = require('firebase-admin');
-const https = require('https');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -42,6 +41,14 @@ setGlobalOptions({
 
 // Get Firestore instance
 const db = admin.firestore();
+
+function requireAuthenticatedUser(request) {
+  const userId = request.auth?.uid;
+  if (!userId) {
+    throw new HttpsError('unauthenticated', 'Sign in before using this service.');
+  }
+  return userId;
+}
 
 // ==================== USER TIER MANAGEMENT ====================
 
@@ -150,11 +157,10 @@ async function checkRateLimit(userId, operation) {
     return result;
   } catch (error) {
     if (error.message.includes('Rate limit exceeded')) {
-      throw error;
+      throw new HttpsError('resource-exhausted', error.message);
     }
-    // Log transaction errors but don't block the request
-    logger.warn('Rate limit check failed, allowing request', { userId, operation, error: error.message });
-    return true;
+    logger.error('Rate limit check failed; rejecting request', { userId, operation, error: error.message });
+    throw new HttpsError('unavailable', 'Rate limiting is temporarily unavailable. Please retry.');
   }
 }
 
@@ -251,10 +257,11 @@ async function linkStoreToCourse(courseId, storeName, userId) {
  */
 exports.createCourseStore = onCall(async (request) => {
   try {
-    const { courseId, userId, displayName, courseName } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { courseId, displayName, courseName } = request.data;
 
-    if (!courseId || !userId) {
-      throw new Error('courseId and userId are required');
+    if (!courseId) {
+      throw new HttpsError('invalid-argument', 'courseId is required');
     }
 
     // Check rate limit (5 store creations per minute)
@@ -274,6 +281,15 @@ exports.createCourseStore = onCall(async (request) => {
       });
       logger.info('Course document created', { courseId, userId });
       courseDoc = await db.collection('courses').doc(courseId).get();
+    } else {
+      const existingEnrollment = await db
+        .collection('users').doc(userId)
+        .collection('enrollments').doc(courseId)
+        .get();
+      const isCreator = courseDoc.data().createdBy === userId;
+      if (!isCreator && !existingEnrollment.exists) {
+        throw new HttpsError('permission-denied', 'You are not enrolled in this course.');
+      }
     }
     
     const existingStore = courseDoc.data().fileSearchStoreName;
@@ -340,6 +356,7 @@ exports.createCourseStore = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Create course store error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -350,10 +367,11 @@ exports.createCourseStore = onCall(async (request) => {
  */
 exports.getStore = onCall(async (request) => {
   try {
-    const { storeName, userId } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { storeName } = request.data;
 
-    if (!storeName || !userId) {
-      throw new Error('storeName and userId are required');
+    if (!storeName) {
+      throw new HttpsError('invalid-argument', 'storeName is required');
     }
 
     // Get courseId from store and verify enrollment
@@ -379,6 +397,7 @@ exports.getStore = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Get store error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -389,11 +408,7 @@ exports.getStore = onCall(async (request) => {
  */
 exports.listStores = onCall(async (request) => {
   try {
-    const { userId } = request.data || {};
-
-    if (!userId) {
-      throw new Error('userId is required');
-    }
+    const userId = requireAuthenticatedUser(request);
 
     // Get user's enrollments
     const enrollmentsSnapshot = await db
@@ -430,6 +445,7 @@ exports.listStores = onCall(async (request) => {
 
   } catch (error) {
     logger.error('List stores error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -440,10 +456,11 @@ exports.listStores = onCall(async (request) => {
  */
 exports.deleteStore = onCall(async (request) => {
   try {
-    const { storeName, userId } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { storeName } = request.data;
 
-    if (!storeName || !userId) {
-      throw new Error('storeName and userId are required');
+    if (!storeName) {
+      throw new HttpsError('invalid-argument', 'storeName is required');
     }
 
     // Only admins can delete stores
@@ -480,6 +497,7 @@ exports.deleteStore = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Delete store error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -501,10 +519,11 @@ exports.uploadToStore = onCall(
   },
   async (request) => {
   try {
-    const { storeName, fileData, fileName, mimeType, metadata, userId } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { storeName, fileData, fileName, mimeType, metadata } = request.data;
 
-    if (!storeName || !fileData || !fileName || !userId) {
-      throw new Error('storeName, fileData, fileName, and userId are required');
+    if (!storeName || !fileData || !fileName) {
+      throw new HttpsError('invalid-argument', 'storeName, fileData, and fileName are required');
     }
 
     // File Search API has a 100 MB limit per document
@@ -753,6 +772,7 @@ exports.uploadToStore = onCall(
 
   } catch (error) {
     logger.error('Upload to store error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -763,10 +783,11 @@ exports.uploadToStore = onCall(
  */
 exports.listDocuments = onCall(async (request) => {
   try {
-    const { storeName, pageSize = 20, pageToken, userId } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { storeName, pageSize = 20, pageToken } = request.data;
 
-    if (!storeName || !userId) {
-      throw new Error('storeName and userId are required');
+    if (!storeName) {
+      throw new HttpsError('invalid-argument', 'storeName is required');
     }
 
     // Get courseId and verify enrollment
@@ -798,6 +819,7 @@ exports.listDocuments = onCall(async (request) => {
 
   } catch (error) {
     logger.error('List documents error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -809,10 +831,15 @@ exports.listDocuments = onCall(async (request) => {
  */
 exports.deleteDocument = onCall(async (request) => {
   try {
-    const { documentName, storeName, userId } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { documentName, storeName } = request.data;
 
-    if (!documentName || !storeName || !userId) {
-      throw new Error('documentName, storeName, and userId are required');
+    if (!documentName || !storeName) {
+      throw new HttpsError('invalid-argument', 'documentName and storeName are required');
+    }
+
+    if (!documentName.startsWith(`${storeName}/documents/`)) {
+      throw new HttpsError('permission-denied', 'The document does not belong to this course store.');
     }
 
     // Check rate limit (30 deletions per minute)
@@ -838,6 +865,7 @@ exports.deleteDocument = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Delete document error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -945,10 +973,10 @@ exports.queryCourseStore = onCall({
   const startTime = Date.now();
   
   try {
+    const userId = requireAuthenticatedUser(request);
     const { 
       question, 
       courseId,
-      userId,
       model = 'gemini-1.5-flash',
       metadataFilter,
       topK = 5,
@@ -957,8 +985,8 @@ exports.queryCourseStore = onCall({
       history = []
     } = request.data;
 
-    if (!question || !courseId || !userId) {
-      throw new Error('question, courseId, and userId are required');
+    if (!question || !courseId) {
+      throw new HttpsError('invalid-argument', 'question and courseId are required');
     }
 
     // Check rate limit (50 queries per minute)
@@ -1174,6 +1202,7 @@ Remember: Your knowledge is based on what's been uploaded to this course. ALWAYS
 
   } catch (error) {
     logger.error('Streaming query error:', error);
+    if (error instanceof HttpsError) throw error;
     throw new Error(error.message);
   }
 });
@@ -1192,6 +1221,7 @@ Remember: Your knowledge is based on what's been uploaded to this course. ALWAYS
  */
 exports.downloadCanvasPdf = onCall(async (request) => {
   try {
+    requireAuthenticatedUser(request);
     const { url, cookies } = request.data;
 
     if (!url) {
@@ -1202,8 +1232,18 @@ exports.downloadCanvasPdf = onCall(async (request) => {
       throw new Error('cookies object is required');
     }
 
-    // Validate Canvas URL
-    if (!url.includes('canvas.education.lu.se')) {
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new HttpsError('invalid-argument', 'A valid Canvas URL is required.');
+    }
+    const hostname = parsedUrl.hostname.toLowerCase();
+    const allowedCanvasHost = hostname === 'canvas.education.lu.se' ||
+      hostname.endsWith('.instructure.com') ||
+      hostname === 'canvas.com' || hostname.endsWith('.canvas.com') ||
+      hostname === 'canvaslms.com' || hostname.endsWith('.canvaslms.com');
+    if (parsedUrl.protocol !== 'https:' || !allowedCanvasHost) {
       throw new Error('Invalid Canvas URL');
     }
 
@@ -1327,11 +1367,7 @@ exports.onCourseDeleted = onDocumentDeleted('courses/{courseId}', async (event) 
  * Returns allowed status, remaining count, and reset time
  */
 exports.checkUsageLimit = onCall(async (request) => {
-  const { userId } = request.data;
-  
-  if (!userId) {
-    throw new https.HttpsError('invalid-argument', 'userId is required');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   const now = admin.firestore.Timestamp.now();
   
@@ -1434,11 +1470,8 @@ exports.checkUsageLimit = onCall(async (request) => {
  * Called after successfully sending a message
  */
 exports.recordMessageUsage = onCall(async (request) => {
-  const { userId, courseChatId, messageId } = request.data;
-  
-  if (!userId) {
-    throw new https.HttpsError('invalid-argument', 'userId is required');
-  }
+  const userId = requireAuthenticatedUser(request);
+  const { courseChatId, messageId } = request.data;
 
   const now = admin.firestore.Timestamp.now();
   
@@ -1518,7 +1551,7 @@ exports.recordMessageUsage = onCall(async (request) => {
     return { success: true, recorded: true };
   } catch (error) {
     logger.error('Error recording message usage:', error);
-    throw new https.HttpsError('internal', 'Failed to record usage');
+    throw new HttpsError('internal', 'Failed to record usage');
   }
 });
 
@@ -1527,11 +1560,7 @@ exports.recordMessageUsage = onCall(async (request) => {
  * Shows current usage, message history, and reset times
  */
 exports.getUsageDetails = onCall(async (request) => {
-  const userId = request.auth?.uid;
-  
-  if (!userId) {
-    throw new https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   const now = admin.firestore.Timestamp.now();
   
@@ -1573,7 +1602,7 @@ exports.getUsageDetails = onCall(async (request) => {
     };
   } catch (error) {
     logger.error('Error getting usage details:', error);
-    throw new https.HttpsError('internal', 'Failed to get usage details');
+    throw new HttpsError('internal', 'Failed to get usage details');
   }
 });
 
@@ -1582,10 +1611,10 @@ exports.getUsageDetails = onCall(async (request) => {
  * Creates the default config document if it doesn't exist
  */
 exports.initializeUsageLimitConfig = onCall(async (request) => {
-  const { userId } = request.data;
-  
-  if (!userId) {
-    throw new https.HttpsError('invalid-argument', 'userId is required');
+  const userId = requireAuthenticatedUser(request);
+
+  if (!(await isAdminUser(userId))) {
+    throw new HttpsError('permission-denied', 'Only admins can initialize usage limits.');
   }
   
   try {
@@ -1621,7 +1650,7 @@ exports.initializeUsageLimitConfig = onCall(async (request) => {
     };
   } catch (error) {
     logger.error('Error initializing config:', error);
-    throw new https.HttpsError('internal', 'Failed to initialize config: ' + error.message);
+    throw new HttpsError('internal', 'Failed to initialize config: ' + error.message);
   }
 });
 
@@ -1633,23 +1662,23 @@ exports.initializeUsageLimitConfig = onCall(async (request) => {
  */
 exports.setUserTier = onCall(async (request) => {
   try {
+    const callerUserId = requireAuthenticatedUser(request);
     const { targetUserId, tier } = request.data;
-    const callerUserId = request.data.userId;
 
-    if (!targetUserId || !tier || !callerUserId) {
-      throw new https.HttpsError('invalid-argument', 'targetUserId, tier, and userId are required');
+    if (!targetUserId || !tier) {
+      throw new HttpsError('invalid-argument', 'targetUserId and tier are required');
     }
 
     // Validate tier value
     const validTiers = ['free', 'premium', 'admin'];
     if (!validTiers.includes(tier)) {
-      throw new https.HttpsError('invalid-argument', `tier must be one of: ${validTiers.join(', ')}`);
+      throw new HttpsError('invalid-argument', `tier must be one of: ${validTiers.join(', ')}`);
     }
 
     // Check if caller is admin
     const isAdmin = await isAdminUser(callerUserId);
     if (!isAdmin) {
-      throw new https.HttpsError('permission-denied', 'Only admin users can modify user tiers');
+      throw new HttpsError('permission-denied', 'Only admin users can modify user tiers');
     }
 
     // Update target user's tier
@@ -1670,7 +1699,8 @@ exports.setUserTier = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Set user tier error:', error);
-    throw new https.HttpsError('internal', error.message);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', error.message);
   }
 });
 
@@ -1680,17 +1710,17 @@ exports.setUserTier = onCall(async (request) => {
  */
 exports.setUserAdminStatus = onCall(async (request) => {
   try {
+    const callerUserId = requireAuthenticatedUser(request);
     const { targetUserId, isAdmin: shouldBeAdmin } = request.data;
-    const callerUserId = request.data.userId;
 
-    if (!targetUserId || shouldBeAdmin === undefined || !callerUserId) {
-      throw new https.HttpsError('invalid-argument', 'targetUserId, isAdmin, and userId are required');
+    if (!targetUserId || shouldBeAdmin === undefined) {
+      throw new HttpsError('invalid-argument', 'targetUserId and isAdmin are required');
     }
 
     // Check if caller is admin
     const isAdmin = await isAdminUser(callerUserId);
     if (!isAdmin) {
-      throw new https.HttpsError('permission-denied', 'Only admin users can modify admin status');
+      throw new HttpsError('permission-denied', 'Only admin users can modify admin status');
     }
 
     // Map to tier system
@@ -1716,7 +1746,8 @@ exports.setUserAdminStatus = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Set admin status error:', error);
-    throw new https.HttpsError('internal', error.message);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', error.message);
   }
 });
 
@@ -1726,16 +1757,17 @@ exports.setUserAdminStatus = onCall(async (request) => {
  */
 exports.deleteCourseWithCascade = onCall(async (request) => {
   try {
-    const { courseId, userId } = request.data;
+    const userId = requireAuthenticatedUser(request);
+    const { courseId } = request.data;
 
-    if (!courseId || !userId) {
-      throw new https.HttpsError('invalid-argument', 'courseId and userId are required');
+    if (!courseId) {
+      throw new HttpsError('invalid-argument', 'courseId is required');
     }
 
     // Check if caller is admin
     const isAdmin = await isAdminUser(userId);
     if (!isAdmin) {
-      throw new https.HttpsError('permission-denied', 'Only admin users can delete courses');
+      throw new HttpsError('permission-denied', 'Only admin users can delete courses');
     }
 
     let deletedSessions = 0;
@@ -1812,6 +1844,7 @@ exports.deleteCourseWithCascade = onCall(async (request) => {
 
   } catch (error) {
     logger.error('Delete course cascade error:', error);
-    throw new https.HttpsError('internal', error.message);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', error.message);
   }
 });

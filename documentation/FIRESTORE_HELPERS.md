@@ -1,8 +1,12 @@
 # Firestore Helper Functions - Next Steps
 
+> Historical implementation notes. Current user IDs are Firebase Authentication
+> UIDs, and the current authorization rules are documented in
+> [AUTHENTICATION.md](./AUTHENTICATION.md) and [SECURITY_MODEL.md](./SECURITY_MODEL.md).
+
 ## Overview
 
-Now that authentication is working (Chrome Identity) and Firebase is initialized (Firestore only), we need to create helper functions to manage data storage and retrieval.
+These notes predate the current Firebase Authentication setup. The extension uses Firebase Authentication and Firestore.
 
 ## Data We Need to Store
 
@@ -97,7 +101,7 @@ import {
 /**
  * Create or update user in Firestore
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {Object} userData - User data from Chrome Identity
  */
 export async function saveUser(db, userId, userData) {

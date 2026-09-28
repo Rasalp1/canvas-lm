@@ -14,11 +14,10 @@ By using Canvs LM, you agree to the collection and use of information in accorda
 ### 1. Personal Information
 We collect the following personal information:
 
-- **Google Account Information**: When you sign in using Chrome's Identity API, we collect:
+- **Profile Information**: When Chrome provides a profile email, we store it in your private Firebase user profile and use it to display your profile in the extension. This email is not used to authenticate requests to our backend. We do not store the Chrome Identity profile ID.
   - Email address
-  - Display name
-  - User ID (provided by Google)
-  - Profile picture URL (if available)
+  - Display name derived from the email address
+- **Firebase App Identifier**: Firebase Authentication creates an anonymous UID for the extension installation. This UID is used to scope your app data and authorize database and server requests.
 
 ### 2. Course Information
 We collect and store:
@@ -55,7 +54,7 @@ When you use Canvs LM on Canvas pages:
 We use the collected information for the following purposes:
 
 ### Primary Functions
-1. **Authentication**: Verify your identity using Google sign-in
+1. **App access**: Use Firebase Anonymous Authentication to obtain a server-verifiable app UID. Chrome profile information is used for display only.
 2. **Course Management**: Track your course enrollments and access
 3. **AI Assistance**: Process your questions and provide answers based on course materials
 4. **Document Storage**: Store and index your course PDFs for AI processing
@@ -75,7 +74,7 @@ We use the collected information for the following purposes:
 ### Data Storage
 - **Location**: All data is stored in Google Cloud Platform (Firebase) servers in Europe (europe-north1 - Finland)
 - **Encryption**: All data is encrypted in transit using HTTPS/TLS
-- **Access Control**: Only you and authorized Cloud Functions can access your data
+- **Access Control**: Your profile, enrollment records, usage records, and chat history are private to your Firebase UID. Course metadata and materials are shared across Canvs LM users; a user can add a course by its Canvas course ID without connecting a Canvas account to Canvs LM. Course IDs do not verify that a user is enrolled in Canvas.
 
 ### Data Retention
 - **Course Materials**: Retained as long as you remain enrolled in the course
@@ -119,7 +118,7 @@ Canvs LM integrates with the following third-party services:
 -  Allow other users to access your private data
 
 ### We MAY Share Information:
--  **With your course**: Course materials are stored in shared course databases that other enrolled students may access
+- **With Canvs LM users**: Course metadata and uploaded course materials are shared for a matching course ID. Your profile email, usage records, and chat history are not shared with other users.
 -  **Legal Requirements**: If required by law or to protect our rights
 -  **Service Providers**: With Google Cloud Platform to operate the service
 -  **With Your Consent**: When you explicitly authorize sharing

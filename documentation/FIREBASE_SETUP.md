@@ -1,15 +1,22 @@
 # Firebase Configuration Analysis
 
+Before deployment, enable **Anonymous** in Firebase Authentication and deploy
+the checked-in Firestore rules. The app uses the resulting Firebase UID for
+authorization; Chrome Identity profile data is for display only. See
+[AUTHENTICATION.md](./AUTHENTICATION.md) for setup and migration requirements.
+
 ## Current Custom Implementation
 
 ### firebase-config.js
 ```javascript
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
 
 const firebaseConfig = { /* config */ };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Custom approach: Making Firebase available globally

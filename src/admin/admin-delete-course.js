@@ -22,12 +22,17 @@ window.deleteCourse = async function(courseId) {
     const helpers = window.firestoreHelpers;
     const fileSearch = new window.GeminiFileSearchCloudClient(window.firebaseApp, null);
     
-    // Get user ID
+    // Use the authenticated Firebase UID; Chrome profile IDs are not
+    // authorization credentials.
     const userInfo = await new Promise(resolve => {
       chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, resolve);
     });
-    
-    fileSearch.setUserId(userInfo.id);
+    const firebaseUser = window.firebaseAuth.currentUser;
+    if (!firebaseUser || !userInfo?.email) {
+      throw new Error('Open the extension after signing in before running this command.');
+    }
+
+    fileSearch.setUserId(firebaseUser.uid);
     
     // Step 1: Get course data
     console.log('📋 Fetching course data...');
@@ -82,13 +87,13 @@ window.deleteCourse = async function(courseId) {
     
     // Use the fileSearch client's functions instance to call the Cloud Function
     // The GeminiFileSearchCloudClient already has the proper functions setup
-    const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-    const functions = getFunctions(window.firebaseApp, 'europe-north1');
-    const deleteCourseFunc = httpsCallable(functions, 'deleteCourseWithCascade');
+    const deleteCourseFunc = window.firebaseModules.httpsCallable(
+      window.firebaseFunctions,
+      'deleteCourseWithCascade'
+    );
     
     const deleteResult = await deleteCourseFunc({
-      courseId: courseId,
-      userId: userInfo.id
+      courseId: courseId
     });
     
     if (!deleteResult.data || !deleteResult.data.success) {

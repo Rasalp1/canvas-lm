@@ -2,7 +2,7 @@
 
 **AI-Powered Study Assistant for Canvs LMS**
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/Rasalp1/canvas-lm)
+[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/Rasalp1/canvas-lm)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Chrome](https://img.shields.io/badge/chrome-v88%2B-brightgreen.svg)](https://www.google.com/chrome/)
 
@@ -31,11 +31,11 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 - **Fair Usage**: Prevents abuse while providing generous free access
 
 ### Privacy & Security
-- **Chrome Identity authentication** - No passwords stored
+- **Firebase authenticated requests** - User records are scoped to a Firebase UID
 - **Server-side API key** - Never exposed to client
 - **Usage limiting** - Fair limits with premium upgrade options
 - **Rate limiting** - Prevents abuse and controls costs
-- **Enrollment verification** - Only access courses you're enrolled in
+- **UID-based authorization** - Private profiles and chat data are scoped to the authenticated Firebase UID
 - **Encrypted storage** - All data encrypted at rest and in transit
 - **Tier-based access** - Protected user roles and permissions
 
@@ -44,7 +44,7 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 - **Streaming responses** - See AI answers appear in real-time with typing animation (server-side aggregation ensures complete responses)
 - **Re-scanning capability** - Easily update your course store with new documents or retry failed uploads
 - **Source citations** - Every answer includes references to source documents
-- **Shared course stores** - Collaborate with classmates on the same course materials
+- **Shared course stores** - Users can reuse course materials uploaded by others for the same Canvas course
 - **Usage tracking** - Clear display of remaining messages and reset timers
 - **Enhanced status messages** - Clear, contextual feedback throughout the scanning and upload process
 - **Modern UI** - Built with React 19 and Tailwind CSS for a polished experience
@@ -57,7 +57,7 @@ Seamlessly switch between multiple courses. Each course maintains its own docume
 
 - **Google Chrome** (version 88 or later)
 - **Canvs LMS account** with active courses
-- **Google Account** for authentication
+- **Chrome profile email** for the extension profile display
 
 ### Installation
 
@@ -236,7 +236,7 @@ Canvs LM uses a modern, secure architecture:
 - **Backend:** Firebase Cloud Functions (Node.js)
 - **Database:** Cloud Firestore
 - **AI:** Google Gemini 2.5 Flash with File Search Tool (RAG)
-- **Authentication:** Chrome Identity API (Google OAuth)
+- **Authentication:** Firebase Anonymous Authentication; Chrome Identity supplies profile display information only
 - **Build:** Webpack 5, Babel
 
 For detailed architecture information, see [ARCHITECTURE.md](documentation/ARCHITECTURE.md).
@@ -257,8 +257,10 @@ For detailed architecture information, see [ARCHITECTURE.md](documentation/ARCHI
 2. **Configure Firebase:**
    - Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
    - Enable Firestore Database
+   - Enable **Anonymous** in Authentication → Sign-in method
    - Enable Cloud Functions
    - Copy your Firebase config to `src/firebase-config.js`
+   - Deploy the Firestore rules from `firestore.rules`
 
 3. **Set up Cloud Functions:**
    ```bash
@@ -268,9 +270,9 @@ For detailed architecture information, see [ARCHITECTURE.md](documentation/ARCHI
    # Add your GEMINI_API_KEY to .env
    ```
 
-4. **Deploy Cloud Functions:**
+4. **Deploy security rules and Cloud Functions:**
    ```bash
-   firebase deploy --only functions
+   firebase deploy --only firestore:rules,functions
    ```
 
 5. **Build and watch:**
@@ -313,6 +315,7 @@ firebase deploy        # Deploy Cloud Functions
 
 ### Important Notes
 
+- **Shared courses:** Any signed-in Canvs LM user can add a course using its Canvas course ID and access that course's shared materials. This does not verify Canvas enrollment. Profiles, chats, and usage data remain private to each Firebase UID; users do not connect a Canvas account to Canvs LM.
 - Always edit files in the `src/` folder, not in `dist/`
 - Run `npm run build` after making changes
 - Reload the extension in Chrome after building

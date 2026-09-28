@@ -1,88 +1,132 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // SECURITY MODEL FOR CHROME EXTENSION (WITHOUT FIREBASE AUTH):
-    // ============================================================
-    // Since Chrome extensions use Chrome Identity API (not Firebase Auth),
-    // request.auth is ALWAYS null, so we CANNOT use request.auth.uid
-    // 
-    // Security is enforced through:
-    // 1. Cloud Functions with enrollment verification (server-side)
-    // 2. Rate limiting (server-side in Cloud Functions)
-    // 3. Chrome Web Store review process (platform trust)
-    // 4. Basic Firestore rules to prevent obvious attacks
-    //
-    // These rules are INTENTIONALLY permissive because:
-    // - All sensitive operations (Gemini API calls) go through Cloud Functions
-    // - Cloud Functions verify userId and enrollment before executing
-    // - We trust Chrome Web Store's security review
-    // - Rate limiting prevents abuse
-    //
-    // This is the INDUSTRY STANDARD for Chrome extensions with Firebase
-    
-    // ==================== USERS COLLECTION ====================
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isEnrolled(courseId) {
+      return signedIn() && exists(
+        /databases/$(database)/documents/users/$(request.auth.uid)/enrollments/$(courseId)
+      );
+    }
+
+    function ownsSession(sessionId) {
+      return signedIn() &&
+        get(/databases/$(database)/documents/chatSessions/$(sessionId)).data.userId == request.auth.uid;
+    }
+
     match /users/{userId} {
-      // Allow read and create
-      allow read, create: if true;
-      allow delete: if false; // Prevent accidental deletion
-      
-      // Allow updates EXCEPT for tier and isAdmin fields (admin-only fields)
-      // These can ONLY be modified through Cloud Functions with admin verification
-      allow update: if true && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tier', 'isAdmin']);
-      
-      // Enrollments subcollection
-      match /enrollments/{enrollmentId} {
-        allow read, write, delete: if true;
+      allow get, list: if isSelf(userId);
+      allow create: if isSelf(userId) &&
+        request.resource.data.keys().hasOnly([
+          'email', 'displayName', 'lastSeenAt', 'createdAt', 'isAdmin'
+        ]) &&
+        request.resource.data.isAdmin == false;
+      allow update: if isSelf(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email', 'displayName', 'lastSeenAt'
+        ]);
+      allow delete: if false;
+
+      match /enrollments/{courseId} {
+        allow read: if isSelf(userId);
+        allow create: if isSelf(userId) &&
+          request.resource.data.courseId == courseId &&
+          exists(/databases/$(database)/documents/courses/$(courseId)) &&
+          request.resource.data.keys().hasOnly([
+            'courseId', 'courseName', 'enrolledAt', 'lastAccessedAt', 'favorite', 'colorId'
+          ]);
+        allow update: if isSelf(userId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'lastAccessedAt', 'favorite', 'colorId'
+          ]);
+        allow delete: if isSelf(userId);
       }
-      
-      // Rate limiting collection (managed by Cloud Functions)
+
       match /rateLimits/{document=**} {
-        allow read: if true;
-        allow write: if false; // Only Cloud Functions can write
+        allow read, write: if false;
       }
     }
-    
-    // ==================== COURSES COLLECTION (SHARED) ====================
+
+    // Course metadata is shared with authenticated extension users. Materials
+    // are available to users who enroll in that course from the extension.
     match /courses/{courseId} {
-      // Allow all users to read/create/update courses
-      // Security: Course creation auto-enrolls user, Cloud Functions verify enrollment
-      allow read, create, update: if true;
-      allow delete: if false; // Must delete through Cloud Functions
-      
-      // Documents subcollection (course materials)
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.fileSearchStoreName == null &&
+        request.resource.data.keys().hasOnly([
+          'courseName', 'courseCode', 'canvasUrl', 'canvasInstance',
+          'firstScannedAt', 'lastScannedAt', 'fileSearchStoreName',
+          'totalEnrollments', 'createdBy'
+        ]);
+      allow update: if (signedIn() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'lastScannedAt'
+          ])) ||
+        (isEnrolled(courseId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'totalEnrollments'
+          ]));
+      allow delete: if false;
+
       match /documents/{documentId} {
-        allow read, write, delete: if true;
+        allow read: if isEnrolled(courseId);
+        allow create: if isEnrolled(courseId) &&
+          request.resource.data.keys().hasOnly([
+            'fileName', 'fileUrl', 'fileSize', 'fileType', 'scannedFrom',
+            'uploadedAt', 'fileSearchDocumentName', 'uploadStatus',
+            'lastUpdatedAt', 'uploadedToFileSearchAt'
+          ]);
+        allow update: if isEnrolled(courseId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'fileName', 'fileUrl', 'fileSize', 'fileType', 'scannedFrom',
+            'uploadedAt', 'fileSearchDocumentName', 'uploadStatus',
+            'lastUpdatedAt', 'uploadedToFileSearchAt'
+          ]);
+        allow delete: if isEnrolled(courseId);
       }
     }
-    
-    // ==================== CHAT SESSIONS (ROOT LEVEL) ====================
-    // Stored at root for simplicity (not user-scoped)
+
     match /chatSessions/{sessionId} {
-      // Allow all operations - sessions are linked to userId in document data
-      // Security: Users can only see their own sessions via client-side filtering
-      allow read, create, update, delete: if true;
-      
-      // Messages subcollection
+      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasOnly([
+          'userId', 'courseId', 'title', 'createdAt', 'lastMessageAt', 'messageCount'
+        ]);
+      allow update: if signedIn() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'lastMessageAt', 'messageCount'
+        ]);
+
       match /messages/{messageId} {
-        allow read, write, delete: if true;
+        allow read, delete: if ownsSession(sessionId);
+        allow create: if ownsSession(sessionId) &&
+          request.resource.data.keys().hasOnly(['role', 'content', 'timestamp']) &&
+          request.resource.data.role in ['user', 'assistant'];
+        allow update: if false;
       }
     }
-    
-    // ==================== USAGE LIMITS ====================
+
     match /userUsageLimits/{userId} {
-      // Users can only read their own usage data
-      allow read: if true;
-      // Only cloud functions can write
+      allow read: if isSelf(userId);
       allow write: if false;
     }
-    
+
     match /usageLimitConfig/{document=**} {
-      // Anyone can read the config (to show limits in UI)
-      allow read: if true;
-      // Only admins can modify config (through Firebase Console)
+      allow read: if signedIn();
       allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

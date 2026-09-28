@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Canvs LM",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "AI-powered study assistant for Canvas. Extract PDFs and chat with course materials using a LLM RAG system.",
   "author": "Rasmus Alpsten",
   "homepage_url": "https://github.com/Rasalp1/canvas-lm",

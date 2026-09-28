@@ -577,7 +577,7 @@ Print this out and check off each item before submitting:
 
 ### Step 1: Deploy Rate Limiting to Production 
 ```bash
-cd /Users/rasmusalpsten/Drive\ C/Projects/Canva\ LM
+cd <project-directory>
 firebase deploy --only functions
 ```
 **Why**: Activate security improvements in production Cloud Functions
@@ -677,4 +677,3 @@ Test these critical paths:
 - [ ] Final testing completed
 
 **Ready to submit when all items above are checked!** 
-

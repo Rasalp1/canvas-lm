@@ -1,5 +1,14 @@
 # Firestore Database Architecture - Canvs LM
 
+> Security note: This document contains historical architecture examples. Use
+> [firestore.rules](../firestore.rules), [AUTHENTICATION.md](./AUTHENTICATION.md),
+> and [SECURITY_MODEL.md](./SECURITY_MODEL.md) as the deployment contract. Never
+> authorize a function from a caller-supplied `userId`; use `request.auth.uid`.
+> Course sharing is intentionally self-service: any signed-in app user can
+> create an enrollment for a known course ID and access its shared materials.
+> This does not verify Canvas membership. Personal profiles, chats, and usage
+> records remain scoped to each Firebase UID.
+
 ## Overview
 
 Firestore is a **NoSQL document database** with a hierarchical structure. Unlike SQL databases where you define tables upfront, Firestore creates collections and documents **dynamically** when you write data.

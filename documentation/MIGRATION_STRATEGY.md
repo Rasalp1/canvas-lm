@@ -1,5 +1,9 @@
 # Migration Strategy: User-Owned to Shared Courses
 
+> Historical migration notes. Current rules allow signed-in users to self-enroll
+> in shared courses by course ID. This is an app sharing choice and does not
+> verify Canvas membership. See [SECURITY_MODEL.md](./SECURITY_MODEL.md).
+
 ## Overview
 
 This document outlines the strategy for migrating from the old user-owned course model to the new shared course model.

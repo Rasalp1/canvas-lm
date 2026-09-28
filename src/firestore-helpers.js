@@ -9,7 +9,7 @@
 /**
  * Create or update user in Firestore
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {Object} userData - User data from Chrome Identity
  * @returns {Promise<Object>} Result object with success status
  */
@@ -45,7 +45,7 @@ export async function saveUser(db, userId, userData) {
 /**
  * Get user data from Firestore
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @returns {Promise<Object>} Result object with user data
  */
 export async function getUser(db, userId) {
@@ -74,7 +74,7 @@ export async function getUser(db, userId) {
  * Save course information to Firestore (SHARED across all users)
  * Creates or updates a shared course document
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID (for tracking who created it)
+ * @param {string} userId - Firebase Authentication UID (for tracking who created it)
  * @param {Object} courseData - Course information
  * @returns {Promise<Object>} Result object with success status and whether it was newly created
  */
@@ -157,7 +157,7 @@ export async function getCourse(db, courseId) {
 /**
  * Get all courses for a user via enrollments
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @returns {Promise<Object>} Result object with array of courses
  */
 export async function getUserCourses(db, userId) {
@@ -264,7 +264,7 @@ export async function incrementCourseEnrollments(db, courseId) {
 /**
  * Create or update user enrollment in a course
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {Object} enrollmentData - Enrollment information
  * @returns {Promise<Object>} Result object with success status and whether it was new
  */
@@ -317,7 +317,7 @@ export async function enrollUserInCourse(db, userId, enrollmentData) {
 /**
  * Check if user is enrolled in a course
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string} courseId - Canvas course ID
  * @returns {Promise<Object>} Result object with enrollment status
  */
@@ -342,7 +342,7 @@ export async function isUserEnrolled(db, userId, courseId) {
 /**
  * Update enrollment favorite status
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string} courseId - Canvas course ID
  * @param {boolean} favorite - Favorite status
  * @returns {Promise<Object>} Result object with success status
@@ -661,7 +661,7 @@ export async function getDocument(db, courseId, docId) {
 /**
  * Get storage statistics for a user
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @returns {Promise<Object>} Result object with statistics
  */
 export async function getUserStats(db, userId) {
@@ -798,7 +798,7 @@ export function docIdToUrl(docId) {
 /**
  * Create a new chat session for a user
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {Object} sessionData - Chat session information
  * @returns {Promise<Object>} Result object with session ID
  */
@@ -827,7 +827,7 @@ export async function createChatSession(db, userId, sessionData) {
 /**
  * Get all chat sessions for a user (optionally filtered by course)
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string|null} courseId - Optional course ID to filter by
  * @returns {Promise<Object>} Result object with array of sessions
  */
@@ -869,7 +869,7 @@ export async function getUserChatSessions(db, userId, courseId = null) {
 /**
  * Add a message to a chat session
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string} sessionId - Chat session ID
  * @param {Object} messageData - Message data (role, content)
  * @returns {Promise<Object>} Result object with message ID
@@ -907,7 +907,7 @@ export async function addMessageToSession(db, userId, sessionId, messageData) {
 /**
  * Get all messages for a chat session
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string} sessionId - Chat session ID
  * @returns {Promise<Object>} Result object with array of messages
  */
@@ -941,7 +941,7 @@ export async function getSessionMessages(db, userId, sessionId) {
 /**
  * Delete a chat session and all its messages
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string} sessionId - Chat session ID
  * @returns {Promise<Object>} Result object with success status
  */
@@ -972,7 +972,7 @@ export async function deleteChatSession(db, userId, sessionId) {
 /**
  * Remove user enrollment from a course (deletes enrollment and all chat sessions)
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {string} courseId - Course ID to unenroll from
  * @returns {Promise<Object>} Result object with success status
  */
@@ -1021,7 +1021,7 @@ export async function removeUserEnrollment(db, userId, courseId) {
 /**
  * Set admin status for a user
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @param {boolean} isAdmin - Admin status
  * @returns {Promise<Object>} Result object with success status
  */
@@ -1045,7 +1045,7 @@ export async function setUserAdminStatus(db, userId, isAdmin) {
 /**
  * Check if user is an admin
  * @param {Object} db - Firestore database instance
- * @param {string} userId - Chrome Identity user ID
+ * @param {string} userId - Firebase Authentication UID
  * @returns {Promise<Object>} Result object with isAdmin status
  */
 export async function isUserAdmin(db, userId) {

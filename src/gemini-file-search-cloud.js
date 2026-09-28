@@ -21,7 +21,7 @@ class GeminiFileSearchCloudClient {
   
   /**
    * Set or update the user ID
-   * @param {string} userId - User ID from Chrome Identity
+   * @param {string} userId - Firebase Authentication UID
    */
   setUserId(userId) {
     this.userId = userId;
@@ -45,8 +45,7 @@ class GeminiFileSearchCloudClient {
       const createCourseStore = httpsCallable(this.functions, 'createCourseStore');
       const result = await createCourseStore({ 
         courseId,
-        displayName,
-        userId: this.userId 
+        displayName
       });
 
       if (!result.data.success) {
@@ -85,8 +84,7 @@ class GeminiFileSearchCloudClient {
 
       const createStore = httpsCallable(this.functions, 'createStore');
       const result = await createStore({ 
-        displayName,
-        userId: this.userId 
+        displayName
       });
 
       if (!result.data.success) {
@@ -114,8 +112,7 @@ class GeminiFileSearchCloudClient {
 
       const getStore = httpsCallable(this.functions, 'getStore');
       const result = await getStore({ 
-        storeName,
-        userId: this.userId 
+        storeName
       });
 
       if (!result.data.success) {
@@ -142,9 +139,7 @@ class GeminiFileSearchCloudClient {
       }
 
       const listStores = httpsCallable(this.functions, 'listStores');
-      const result = await listStores({
-        userId: this.userId
-      });
+      const result = await listStores({});
 
       if (!result.data.success) {
         throw new Error('List stores failed');
@@ -172,8 +167,7 @@ class GeminiFileSearchCloudClient {
 
       const deleteStore = httpsCallable(this.functions, 'deleteStore');
       const result = await deleteStore({ 
-        storeName,
-        userId: this.userId 
+        storeName
       });
 
       console.log('✅ File Search store deleted:', storeName);
@@ -212,8 +206,7 @@ class GeminiFileSearchCloudClient {
         fileData,
         fileName: displayName || file.name || 'document.pdf',
         mimeType: 'application/pdf',
-        metadata,
-        userId: this.userId
+        metadata
       });
 
       if (!result.data.success) {
@@ -250,8 +243,7 @@ class GeminiFileSearchCloudClient {
       const result = await listDocuments({
         storeName,
         pageSize,
-        pageToken,
-        userId: this.userId
+        pageToken
       });
 
       if (!result.data.success) {
@@ -281,7 +273,6 @@ class GeminiFileSearchCloudClient {
       
       const deleteDocument = httpsCallable(this.functions, 'deleteDocument');
       const result = await deleteDocument({ 
-        userId: this.userId,
         documentName 
       });
 
@@ -316,7 +307,6 @@ class GeminiFileSearchCloudClient {
       
       const queryCourseStore = httpsCallable(this.functions, 'queryCourseStore');
       const result = await queryCourseStore({
-        userId: this.userId,
         question,
         courseId,
         model,
@@ -399,7 +389,7 @@ class GeminiFileSearchCloudClient {
       }
       
       const checkLimit = httpsCallable(this.functions, 'checkUsageLimit');
-      const result = await checkLimit({ userId: this.userId });
+      const result = await checkLimit({});
       return result.data;
     } catch (error) {
       console.error('[UsageLimit] Error checking usage limit:', error);
@@ -421,7 +411,7 @@ class GeminiFileSearchCloudClient {
       }
       
       const recordUsage = httpsCallable(this.functions, 'recordMessageUsage');
-      const result = await recordUsage({ userId: this.userId, courseChatId, messageId });
+      const result = await recordUsage({ courseChatId, messageId });
       return result.data;
     } catch (error) {
       console.error('[UsageLimit] Error recording message usage:', error);
@@ -457,7 +447,7 @@ class GeminiFileSearchCloudClient {
       
       console.log('🔧 Initializing usage limit configuration...');
       const initConfig = httpsCallable(this.functions, 'initializeUsageLimitConfig');
-      const result = await initConfig({ userId: this.userId });
+      const result = await initConfig({});
       console.log('✅ Config initialization result:', result.data);
       return result.data;
     } catch (error) {

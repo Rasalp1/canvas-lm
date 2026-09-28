@@ -1,5 +1,9 @@
 # Canvas-Gemini RAG System - Development Plan
 
+> Historical planning document. For the current authentication and security
+> contract, see [AUTHENTICATION.md](./AUTHENTICATION.md) and
+> [SECURITY_MODEL.md](./SECURITY_MODEL.md).
+
 ## Project Overview
 A Chrome extension that automatically downloads PDFs from Canvas courses and creates an interactive RAG (Retrieval-Augmented Generation) system using Google Gemini File Search for seamless Q&A with course materials.
 

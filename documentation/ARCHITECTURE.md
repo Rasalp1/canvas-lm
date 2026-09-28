@@ -93,15 +93,20 @@
         
                                                                         
     
-    Chrome Identity API (Google OAuth)                              
-    • No Firebase Authentication tokens                             
-    • Security via Cloud Functions enrollment verification          
+    Firebase Authentication (anonymous UID)                         
+    • Firebase ID token on Firestore and callable requests           
+    • Chrome Identity email is display information only              
     
                                                                         
 
 ```
 
 ## Data Flow
+
+> Course sharing is intentionally self-service: signed-in users can add a
+> course by its Canvas course ID and access its shared materials. This does not
+> verify Canvas membership. User profiles, chats, and usage records remain
+> private to each Firebase UID.
 
 ### 1. PDF Scanning & Upload Flow
 
@@ -327,7 +332,7 @@ PDF File (from Canvas)
 
 ```
 users/
-  {userId}/                          ← Chrome Identity user ID
+  {userId}/                          ← Firebase Authentication UID
     email: string
     displayName: string
     tier: string                     ← "free" | "premium" | "admin"
@@ -539,27 +544,25 @@ deleteDoc() - Delete document
 
 ```
 
- Layer 1: Chrome Identity (OAuth)     
-   • Google account authentication    
-   • No passwords stored             
-   • Chrome handles OAuth flow       
+ Layer 1: Firebase Authentication    
+   • Anonymous Firebase UID          
+   • Chrome profile email for display only                           
 
            
            
 
  Layer 2: Firestore Rules            
-   • Intentionally permissive         
-   • No Firebase Auth tokens         
-   • Rate limits collection locked   
-   • Security enforced in Layer 3    
+   • User and chat records scoped to UID                             
+   • Privilege fields are server-managed                              
+   • Course reads require an enrollment                                
 
            
            
 
  Layer 3: Cloud Functions Security   
-   • Enrollment verification         
-   • Rate limiting (per user/op)     
-   • Input validation                
+   • Caller UID comes from request.auth                               
+   • Enrollment and admin checks use that UID                          
+   • Rate limiting (per Firebase UID)                                  
    • API key never exposed           
 
            
